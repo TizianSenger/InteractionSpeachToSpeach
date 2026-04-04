@@ -172,3 +172,17 @@ Piper (offline, natürlich):
 3. `Piper Config (.json)` optional leer lassen, wenn die passende JSON neben der ONNX-Datei liegt.
 
 Hinweis: Piper ist komplett offline, benötigt aber lokal heruntergeladene Stimmen.
+
+## Portable Offline Bundle (abgekapselter Rechner)
+
+Wenn du ein transportierbares Paket mit App + Ollama + lokal vorhandenen Modellen bauen willst:
+
+	powershell -ExecutionPolicy Bypass -File .\scripts\create_portable_bundle.ps1 -BundleName VoiceStudio-Portable
+
+Standard-Ziel ist jetzt der Desktop:
+
+- `%USERPROFILE%\Desktop\dist_portable\VoiceStudio-Portable`
+
+Optional kannst du einen eigenen Zielpfad setzen:
+
+	powershell -ExecutionPolicy Bypass -File .\scripts\create_portable_bundle.ps1 -BundleName VoiceStudio-Portable -OutputRoot "D:\PortableBuilds"
