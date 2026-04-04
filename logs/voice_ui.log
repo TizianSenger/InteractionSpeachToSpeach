@@ -1,0 +1,17 @@
+2026-04-04 15:12:27,730 | INFO | MainThread | Voice Studio gestartet
+2026-04-04 15:12:29,577 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-04 15:12:40,405 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-04 15:12:41,610 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-04 15:12:43,754 | INFO | MainThread | Status: Mikrofon läuft... (Standard (Windows))
+2026-04-04 15:12:49,276 | INFO | MainThread | Aufnahmedauer: 5.51s
+2026-04-04 15:12:49,311 | INFO | MainThread | Status: Aufnahme beendet. Starte Auto-Workflow...
+2026-04-04 15:12:49,327 | INFO | Thread-2 (_run_transcription) | Status: Transkribiere Audio...
+2026-04-04 15:12:51,737 | INFO | Thread-2 (_run_transcription) | Transkription fertig (56 Zeichen)
+2026-04-04 15:12:51,740 | INFO | Thread-2 (_run_transcription) | Status: Transkript erkannt. Sende an Ollama...
+2026-04-04 15:12:51,740 | INFO | Thread-2 (_run_transcription) | Ollama Anfrage gestartet (56 Zeichen Input)
+2026-04-04 15:12:51,740 | INFO | Thread-2 (_run_transcription) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-04 15:12:51,748 | DEBUG | Thread-2 (_run_transcription) | History Du: Hallo, das ist ein kleiner Test. Wie viel ist die heute?
+2026-04-04 15:12:52,499 | INFO | Thread-2 (_run_transcription) | Status: Ollama antwortet...
+2026-04-04 15:12:54,489 | INFO | Thread-2 (_run_transcription) | Ollama Antwort fertig (125 Zeichen, 2.75s)
+2026-04-04 15:12:54,489 | DEBUG | Thread-2 (_run_transcription) | History Assistent: Ich kann keinen Echtzeit-Zeitpunkt bereitstellen. Bitte überprüfen Sie Ihren Uhrentimer oder eine zuverlässige Online-Quelle.
+2026-04-04 15:12:54,490 | INFO | Thread-2 (_run_transcription) | Status: Antwort fertig. Audio streamt...

@@ -120,6 +120,8 @@ Funktionen in der UI:
 - Live-Mikrofonpegel (auch ohne aktive Aufnahme)
 - Gruppierte Einstellungs-Panels: STT, Modell, Audio, TTS
 - Gesprächsverlauf mit Zeitstempeln (inkl. Button zum Leeren)
+- Statistik-Tab mit Laufzeit, Countern und durchschnittlichen Latenzen
+- Debug-Logs-Tab mit Live-Logstream, Log-Level-Filter und "Logs leeren"
 - Statusanzeige (Aufnahme, Transkription, Ollama, TTS)
 - Anzeige von Transkript und Modellantwort
 - Mikrofon-Sample-Rate, Whisper-Modell, Ollama-Modell/URL, TTS-Rate einstellbar
@@ -133,6 +135,10 @@ Funktionen in der UI:
 
 Hinweis: `edge-tts` klingt natürlicher, benötigt aber eine Internetverbindung.
 Für die Wiedergabe in der UI wird dafür `pygame` genutzt.
+
+Debug-Logdatei:
+
+- Laufende Logs werden zusätzlich in `logs/voice_ui.log` gespeichert.
 
 Piper (offline, natürlich):
 

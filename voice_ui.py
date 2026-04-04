@@ -1,7 +1,9 @@
 import asyncio
+from collections import deque
 from datetime import datetime
 import importlib
 import json
+import logging
 import os
 import queue
 import shutil
@@ -54,6 +56,8 @@ OLLAMA_VOICE_SYSTEM_PROMPT = (
     "Standard: 1-3 Saetze, keine langen Ausfuehrungen."
 )
 MODEL_GLOB_PATTERN = "*.onnx"
+LOG_DIR_NAME = "logs"
+LOG_FILE_NAME = "voice_ui.log"
 
 _FFMPEG_CHECKED = False
 _FFMPEG_AVAILABLE = False
@@ -105,6 +109,19 @@ def safe_remove_file(path: str, retries: int = 6, delay_seconds: float = 0.15) -
             time.sleep(delay_seconds)
 
 
+class UILogQueueHandler(logging.Handler):
+    def __init__(self, target_queue: queue.Queue[str]) -> None:
+        super().__init__()
+        self.target_queue = target_queue
+
+    def emit(self, record: logging.LogRecord) -> None:
+        try:
+            message = self.format(record)
+            self.target_queue.put(message)
+        except Exception:
+            pass
+
+
 class VoiceAssistantUI(ctk.CTk):
     def __init__(self) -> None:
         super().__init__()
@@ -145,8 +162,35 @@ class VoiceAssistantUI(ctk.CTk):
         self.stt_loading_value = 0.0
         self.stt_loading_job_id: str | None = None
         self.stt_loading_model_name = ""
+        self.recording_started_at: float | None = None
+        self.log_queue: queue.Queue[str] = queue.Queue()
+        self.log_pump_job_id: str | None = None
+        self.stats_refresh_job_id: str | None = None
+        self.max_ui_log_lines = 1500
+        self.event_history: deque[str] = deque(maxlen=400)
+        self.metric_samples: dict[str, list[float]] = {
+            "recording_seconds": [],
+            "transcription_seconds": [],
+            "ollama_first_token_seconds": [],
+            "ollama_total_seconds": [],
+            "tts_chunk_seconds": [],
+        }
+        self.counters: dict[str, int] = {
+            "recordings_started": 0,
+            "recordings_finished": 0,
+            "transcriptions": 0,
+            "ollama_requests": 0,
+            "ollama_cancels": 0,
+            "tts_chunks": 0,
+            "errors": 0,
+        }
+        self.app_started_at = time.time()
+        self.logger = self._setup_logger()
 
         self.status_var = ctk.StringVar(value="Bereit")
+        self.debug_log_level_var = ctk.StringVar(value="INFO")
+        self.stats_summary_var = ctk.StringVar(value="Keine Daten")
+        self.stats_latency_var = ctk.StringVar(value="Latenzen: -")
         self.whisper_model_var = ctk.StringVar(value="small")
         self.ollama_model_var = ctk.StringVar(value="phi4-mini")
         self.ollama_url_var = ctk.StringVar(value="http://localhost:11434")
@@ -173,7 +217,146 @@ class VoiceAssistantUI(ctk.CTk):
         self.refresh_input_devices()
         self.start_level_monitor()
         self._start_background_warmup()
+        self._schedule_log_pump()
+        self._schedule_stats_refresh()
         self.protocol("WM_DELETE_WINDOW", self.on_close)
+
+    def _setup_logger(self) -> logging.Logger:
+        logger = logging.getLogger("voice_studio_ui")
+        logger.setLevel(logging.DEBUG)
+        logger.propagate = False
+
+        if not logger.handlers:
+            log_dir = Path(__file__).resolve().parent / LOG_DIR_NAME
+            log_dir.mkdir(parents=True, exist_ok=True)
+            log_file = log_dir / LOG_FILE_NAME
+            formatter = logging.Formatter("%(asctime)s | %(levelname)s | %(threadName)s | %(message)s")
+
+            file_handler = logging.FileHandler(log_file, encoding="utf-8")
+            file_handler.setLevel(logging.DEBUG)
+            file_handler.setFormatter(formatter)
+            logger.addHandler(file_handler)
+
+            ui_handler = UILogQueueHandler(self.log_queue)
+            ui_handler.setLevel(logging.DEBUG)
+            ui_handler.setFormatter(formatter)
+            logger.addHandler(ui_handler)
+
+        logger.info("Voice Studio gestartet")
+        return logger
+
+    def _schedule_log_pump(self) -> None:
+        self._pump_logs_into_ui()
+        self.log_pump_job_id = self.after(200, self._schedule_log_pump)
+
+    def _pump_logs_into_ui(self) -> None:
+        if not hasattr(self, "debug_log_box"):
+            return
+
+        log_level = self.debug_log_level_var.get().strip().upper() or "INFO"
+        level_order = {"DEBUG": 10, "INFO": 20, "WARNING": 30, "ERROR": 40, "CRITICAL": 50}
+        selected_level = level_order.get(log_level, 20)
+
+        lines_to_append: list[str] = []
+        while True:
+            try:
+                line = self.log_queue.get_nowait()
+            except queue.Empty:
+                break
+
+            level_token = "INFO"
+            parts = line.split("|")
+            if len(parts) >= 2:
+                level_token = parts[1].strip().upper()
+            if level_order.get(level_token, 20) >= selected_level:
+                lines_to_append.append(line)
+
+        if lines_to_append:
+            self.debug_log_box.insert("end", "\n".join(lines_to_append) + "\n")
+            self.debug_log_box.see("end")
+
+            current_end = self.debug_log_box.index("end-1c")
+            try:
+                line_count = int(float(current_end.split(".")[0]))
+            except Exception:
+                line_count = 0
+            overflow = max(0, line_count - self.max_ui_log_lines)
+            if overflow > 0:
+                self.debug_log_box.delete("1.0", f"{overflow + 1}.0")
+
+    def _track_event(self, label: str) -> None:
+        timestamp = datetime.now().strftime("%H:%M:%S")
+        self.event_history.append(f"[{timestamp}] {label}")
+        self._refresh_event_box()
+
+    def _increment_counter(self, name: str, amount: int = 1) -> None:
+        current = self.counters.get(name, 0)
+        self.counters[name] = current + amount
+
+    def _add_metric_sample(self, name: str, value: float) -> None:
+        samples = self.metric_samples.get(name)
+        if samples is None:
+            return
+        samples.append(value)
+        if len(samples) > 300:
+            del samples[: len(samples) - 300]
+
+    def _format_metric(self, name: str) -> str:
+        values = self.metric_samples.get(name, [])
+        if not values:
+            return "-"
+        avg = sum(values) / len(values)
+        return f"{avg:.2f}s (n={len(values)})"
+
+    def _schedule_stats_refresh(self) -> None:
+        self._refresh_stats_view()
+        self.stats_refresh_job_id = self.after(1200, self._schedule_stats_refresh)
+
+    def _refresh_event_box(self) -> None:
+        if not hasattr(self, "events_box"):
+            return
+        content = "\n".join(self.event_history)
+        self.events_box.delete("1.0", "end")
+        self.events_box.insert("1.0", content if content else "Noch keine Events")
+        self.events_box.see("end")
+
+    def _refresh_stats_view(self) -> None:
+        uptime_seconds = max(0, int(time.time() - self.app_started_at))
+        minutes, seconds = divmod(uptime_seconds, 60)
+        hours, minutes = divmod(minutes, 60)
+        uptime = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+
+        summary = (
+            f"Uptime: {uptime}\n"
+            f"Recordings: {self.counters.get('recordings_started', 0)} gestartet / "
+            f"{self.counters.get('recordings_finished', 0)} beendet\n"
+            f"Transkriptionen: {self.counters.get('transcriptions', 0)}\n"
+            f"Ollama Requests: {self.counters.get('ollama_requests', 0)}\n"
+            f"Abbrueche: {self.counters.get('ollama_cancels', 0)}\n"
+            f"TTS Chunks: {self.counters.get('tts_chunks', 0)}\n"
+            f"Fehler: {self.counters.get('errors', 0)}"
+        )
+        self.stats_summary_var.set(summary)
+
+        latency_text = (
+            f"Transkription: {self._format_metric('transcription_seconds')} | "
+            f"First token: {self._format_metric('ollama_first_token_seconds')} | "
+            f"Ollama gesamt: {self._format_metric('ollama_total_seconds')} | "
+            f"TTS Chunk: {self._format_metric('tts_chunk_seconds')}"
+        )
+        self.stats_latency_var.set(latency_text)
+
+    def clear_debug_logs(self) -> None:
+        if hasattr(self, "debug_log_box"):
+            self.debug_log_box.delete("1.0", "end")
+
+    def on_debug_log_level_changed(self, _selected: str) -> None:
+        self.clear_debug_logs()
+
+    def _log_exception(self, context: str, exc: Exception) -> None:
+        self._increment_counter("errors")
+        self._track_event(f"Fehler in {context}: {exc}")
+        self.logger.exception("%s: %s", context, exc)
 
     def _build_layout(self) -> None:
         self.grid_columnconfigure(0, weight=0)
@@ -407,36 +590,28 @@ class VoiceAssistantUI(ctk.CTk):
             anchor="w", padx=10, pady=(0, 10)
         )
 
-        transcript_frame = ctk.CTkFrame(self)
-        transcript_frame.grid(row=2, column=1, columnspan=2, padx=(8, 16), pady=(0, 8), sticky="nsew")
-        transcript_frame.grid_rowconfigure(1, weight=1)
-        transcript_frame.grid_columnconfigure(0, weight=1)
+        tabs = ctk.CTkTabview(self)
+        tabs.grid(row=2, column=1, rowspan=3, columnspan=2, padx=(8, 16), pady=(0, 16), sticky="nsew")
 
-        ctk.CTkLabel(transcript_frame, text="Transkript", font=(FONT_FAMILY, 16, "bold")).grid(
-            row=0, column=0, padx=12, pady=(10, 6), sticky="w"
-        )
-        self.transcript_box = ctk.CTkTextbox(transcript_frame, wrap="word")
-        self.transcript_box.grid(row=1, column=0, padx=12, pady=(0, 12), sticky="nsew")
+        transcript_tab = tabs.add("Transkript")
+        transcript_tab.grid_rowconfigure(0, weight=1)
+        transcript_tab.grid_columnconfigure(0, weight=1)
+        self.transcript_box = ctk.CTkTextbox(transcript_tab, wrap="word")
+        self.transcript_box.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
         self.transcript_box.insert("1.0", "Du kannst hier auch direkt Text eintippen und dann auf 'Text direkt senden' klicken.")
 
-        answer_frame = ctk.CTkFrame(self)
-        answer_frame.grid(row=3, column=1, columnspan=2, padx=(8, 16), pady=(0, 8), sticky="nsew")
-        answer_frame.grid_rowconfigure(1, weight=1)
-        answer_frame.grid_columnconfigure(0, weight=1)
+        answer_tab = tabs.add("Antwort")
+        answer_tab.grid_rowconfigure(0, weight=1)
+        answer_tab.grid_columnconfigure(0, weight=1)
+        self.answer_box = ctk.CTkTextbox(answer_tab, wrap="word")
+        self.answer_box.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
 
-        ctk.CTkLabel(answer_frame, text="Antwort", font=(FONT_FAMILY, 16, "bold")).grid(
-            row=0, column=0, padx=12, pady=(10, 6), sticky="w"
-        )
-        self.answer_box = ctk.CTkTextbox(answer_frame, wrap="word")
-        self.answer_box.grid(row=1, column=0, padx=12, pady=(0, 12), sticky="nsew")
+        history_tab = tabs.add("Verlauf")
+        history_tab.grid_rowconfigure(1, weight=1)
+        history_tab.grid_columnconfigure(0, weight=1)
 
-        history_frame = ctk.CTkFrame(self)
-        history_frame.grid(row=4, column=1, columnspan=2, padx=(8, 16), pady=(0, 16), sticky="nsew")
-        history_frame.grid_rowconfigure(1, weight=1)
-        history_frame.grid_columnconfigure(0, weight=1)
-
-        history_header = ctk.CTkFrame(history_frame, fg_color="transparent")
-        history_header.grid(row=0, column=0, padx=12, pady=(8, 4), sticky="ew")
+        history_header = ctk.CTkFrame(history_tab, fg_color="transparent")
+        history_header.grid(row=0, column=0, padx=10, pady=(8, 4), sticky="ew")
         history_header.grid_columnconfigure(0, weight=1)
 
         ctk.CTkLabel(history_header, text="Gesprächsverlauf", font=(FONT_FAMILY, 16, "bold")).grid(
@@ -450,11 +625,55 @@ class VoiceAssistantUI(ctk.CTk):
         )
         self.clear_history_btn.grid(row=0, column=1, sticky="e")
 
-        self.history_box = ctk.CTkTextbox(history_frame, wrap="word")
-        self.history_box.grid(row=1, column=0, padx=12, pady=(0, 12), sticky="nsew")
+        self.history_box = ctk.CTkTextbox(history_tab, wrap="word")
+        self.history_box.grid(row=1, column=0, padx=10, pady=(0, 10), sticky="nsew")
         self.history_box.insert("1.0", "Der Verlauf wird hier mit Zeitstempel angezeigt.\n")
 
+        stats_tab = tabs.add("Statistik")
+        stats_tab.grid_rowconfigure(2, weight=1)
+        stats_tab.grid_columnconfigure(0, weight=1)
+
+        ctk.CTkLabel(stats_tab, text="Laufzeit und Kennzahlen", font=(FONT_FAMILY, 16, "bold")).grid(
+            row=0, column=0, padx=10, pady=(10, 4), sticky="w"
+        )
+        ctk.CTkLabel(stats_tab, textvariable=self.stats_summary_var, justify="left").grid(
+            row=1, column=0, padx=10, pady=(0, 8), sticky="w"
+        )
+        ctk.CTkLabel(stats_tab, textvariable=self.stats_latency_var, justify="left", text_color="gray70").grid(
+            row=2, column=0, padx=10, pady=(0, 8), sticky="w"
+        )
+
+        self.events_box = ctk.CTkTextbox(stats_tab, wrap="word", height=220)
+        self.events_box.grid(row=3, column=0, padx=10, pady=(0, 10), sticky="nsew")
+        self.events_box.insert("1.0", "Noch keine Events")
+
+        debug_tab = tabs.add("Debug Logs")
+        debug_tab.grid_rowconfigure(1, weight=1)
+        debug_tab.grid_columnconfigure(0, weight=1)
+
+        debug_controls = ctk.CTkFrame(debug_tab, fg_color="transparent")
+        debug_controls.grid(row=0, column=0, padx=10, pady=(8, 4), sticky="ew")
+        debug_controls.grid_columnconfigure(3, weight=1)
+
+        ctk.CTkLabel(debug_controls, text="Log-Level").grid(row=0, column=0, padx=(0, 6), pady=0, sticky="w")
+        self.debug_level_menu = ctk.CTkOptionMenu(
+            debug_controls,
+            values=["DEBUG", "INFO", "WARNING", "ERROR"],
+            variable=self.debug_log_level_var,
+            command=self.on_debug_log_level_changed,
+            width=120,
+        )
+        self.debug_level_menu.grid(row=0, column=1, padx=(0, 8), pady=0, sticky="w")
+
+        self.clear_debug_btn = ctk.CTkButton(debug_controls, text="Logs leeren", command=self.clear_debug_logs, width=120)
+        self.clear_debug_btn.grid(row=0, column=2, padx=(0, 8), pady=0, sticky="w")
+
+        self.debug_log_box = ctk.CTkTextbox(debug_tab, wrap="none")
+        self.debug_log_box.grid(row=1, column=0, padx=10, pady=(0, 10), sticky="nsew")
+
     def set_status(self, message: str) -> None:
+        self.logger.info("Status: %s", message)
+        self._track_event(f"Status: {message}")
         self.after(0, lambda: self.status_var.set(message))
 
     def set_textbox(self, textbox: ctk.CTkTextbox, content: str) -> None:
@@ -500,10 +719,14 @@ class VoiceAssistantUI(ctk.CTk):
                 try:
                     if self.cancel_tts_event.is_set():
                         continue
+                    started = time.perf_counter()
                     self.speak_text(item)
+                    elapsed = time.perf_counter() - started
+                    self._increment_counter("tts_chunks")
+                    self._add_metric_sample("tts_chunk_seconds", elapsed)
                 except Exception:
                     # Ignore per-chunk TTS failures so the rest of the response can continue.
-                    pass
+                    self._increment_counter("errors")
                 finally:
                     tts_queue.task_done()
 
@@ -517,6 +740,9 @@ class VoiceAssistantUI(ctk.CTk):
     def cancel_current_response(self) -> None:
         self.cancel_ollama_event.set()
         self.cancel_tts_event.set()
+        self._increment_counter("ollama_cancels")
+        self.logger.warning("Aktive Antwort wurde abgebrochen")
+        self._track_event("Antwortabbruch angefordert")
 
         queue_ref = self.current_tts_queue
         if queue_ref is not None:
@@ -566,6 +792,7 @@ class VoiceAssistantUI(ctk.CTk):
 
     def add_history_entry(self, role: str, content: str) -> None:
         timestamp = datetime.now().strftime("%H:%M:%S")
+        self.logger.debug("History %s: %s", role, content[:140])
 
         def updater() -> None:
             self.history_box.insert("end", f"[{timestamp}] {role}:\n{content}\n\n")
@@ -575,6 +802,7 @@ class VoiceAssistantUI(ctk.CTk):
 
     def clear_history(self) -> None:
         self.history_box.delete("1.0", "end")
+        self._track_event("Verlauf geloescht")
 
     def refresh_piper_model_options(self) -> None:
         project_root = Path(__file__).resolve().parent
@@ -718,12 +946,27 @@ class VoiceAssistantUI(ctk.CTk):
 
     def on_close(self) -> None:
         self.stt_loading_active = False
+        self.logger.info("Voice Studio wird beendet")
         if self.stt_loading_job_id is not None:
             try:
                 self.after_cancel(self.stt_loading_job_id)
             except Exception:
                 pass
             self.stt_loading_job_id = None
+
+        if self.log_pump_job_id is not None:
+            try:
+                self.after_cancel(self.log_pump_job_id)
+            except Exception:
+                pass
+            self.log_pump_job_id = None
+
+        if self.stats_refresh_job_id is not None:
+            try:
+                self.after_cancel(self.stats_refresh_job_id)
+            except Exception:
+                pass
+            self.stats_refresh_job_id = None
 
         self.cancel_current_response()
         self._stop_active_audio_playback()
@@ -955,6 +1198,8 @@ class VoiceAssistantUI(ctk.CTk):
             return
 
         self.is_recording = True
+        self.recording_started_at = time.perf_counter()
+        self._increment_counter("recordings_started")
         self.last_transcript = ""
         self.set_mic_level(0)
         self.set_status(f"Mikrofon läuft... ({self.mic_device_var.get()})")
@@ -977,6 +1222,12 @@ class VoiceAssistantUI(ctk.CTk):
             self.recording_wave = None
 
         self.is_recording = False
+        self._increment_counter("recordings_finished")
+        if self.recording_started_at is not None:
+            duration = time.perf_counter() - self.recording_started_at
+            self._add_metric_sample("recording_seconds", duration)
+            self.logger.info("Aufnahmedauer: %.2fs", duration)
+            self.recording_started_at = None
         self.set_mic_level(0)
         self.start_btn.configure(state="normal")
         self.stop_btn.configure(state="disabled")
@@ -1420,6 +1671,7 @@ class VoiceAssistantUI(ctk.CTk):
         worker.start()
 
     def _run_transcription(self, auto_send: bool = False) -> None:
+        started = time.perf_counter()
         try:
             model_name = self.whisper_model_var.get().strip() or "small"
             audio_path = self.recording_path
@@ -1478,6 +1730,9 @@ class VoiceAssistantUI(ctk.CTk):
                 return
 
             self.last_transcript = transcript
+            self._increment_counter("transcriptions")
+            self._add_metric_sample("transcription_seconds", time.perf_counter() - started)
+            self.logger.info("Transkription fertig (%d Zeichen)", len(transcript))
             self.set_textbox(self.transcript_box, transcript)
             if auto_send:
                 self.set_status("Transkript erkannt. Sende an Ollama...")
@@ -1486,6 +1741,7 @@ class VoiceAssistantUI(ctk.CTk):
                 self.set_status("Transkript erkannt")
                 self.after(0, lambda: self.send_btn.configure(state="normal"))
         except Exception as exc:
+            self._log_exception("Transkription", exc)
             self.set_status(f"Fehler: {exc}")
         finally:
             self.after(0, lambda: self.transcribe_btn.configure(state="normal"))
@@ -1513,10 +1769,13 @@ class VoiceAssistantUI(ctk.CTk):
         worker.start()
 
     def _run_ollama_only(self, transcript: str, manage_buttons: bool = True) -> None:
+        request_started = time.perf_counter()
         try:
             self.cancel_ollama_event.clear()
             self.cancel_tts_event.clear()
             self.after(0, lambda: self.cancel_btn.configure(state="normal"))
+            self._increment_counter("ollama_requests")
+            self.logger.info("Ollama Anfrage gestartet (%d Zeichen Input)", len(transcript))
 
             self.set_status("Frage Ollama... (erster Lauf kann etwas dauern)")
             self.add_history_entry("Du", transcript)
@@ -1524,6 +1783,7 @@ class VoiceAssistantUI(ctk.CTk):
 
             chunk_buffer: list[str] = []
             first_token_received = False
+            first_token_time: float | None = None
             tts_queue: queue.Queue[str | None] | None = None
             tts_text_buffer = ""
             tts_phrase_buffer = ""
@@ -1541,6 +1801,7 @@ class VoiceAssistantUI(ctk.CTk):
 
             def on_chunk(chunk: str) -> None:
                 nonlocal first_token_received
+                nonlocal first_token_time
                 nonlocal tts_text_buffer
                 nonlocal tts_phrase_buffer
                 nonlocal tts_phrase_count
@@ -1551,6 +1812,7 @@ class VoiceAssistantUI(ctk.CTk):
                 chunk_buffer.append(chunk)
                 if not first_token_received:
                     first_token_received = True
+                    first_token_time = time.perf_counter()
                     self.set_status("Ollama antwortet...")
 
                 if tts_queue is not None:
@@ -1588,6 +1850,12 @@ class VoiceAssistantUI(ctk.CTk):
             )
             flush_chunks()
 
+            total_elapsed = time.perf_counter() - request_started
+            self._add_metric_sample("ollama_total_seconds", total_elapsed)
+            if first_token_time is not None:
+                self._add_metric_sample("ollama_first_token_seconds", first_token_time - request_started)
+            self.logger.info("Ollama Antwort fertig (%d Zeichen, %.2fs)", len(answer), total_elapsed)
+
             if tts_queue is not None:
                 if tts_phrase_buffer.strip():
                     tts_queue.put(tts_phrase_buffer.strip())
@@ -1614,6 +1882,7 @@ class VoiceAssistantUI(ctk.CTk):
             if self.cancel_ollama_event.is_set():
                 self.set_status(DEFAULT_ABORTED_STATUS)
                 return
+            self._log_exception("Ollama", exc)
             self.set_status(f"Fehler: {exc}")
         finally:
             self.after(0, lambda: self.cancel_btn.configure(state="disabled"))
