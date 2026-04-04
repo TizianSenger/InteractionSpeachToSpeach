@@ -15,3 +15,204 @@
 2026-04-04 15:12:54,489 | INFO | Thread-2 (_run_transcription) | Ollama Antwort fertig (125 Zeichen, 2.75s)
 2026-04-04 15:12:54,489 | DEBUG | Thread-2 (_run_transcription) | History Assistent: Ich kann keinen Echtzeit-Zeitpunkt bereitstellen. Bitte überprüfen Sie Ihren Uhrentimer oder eine zuverlässige Online-Quelle.
 2026-04-04 15:12:54,490 | INFO | Thread-2 (_run_transcription) | Status: Antwort fertig. Audio streamt...
+2026-04-04 15:15:27,104 | INFO | Thread-8 (_run_ollama_only) | Ollama Anfrage gestartet (55 Zeichen Input)
+2026-04-04 15:15:27,105 | INFO | Thread-8 (_run_ollama_only) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-04 15:15:27,113 | DEBUG | Thread-8 (_run_ollama_only) | History Du: Hallo Mein Name ist Tizian Senger wie geht es dir heute
+2026-04-04 15:15:27,839 | INFO | Thread-8 (_run_ollama_only) | Status: Ollama antwortet...
+2026-04-04 15:15:30,635 | INFO | Thread-8 (_run_ollama_only) | Ollama Antwort fertig (133 Zeichen, 3.53s)
+2026-04-04 15:15:30,635 | DEBUG | Thread-8 (_run_ollama_only) | History Assistent: Hallo, ich bin eine KI, daher habe ich keine Gefühle, aber ich bin bereit, Ihnen zu helfen. Wie kann ich Ihnen heute behilflich sein?
+2026-04-04 15:15:30,635 | INFO | Thread-8 (_run_ollama_only) | Status: Antwort fertig. Audio streamt...
+2026-04-04 15:15:50,829 | INFO | MainThread | Voice Studio wird beendet
+2026-04-04 15:15:50,829 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-04 15:15:50,830 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-04 16:02:05,028 | INFO | MainThread | Voice Studio gestartet
+2026-04-04 16:02:06,250 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-04 16:02:16,392 | INFO | MainThread | LightController (popup): AN
+2026-04-04 16:02:17,209 | INFO | MainThread | LightController (popup): AUS
+2026-04-04 16:02:22,698 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-04 16:02:22,866 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-04 16:02:25,013 | INFO | MainThread | Status: Mikrofon läuft... (Standard (Windows))
+2026-04-04 16:02:31,624 | INFO | MainThread | Aufnahmedauer: 6.62s
+2026-04-04 16:02:31,688 | INFO | MainThread | Status: Aufnahme beendet. Bereit zum Verarbeiten.
+2026-04-04 16:02:33,866 | INFO | Thread-2 (_run_transcription) | Status: Transkribiere Audio...
+2026-04-04 16:02:36,944 | INFO | Thread-2 (_run_transcription) | Transkription fertig (85 Zeichen)
+2026-04-04 16:02:36,946 | INFO | Thread-2 (_run_transcription) | Status: Transkript erkannt
+2026-04-04 16:02:43,888 | INFO | Thread-6 (_run_ollama_only) | Ollama Anfrage gestartet (85 Zeichen Input)
+2026-04-04 16:02:43,888 | INFO | Thread-6 (_run_ollama_only) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-04 16:02:43,908 | DEBUG | Thread-6 (_run_ollama_only) | History Du: Hallo, na, wie geht es dir? Hattest du einen guten Tag? Kannst du das mit anschalten?
+2026-04-04 16:02:50,951 | INFO | Thread-6 (_run_ollama_only) | Status: Ollama antwortet...
+2026-04-04 16:02:53,736 | INFO | Thread-6 (_run_ollama_only) | Ollama Antwort fertig (160 Zeichen, 9.85s)
+2026-04-04 16:02:53,736 | DEBUG | Thread-6 (_run_ollama_only) | History Assistent: Ich bin eine KI, also habe ich keine Gefühle, aber ich bin bereit und funktionierend! Deine Hilfe ist jetzt aktiviert. Wie kann ich Ihnen he
+2026-04-04 16:02:53,736 | INFO | Thread-6 (_run_ollama_only) | Status: Antwort fertig. Audio streamt...
+2026-04-04 16:03:17,728 | INFO | Thread-10 (_run_ollama_only) | Ollama Anfrage gestartet (87 Zeichen Input)
+2026-04-04 16:03:17,728 | INFO | Thread-10 (_run_ollama_only) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-04 16:03:17,749 | DEBUG | Thread-10 (_run_ollama_only) | History Du: Hallo, na, wie geht es dir? Hattest du einen guten Tag? Kannst du das Licht anschalten?
+2026-04-04 16:03:17,781 | DEBUG | Thread-10 (_run_ollama_only) | History Assistent: Alles klar, ich habe das Licht fuer dich eingeschaltet.
+2026-04-04 16:03:17,782 | INFO | Thread-10 (_run_ollama_only) | Status: Lichtbefehl ausgefuehrt
+2026-04-04 16:03:22,857 | INFO | MainThread | LightController (popup): AUS
+2026-04-04 16:03:34,491 | INFO | Thread-11 (_run_transcription) | Status: Transkribiere Audio...
+2026-04-04 16:03:36,899 | INFO | Thread-11 (_run_transcription) | Transkription fertig (85 Zeichen)
+2026-04-04 16:03:36,899 | INFO | Thread-11 (_run_transcription) | Status: Transkript erkannt
+2026-04-04 16:03:46,263 | INFO | Thread-14 (_run_ollama_only) | Ollama Anfrage gestartet (24 Zeichen Input)
+2026-04-04 16:03:46,264 | INFO | Thread-14 (_run_ollama_only) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-04 16:03:46,287 | DEBUG | Thread-14 (_run_ollama_only) | History Du: mach bitte das licht aus
+2026-04-04 16:03:46,291 | DEBUG | Thread-14 (_run_ollama_only) | History Assistent: Alles klar, ich habe das Licht fuer dich ausgeschaltet.
+2026-04-04 16:03:46,292 | INFO | Thread-14 (_run_ollama_only) | Status: Lichtbefehl ausgefuehrt
+2026-04-04 16:03:49,037 | INFO | MainThread | LightController (popup): AN
+2026-04-04 16:03:53,778 | INFO | Thread-15 (_run_ollama_only) | Ollama Anfrage gestartet (24 Zeichen Input)
+2026-04-04 16:03:53,779 | INFO | Thread-15 (_run_ollama_only) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-04 16:03:53,799 | DEBUG | Thread-15 (_run_ollama_only) | History Du: mach bitte das licht aus
+2026-04-04 16:03:53,804 | DEBUG | Thread-15 (_run_ollama_only) | History Assistent: Alles klar, ich habe das Licht fuer dich ausgeschaltet.
+2026-04-04 16:03:53,805 | INFO | Thread-15 (_run_ollama_only) | Status: Lichtbefehl ausgefuehrt
+2026-04-04 16:08:00,628 | INFO | MainThread | Voice Studio gestartet
+2026-04-04 16:08:01,534 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-04 16:08:26,684 | INFO | MainThread | Profil gespeichert: C:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\assistant_profile.json
+2026-04-04 16:08:26,684 | INFO | MainThread | Status: Profil gespeichert
+2026-04-04 16:09:03,204 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-04 16:09:03,319 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-04 16:09:05,467 | INFO | MainThread | Status: Mikrofon läuft... (Standard (Windows))
+2026-04-04 16:09:09,848 | INFO | MainThread | Aufnahmedauer: 4.39s
+2026-04-04 16:09:09,909 | INFO | MainThread | Status: Aufnahme beendet. Bereit zum Verarbeiten.
+2026-04-04 16:09:14,500 | INFO | Thread-2 (_run_transcription) | Status: Transkribiere Audio...
+2026-04-04 16:09:16,643 | INFO | Thread-2 (_run_transcription) | Transkription fertig (33 Zeichen)
+2026-04-04 16:09:16,645 | INFO | Thread-2 (_run_transcription) | Status: Transkript erkannt
+2026-04-04 16:09:31,079 | INFO | Thread-6 (_run_ollama_only) | Ollama Anfrage gestartet (38 Zeichen Input)
+2026-04-04 16:09:31,079 | INFO | Thread-6 (_run_ollama_only) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-04 16:09:31,103 | DEBUG | Thread-6 (_run_ollama_only) | History Du: Hey Katja, wie geht es dir heute süße?
+2026-04-04 16:09:35,822 | INFO | Thread-6 (_run_ollama_only) | Status: Ollama antwortet...
+2026-04-04 16:09:38,985 | INFO | Thread-6 (_run_ollama_only) | Ollama Antwort fertig (159 Zeichen, 7.90s)
+2026-04-04 16:09:38,985 | DEBUG | Thread-6 (_run_ollama_only) | History Assistent: Hallo! Ich bin nur eine Software, also habe ich keine Gefühle, aber ich bin bereit, dir bei allem zu helfen, was du brauchst. Wie kann ich d
+2026-04-04 16:09:39,042 | INFO | Thread-6 (_run_ollama_only) | Status: Antwort fertig. Audio streamt...
+2026-04-04 16:10:09,900 | INFO | Thread-11 (_run_ollama_only) | Ollama Anfrage gestartet (23 Zeichen Input)
+2026-04-04 16:10:09,900 | INFO | Thread-11 (_run_ollama_only) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-04 16:10:09,926 | DEBUG | Thread-11 (_run_ollama_only) | History Du: mach bitte das licht an
+2026-04-04 16:10:09,931 | INFO | MainThread | LightController (voice-command): AN
+2026-04-04 16:10:09,935 | DEBUG | Thread-11 (_run_ollama_only) | History Assistent: Alles klar, ich habe das Licht fuer dich eingeschaltet.
+2026-04-04 16:10:09,935 | INFO | Thread-11 (_run_ollama_only) | Status: Lichtbefehl ausgefuehrt
+2026-04-04 16:11:59,754 | INFO | MainThread | LightController (popup): AUS
+2026-04-04 16:12:17,274 | INFO | Thread-12 (_run_ollama_only) | Ollama Anfrage gestartet (25 Zeichen Input)
+2026-04-04 16:12:17,274 | INFO | Thread-12 (_run_ollama_only) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-04 16:12:17,298 | DEBUG | Thread-12 (_run_ollama_only) | History Du: hey es ist viel zu dunkel
+2026-04-04 16:12:17,834 | INFO | Thread-12 (_run_ollama_only) | Status: Ollama antwortet...
+2026-04-04 16:12:20,971 | INFO | Thread-12 (_run_ollama_only) | Ollama Antwort fertig (163 Zeichen, 3.70s)
+2026-04-04 16:12:20,971 | DEBUG | Thread-12 (_run_ollama_only) | History Assistent: Ah, das Abendlicht hat die Stimmung wirklich gedämpft! Möchtest du eine Kerze entzünden oder vielleicht ein paar Lichter für etwas mehr Glan
+2026-04-04 16:12:20,973 | INFO | Thread-12 (_run_ollama_only) | Status: Antwort fertig. Audio streamt...
+2026-04-04 16:12:48,249 | INFO | Thread-16 (_run_ollama_only) | Ollama Anfrage gestartet (14 Zeichen Input)
+2026-04-04 16:12:48,249 | INFO | Thread-16 (_run_ollama_only) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-04 16:12:48,278 | DEBUG | Thread-16 (_run_ollama_only) | History Du: ja wieso nicht
+2026-04-04 16:12:48,751 | INFO | Thread-16 (_run_ollama_only) | Status: Ollama antwortet...
+2026-04-04 16:12:51,069 | INFO | Thread-16 (_run_ollama_only) | Ollama Antwort fertig (101 Zeichen, 2.82s)
+2026-04-04 16:12:51,069 | DEBUG | Thread-16 (_run_ollama_only) | History Assistent: Abendlich leuchtet dein Gesicht wie eine Kerze im Dunkeln, schön! Was kann ich heute für dich tun? 🌅✨
+2026-04-04 16:12:51,069 | INFO | Thread-16 (_run_ollama_only) | Status: Antwort fertig. Audio streamt...
+2026-04-04 16:13:13,267 | INFO | Thread-20 (_run_ollama_only) | Ollama Anfrage gestartet (48 Zeichen Input)
+2026-04-04 16:13:13,267 | INFO | Thread-20 (_run_ollama_only) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-04 16:13:13,293 | DEBUG | Thread-20 (_run_ollama_only) | History Du: kannst du mri sagen ob da slicht an oder aus ist
+2026-04-04 16:13:13,319 | DEBUG | Thread-20 (_run_ollama_only) | History Assistent: Alles klar, ich habe das Licht fuer dich eingeschaltet.
+2026-04-04 16:13:13,320 | INFO | Thread-20 (_run_ollama_only) | Status: Lichtbefehl ausgefuehrt
+2026-04-04 16:15:00,416 | INFO | MainThread | Voice Studio gestartet
+2026-04-04 16:15:01,339 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-04 16:15:05,038 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-04 16:15:05,151 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-04 16:15:07,293 | INFO | MainThread | Status: Mikrofon läuft... (Standard (Windows))
+2026-04-04 16:15:13,129 | INFO | MainThread | Aufnahmedauer: 5.84s
+2026-04-04 16:15:13,185 | INFO | MainThread | Status: Aufnahme beendet. Bereit zum Verarbeiten.
+2026-04-04 16:15:14,666 | INFO | Thread-2 (_run_transcription) | Status: Transkribiere Audio...
+2026-04-04 16:15:17,008 | INFO | Thread-2 (_run_transcription) | Transkription fertig (54 Zeichen)
+2026-04-04 16:15:17,008 | INFO | Thread-2 (_run_transcription) | Status: Transkript erkannt
+2026-04-04 16:15:22,090 | INFO | Thread-6 (_run_ollama_only) | Ollama Anfrage gestartet (54 Zeichen Input)
+2026-04-04 16:15:22,090 | INFO | Thread-6 (_run_ollama_only) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-04 16:15:22,120 | DEBUG | Thread-6 (_run_ollama_only) | History Du: Hey, etwas zu dunkel, kannst du das Licht einschalten?
+2026-04-04 16:15:28,370 | INFO | Thread-6 (_run_ollama_only) | Tool-Router Entscheidung: light_on
+2026-04-04 16:15:28,373 | INFO | MainThread | LightController (ollama-tool-router): AN
+2026-04-04 16:15:28,373 | DEBUG | Thread-6 (_run_ollama_only) | History Assistent: Alles klar, ich habe das Licht fuer dich eingeschaltet.
+2026-04-04 16:15:28,373 | INFO | Thread-6 (_run_ollama_only) | Status: Lichtbefehl ueber Ollama-Toolrouting ausgefuehrt
+2026-04-04 16:16:50,394 | INFO | MainThread | Voice Studio gestartet
+2026-04-04 16:16:51,366 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-04 16:16:58,222 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-04 16:16:58,306 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-04 16:17:00,429 | INFO | MainThread | Status: Mikrofon läuft... (Standard (Windows))
+2026-04-04 16:17:06,459 | INFO | MainThread | Aufnahmedauer: 6.03s
+2026-04-04 16:17:06,514 | INFO | MainThread | Status: Aufnahme beendet. Starte Auto-Workflow...
+2026-04-04 16:17:06,514 | INFO | Thread-2 (_run_transcription) | Status: Transkribiere Audio...
+2026-04-04 16:17:08,862 | INFO | Thread-2 (_run_transcription) | Transkription fertig (58 Zeichen)
+2026-04-04 16:17:08,862 | INFO | Thread-2 (_run_transcription) | Status: Transkript erkannt. Sende an Ollama...
+2026-04-04 16:17:08,869 | INFO | Thread-2 (_run_transcription) | Ollama Anfrage gestartet (58 Zeichen Input)
+2026-04-04 16:17:08,869 | INFO | Thread-2 (_run_transcription) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-04 16:17:08,900 | DEBUG | Thread-2 (_run_transcription) | History Du: Hallo, es ist sehr dunkel, kannst du das Licht anschalten?
+2026-04-04 16:17:11,697 | INFO | Thread-2 (_run_transcription) | Tool-Router Entscheidung: light_on
+2026-04-04 16:17:11,699 | INFO | MainThread | LightController (ollama-tool-router): AN
+2026-04-04 16:17:11,702 | DEBUG | Thread-2 (_run_transcription) | History Assistent: Alles klar, ich habe das Licht fuer dich eingeschaltet.
+2026-04-04 16:17:11,702 | INFO | Thread-2 (_run_transcription) | Status: Lichtbefehl ueber Ollama-Toolrouting ausgefuehrt
+2026-04-04 16:17:28,072 | INFO | MainThread | LightController (popup): AUS
+2026-04-04 16:17:41,167 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-04 16:17:41,169 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-04 16:17:43,292 | INFO | MainThread | Status: Mikrofon läuft... (Standard (Windows))
+2026-04-04 16:17:49,293 | INFO | MainThread | Aufnahmedauer: 6.00s
+2026-04-04 16:17:49,351 | INFO | MainThread | Status: Aufnahme beendet. Starte Auto-Workflow...
+2026-04-04 16:17:49,362 | INFO | Thread-8 (_run_transcription) | Status: Transkribiere Audio...
+2026-04-04 16:17:51,434 | INFO | Thread-8 (_run_transcription) | Transkription fertig (52 Zeichen)
+2026-04-04 16:17:51,434 | INFO | Thread-8 (_run_transcription) | Status: Transkript erkannt. Sende an Ollama...
+2026-04-04 16:17:51,442 | INFO | Thread-8 (_run_transcription) | Ollama Anfrage gestartet (52 Zeichen Input)
+2026-04-04 16:17:51,442 | INFO | Thread-8 (_run_transcription) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-04 16:17:51,451 | DEBUG | Thread-8 (_run_transcription) | History Du: Es ist sehr dunkel. Kannst du das Licht einschalten?
+2026-04-04 16:17:53,854 | INFO | Thread-8 (_run_transcription) | Tool-Router Entscheidung: light_on
+2026-04-04 16:17:53,863 | DEBUG | Thread-8 (_run_transcription) | History Assistent: Alles klar, ich habe das Licht fuer dich eingeschaltet.
+2026-04-04 16:17:53,865 | INFO | Thread-8 (_run_transcription) | Status: Lichtbefehl ueber Ollama-Toolrouting ausgefuehrt
+2026-04-04 16:17:59,075 | INFO | MainThread | LightController (popup): AUS
+2026-04-04 16:18:05,430 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-04 16:18:05,433 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-04 16:18:05,564 | INFO | MainThread | Status: Mikrofon läuft... (Standard (Windows))
+2026-04-04 16:18:12,215 | INFO | MainThread | Aufnahmedauer: 6.65s
+2026-04-04 16:18:12,272 | INFO | MainThread | Status: Aufnahme beendet. Starte Auto-Workflow...
+2026-04-04 16:18:12,284 | INFO | Thread-13 (_run_transcription) | Status: Transkribiere Audio...
+2026-04-04 16:18:14,500 | INFO | Thread-13 (_run_transcription) | Transkription fertig (68 Zeichen)
+2026-04-04 16:18:14,500 | INFO | Thread-13 (_run_transcription) | Status: Transkript erkannt. Sende an Ollama...
+2026-04-04 16:18:14,508 | INFO | Thread-13 (_run_transcription) | Ollama Anfrage gestartet (68 Zeichen Input)
+2026-04-04 16:18:14,508 | INFO | Thread-13 (_run_transcription) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-04 16:18:14,534 | DEBUG | Thread-13 (_run_transcription) | History Du: Hallo, es ist sehr dunkel, kannst du das Licht für mich einschalten?
+2026-04-04 16:18:17,322 | INFO | Thread-13 (_run_transcription) | Tool-Router Entscheidung: light_on
+2026-04-04 16:18:17,327 | DEBUG | Thread-13 (_run_transcription) | History Assistent: Alles klar, ich habe das Licht fuer dich eingeschaltet.
+2026-04-04 16:18:17,329 | INFO | Thread-13 (_run_transcription) | Status: Lichtbefehl ueber Ollama-Toolrouting ausgefuehrt
+2026-04-04 16:18:51,060 | INFO | MainThread | LightController (popup): AUS
+2026-04-04 16:20:25,045 | INFO | MainThread | Voice Studio gestartet
+2026-04-04 16:20:26,019 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-04 16:20:34,640 | INFO | MainThread | Voice Studio wird beendet
+2026-04-04 16:20:34,640 | INFO | MainThread | Profil gespeichert: C:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\assistant_profile.json
+2026-04-04 16:20:34,640 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-04 16:20:34,738 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-04 16:20:59,560 | INFO | MainThread | Voice Studio gestartet
+2026-04-04 16:21:00,549 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-04 16:21:08,827 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-04 16:21:08,918 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-04 16:21:11,065 | INFO | MainThread | Status: Mikrofon läuft... (Standard (Windows))
+2026-04-04 16:21:20,043 | INFO | MainThread | Aufnahmedauer: 8.99s
+2026-04-04 16:21:20,106 | INFO | MainThread | Status: Aufnahme beendet. Bereit zum Verarbeiten.
+2026-04-04 16:21:25,231 | INFO | Thread-2 (_run_transcription) | Status: Transkribiere Audio...
+2026-04-04 16:21:27,643 | INFO | Thread-2 (_run_transcription) | Transkription fertig (79 Zeichen)
+2026-04-04 16:21:27,645 | INFO | Thread-2 (_run_transcription) | Status: Transkript erkannt
+2026-04-04 16:21:33,961 | INFO | Thread-6 (_run_ollama_only) | Ollama Anfrage gestartet (79 Zeichen Input)
+2026-04-04 16:21:33,961 | INFO | Thread-6 (_run_ollama_only) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-04 16:21:33,988 | DEBUG | Thread-6 (_run_ollama_only) | History Du: Hier ist gerade etwas dunkel. Kannst du mir das Licht einschalten bitte? Danke!
+2026-04-04 16:21:37,057 | INFO | Thread-6 (_run_ollama_only) | Tool-Router Entscheidung: light_on
+2026-04-04 16:21:37,057 | INFO | MainThread | LightController (ollama-tool-router): AN
+2026-04-04 16:21:37,063 | DEBUG | Thread-6 (_run_ollama_only) | History Assistent: Alles klar, ich habe das Licht fuer dich eingeschaltet.
+2026-04-04 16:21:37,063 | INFO | Thread-7 (worker) | Status: Antwort wird vorgelesen...
+2026-04-04 16:21:37,063 | INFO | Thread-7 (worker) | TTS gestartet (55 Zeichen)
+2026-04-04 16:21:42,000 | INFO | Thread-7 (worker) | TTS abgeschlossen
+2026-04-04 16:21:42,000 | INFO | Thread-7 (worker) | Status: Lichtbefehl ueber Ollama-Toolrouting ausgefuehrt
+2026-04-04 16:21:59,384 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-04 16:21:59,384 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-04 16:21:59,498 | INFO | MainThread | Status: Mikrofon läuft... (Standard (Windows))
+2026-04-04 16:22:05,940 | INFO | MainThread | Aufnahmedauer: 6.44s
+2026-04-04 16:22:05,996 | INFO | MainThread | Status: Aufnahme beendet. Bereit zum Verarbeiten.
+2026-04-04 16:22:08,987 | INFO | Thread-9 (_run_transcription) | Status: Transkribiere Audio...
+2026-04-04 16:22:10,881 | INFO | Thread-9 (_run_transcription) | Transkription fertig (46 Zeichen)
+2026-04-04 16:22:10,881 | INFO | Thread-9 (_run_transcription) | Status: Transkript erkannt
+2026-04-04 16:22:13,789 | INFO | Thread-12 (_run_ollama_only) | Ollama Anfrage gestartet (46 Zeichen Input)
+2026-04-04 16:22:13,789 | INFO | Thread-12 (_run_ollama_only) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-04 16:22:13,811 | DEBUG | Thread-12 (_run_ollama_only) | History Du: Kannst du mir eine kleine Geschichte erzählen?
+2026-04-04 16:22:16,489 | INFO | Thread-12 (_run_ollama_only) | Tool-Router Entscheidung: none
+2026-04-04 16:22:21,068 | INFO | Thread-12 (_run_ollama_only) | Status: Ollama antwortet...
+2026-04-04 16:22:25,886 | INFO | Thread-12 (_run_ollama_only) | Ollama Antwort fertig (258 Zeichen, 12.10s)
+2026-04-04 16:22:25,886 | DEBUG | Thread-12 (_run_ollama_only) | History Assistent: Im sanften Schein des Abendlichts entdeckte Anna in ihrem Garten einen geheimnisvollen Schlüssel. Neugierig packte sie ihn fest und spürte, 
+2026-04-04 16:22:25,887 | INFO | Thread-12 (_run_ollama_only) | Status: Antwort fertig. Audio streamt...

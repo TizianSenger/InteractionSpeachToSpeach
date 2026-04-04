@@ -55,9 +55,17 @@ OLLAMA_VOICE_SYSTEM_PROMPT = (
     "Du bist ein Sprachassistent. Antworte kurz, klar und direkt auf Deutsch. "
     "Standard: 1-3 Saetze, keine langen Ausfuehrungen."
 )
+OLLAMA_TOOL_ROUTER_PROMPT = (
+    "Du bist ein Tool-Router. Entscheide nur, ob ein Licht-Tool ausgefuehrt werden soll. "
+    "Antworte NUR als JSON ohne Markdown. Format: "
+    '{"tool":"none|light_on|light_off","confidence":0.0,"reason":"kurz"}. '
+    "Nutze light_on nur bei klarer Absicht Licht einzuschalten, light_off nur bei klarer Absicht Licht auszuschalten. "
+    "Wenn unklar oder kein Lichtbezug, nutze none."
+)
 MODEL_GLOB_PATTERN = "*.onnx"
 LOG_DIR_NAME = "logs"
 LOG_FILE_NAME = "voice_ui.log"
+PROFILE_FILE_NAME = "assistant_profile.json"
 
 _FFMPEG_CHECKED = False
 _FFMPEG_AVAILABLE = False
@@ -156,6 +164,11 @@ class VoiceAssistantUI(ctk.CTk):
         self.current_tts_queue: queue.Queue[str | None] | None = None
         self.pyttsx3_engine: Any | None = None
         self.pyttsx3_engine_lock = threading.Lock()
+        self.light_popup: ctk.CTkToplevel | None = None
+        self.light_state_label: ctk.CTkLabel | None = None
+        self.light_indicator: ctk.CTkFrame | None = None
+        self.light_state = False
+        self.light_state_var = ctk.StringVar(value="Lichtstatus: AUS")
         self.whisper_backend = ""
         self.stt_progress_var = ctk.StringVar(value="STT Laden: 0%")
         self.stt_loading_active = False
@@ -167,6 +180,7 @@ class VoiceAssistantUI(ctk.CTk):
         self.log_pump_job_id: str | None = None
         self.stats_refresh_job_id: str | None = None
         self.max_ui_log_lines = 1500
+        self.debug_log_history: deque[str] = deque(maxlen=2500)
         self.event_history: deque[str] = deque(maxlen=400)
         self.metric_samples: dict[str, list[float]] = {
             "recording_seconds": [],
@@ -210,6 +224,21 @@ class VoiceAssistantUI(ctk.CTk):
         self.reply_max_tokens_var = ctk.StringVar(value="120")
         self.reply_temperature_var = ctk.StringVar(value="0.3")
         self.concise_reply_var = ctk.BooleanVar(value=True)
+        self.favorite_light_scene_var = ctk.StringVar(value="Abendlicht")
+        self.persona_flirty_var = ctk.DoubleVar(value=35.0)
+        self.persona_humor_var = ctk.DoubleVar(value=55.0)
+        self.persona_serious_var = ctk.DoubleVar(value=40.0)
+        self.persona_dominance_var = ctk.DoubleVar(value=35.0)
+        self.persona_empathy_var = ctk.DoubleVar(value=70.0)
+        self.persona_temperament_var = ctk.DoubleVar(value=30.0)
+        self.persona_flirty_label_var = ctk.StringVar(value="35")
+        self.persona_humor_label_var = ctk.StringVar(value="55")
+        self.persona_serious_label_var = ctk.StringVar(value="40")
+        self.persona_dominance_label_var = ctk.StringVar(value="35")
+        self.persona_empathy_label_var = ctk.StringVar(value="70")
+        self.persona_temperament_label_var = ctk.StringVar(value="30")
+
+        self._load_profile()
 
         self._build_layout()
         self.refresh_piper_model_options()
@@ -249,30 +278,50 @@ class VoiceAssistantUI(ctk.CTk):
         self._pump_logs_into_ui()
         self.log_pump_job_id = self.after(200, self._schedule_log_pump)
 
+    def _extract_level_token(self, line: str) -> str:
+        parts = line.split("|")
+        if len(parts) >= 2:
+            return parts[1].strip().upper()
+        return "INFO"
+
+    def _matches_selected_log_level(self, line: str) -> bool:
+        log_level = self.debug_log_level_var.get().strip().upper() or "INFO"
+        level_order = {"DEBUG": 10, "INFO": 20, "WARNING": 30, "ERROR": 40, "CRITICAL": 50}
+        selected_level = level_order.get(log_level, 20)
+        line_level = self._extract_level_token(line)
+        return level_order.get(line_level, 20) >= selected_level
+
+    def _insert_debug_log_line(self, line: str) -> None:
+        if not hasattr(self, "debug_log_box"):
+            return
+
+        level_token = self._extract_level_token(line)
+        tag_name = {
+            "DEBUG": "log_debug",
+            "INFO": "log_info",
+            "WARNING": "log_warning",
+            "ERROR": "log_error",
+            "CRITICAL": "log_critical",
+        }.get(level_token, "log_info")
+        self.debug_log_box.insert("end", f"{line}\n", tag_name)
+
     def _pump_logs_into_ui(self) -> None:
         if not hasattr(self, "debug_log_box"):
             return
 
-        log_level = self.debug_log_level_var.get().strip().upper() or "INFO"
-        level_order = {"DEBUG": 10, "INFO": 20, "WARNING": 30, "ERROR": 40, "CRITICAL": 50}
-        selected_level = level_order.get(log_level, 20)
-
-        lines_to_append: list[str] = []
+        inserted_any = False
         while True:
             try:
                 line = self.log_queue.get_nowait()
             except queue.Empty:
                 break
 
-            level_token = "INFO"
-            parts = line.split("|")
-            if len(parts) >= 2:
-                level_token = parts[1].strip().upper()
-            if level_order.get(level_token, 20) >= selected_level:
-                lines_to_append.append(line)
+            self.debug_log_history.append(line)
+            if self._matches_selected_log_level(line):
+                self._insert_debug_log_line(line)
+                inserted_any = True
 
-        if lines_to_append:
-            self.debug_log_box.insert("end", "\n".join(lines_to_append) + "\n")
+        if inserted_any:
             self.debug_log_box.see("end")
 
             current_end = self.debug_log_box.index("end-1c")
@@ -352,11 +401,157 @@ class VoiceAssistantUI(ctk.CTk):
 
     def on_debug_log_level_changed(self, _selected: str) -> None:
         self.clear_debug_logs()
+        for line in self.debug_log_history:
+            if self._matches_selected_log_level(line):
+                self._insert_debug_log_line(line)
+        if hasattr(self, "debug_log_box"):
+            self.debug_log_box.see("end")
 
     def _log_exception(self, context: str, exc: Exception) -> None:
         self._increment_counter("errors")
         self._track_event(f"Fehler in {context}: {exc}")
         self.logger.exception("%s: %s", context, exc)
+
+    def _profile_path(self) -> Path:
+        return Path(__file__).resolve().parent / PROFILE_FILE_NAME
+
+    def _set_persona_label_from_var(self, label_var: ctk.StringVar, value: float) -> None:
+        label_var.set(str(int(max(0.0, min(100.0, value)))))
+
+    def _refresh_persona_labels(self) -> None:
+        self._set_persona_label_from_var(self.persona_flirty_label_var, self.persona_flirty_var.get())
+        self._set_persona_label_from_var(self.persona_humor_label_var, self.persona_humor_var.get())
+        self._set_persona_label_from_var(self.persona_serious_label_var, self.persona_serious_var.get())
+        self._set_persona_label_from_var(self.persona_dominance_label_var, self.persona_dominance_var.get())
+        self._set_persona_label_from_var(self.persona_empathy_label_var, self.persona_empathy_var.get())
+        self._set_persona_label_from_var(self.persona_temperament_label_var, self.persona_temperament_var.get())
+
+    def _on_persona_slider_changed(self, _value: float) -> None:
+        self._refresh_persona_labels()
+
+    def _collect_profile_data(self) -> dict[str, Any]:
+        return {
+            "persona": {
+                "flirty": float(self.persona_flirty_var.get()),
+                "humor": float(self.persona_humor_var.get()),
+                "serious": float(self.persona_serious_var.get()),
+                "dominance": float(self.persona_dominance_var.get()),
+                "empathy": float(self.persona_empathy_var.get()),
+                "temperament": float(self.persona_temperament_var.get()),
+            },
+            "preferences": {
+                "favorite_light_scene": self.favorite_light_scene_var.get().strip() or "Abendlicht",
+                "mic_device_label": self.mic_device_var.get().strip(),
+                "tts_engine": self.tts_engine_var.get().strip(),
+                "tts_voice": self.tts_voice_var.get().strip(),
+            },
+        }
+
+    def save_profile(self, notify: bool = True) -> None:
+        profile_path = self._profile_path()
+        payload = self._collect_profile_data()
+        profile_path.write_text(json.dumps(payload, ensure_ascii=True, indent=2), encoding="utf-8")
+        self.logger.info("Profil gespeichert: %s", profile_path)
+        if notify:
+            self.set_status("Profil gespeichert")
+
+    def _load_profile(self) -> None:
+        profile_path = self._profile_path()
+        if not profile_path.exists():
+            self._refresh_persona_labels()
+            return
+
+        try:
+            data = json.loads(profile_path.read_text(encoding="utf-8"))
+            persona = data.get("persona", {}) if isinstance(data, dict) else {}
+            preferences = data.get("preferences", {}) if isinstance(data, dict) else {}
+
+            self.persona_flirty_var.set(float(persona.get("flirty", self.persona_flirty_var.get())))
+            self.persona_humor_var.set(float(persona.get("humor", self.persona_humor_var.get())))
+            self.persona_serious_var.set(float(persona.get("serious", self.persona_serious_var.get())))
+            self.persona_dominance_var.set(float(persona.get("dominance", self.persona_dominance_var.get())))
+            self.persona_empathy_var.set(float(persona.get("empathy", self.persona_empathy_var.get())))
+            self.persona_temperament_var.set(float(persona.get("temperament", self.persona_temperament_var.get())))
+
+            fav_scene = str(preferences.get("favorite_light_scene", "")).strip()
+            if fav_scene:
+                self.favorite_light_scene_var.set(fav_scene)
+
+            stored_mic = str(preferences.get("mic_device_label", "")).strip()
+            if stored_mic:
+                self.mic_device_var.set(stored_mic)
+
+            stored_engine = str(preferences.get("tts_engine", "")).strip()
+            if stored_engine:
+                self.tts_engine_var.set(stored_engine)
+
+            stored_voice = str(preferences.get("tts_voice", "")).strip()
+            if stored_voice:
+                self.tts_voice_var.set(stored_voice)
+        except Exception as exc:
+            self.logger.warning("Profil konnte nicht geladen werden: %s", exc)
+
+        self._refresh_persona_labels()
+
+    def _persona_instruction(self, key: str, value: float) -> str:
+        if key == "flirty":
+            if value >= 70:
+                return "dezent flirtend und charmant"
+            if value >= 40:
+                return "warm, spielerisch und freundlich"
+            return "neutral-professionell"
+
+        if key == "humor":
+            if value >= 70:
+                return "mit leichtem, intelligentem Humor"
+            if value >= 40:
+                return "locker und auflockernd"
+            return "ohne Witze"
+
+        if key == "serious":
+            if value >= 70:
+                return "sachlich, praezise und fokussiert"
+            if value >= 40:
+                return "ausgewogen zwischen locker und sachlich"
+            return "locker-konversationell"
+
+        if key == "dominance":
+            if value >= 70:
+                return "klar fuehrend mit konkreten Vorschlaegen"
+            if value >= 40:
+                return "leitend, aber kooperativ"
+            return "zurueckhaltend und fragend"
+
+        if key == "empathy":
+            if value >= 70:
+                return "sehr empathisch und validierend"
+            if value >= 40:
+                return "freundlich und verstaendnisvoll"
+            return "direkt ohne viel Emotionalisierung"
+
+        if value >= 70:
+            return "dynamisch und energisch"
+        if value >= 40:
+            return "ausgeglichen im Tempo"
+        return "ruhig und kontrolliert"
+
+    def _build_persona_system_prompt(self) -> str:
+        flirty = self._persona_instruction("flirty", float(self.persona_flirty_var.get()))
+        humor = self._persona_instruction("humor", float(self.persona_humor_var.get()))
+        serious = self._persona_instruction("serious", float(self.persona_serious_var.get()))
+        dominance = self._persona_instruction("dominance", float(self.persona_dominance_var.get()))
+        empathy = self._persona_instruction("empathy", float(self.persona_empathy_var.get()))
+        temperament = self._persona_instruction("temperament", float(self.persona_temperament_var.get()))
+        favorite_scene = self.favorite_light_scene_var.get().strip() or "Abendlicht"
+
+        concise_instruction = "Antworte in 1-3 Saetzen." if self.concise_reply_var.get() else "Antworte so detailliert wie noetig."
+        return (
+            "Du bist ein persoenlicher Sprachassistent auf Deutsch. "
+            "Sei menschlich, charmant und kontextbewusst, aber respektvoll und nicht beleidigend. "
+            f"Stil: {flirty}; {humor}; {serious}; {dominance}; {empathy}; {temperament}. "
+            f"Merke als bevorzugte Lichtszene des Users: {favorite_scene}. "
+            f"{concise_instruction}"
+        )
 
     def _build_layout(self) -> None:
         self.grid_columnconfigure(0, weight=0)
@@ -388,7 +583,7 @@ class VoiceAssistantUI(ctk.CTk):
 
         workflow = ctk.CTkFrame(self)
         workflow.grid(row=1, column=0, columnspan=3, padx=16, pady=(0, 10), sticky="ew")
-        for i in range(10):
+        for i in range(11):
             workflow.grid_columnconfigure(i, weight=1)
 
         self.start_btn = ctk.CTkButton(workflow, text="🎙️ Mic Start", command=self.start_recording)
@@ -439,12 +634,21 @@ class VoiceAssistantUI(ctk.CTk):
         self.speak_switch = ctk.CTkSwitch(workflow, text="Antwort vorlesen", variable=self.auto_speak_var)
         self.speak_switch.grid(row=0, column=7, padx=6, pady=10, sticky="w")
 
+        self.light_test_btn = ctk.CTkButton(
+            workflow,
+            text="💡 Licht Test",
+            command=self.open_light_test_popup,
+            fg_color="#a16207",
+            hover_color="#854d0e",
+        )
+        self.light_test_btn.grid(row=0, column=8, padx=6, pady=10, sticky="ew")
+
         self.auto_pipeline_switch = ctk.CTkSwitch(
             workflow,
             text="Auto: Stop -> Transkribieren -> Senden",
             variable=self.auto_pipeline_var,
         )
-        self.auto_pipeline_switch.grid(row=0, column=8, columnspan=2, padx=6, pady=10, sticky="w")
+        self.auto_pipeline_switch.grid(row=0, column=9, columnspan=2, padx=6, pady=10, sticky="w")
 
         sidebar = ctk.CTkScrollableFrame(self, label_text="Einstellungen")
         sidebar.grid(row=2, column=0, rowspan=3, padx=(16, 8), pady=(0, 16), sticky="nsew")
@@ -515,6 +719,48 @@ class VoiceAssistantUI(ctk.CTk):
         ctk.CTkLabel(model_frame, text="Temperatur").pack(anchor="w", padx=10, pady=(2, 2))
         self.reply_temperature_entry = ctk.CTkEntry(model_frame, textvariable=self.reply_temperature_var)
         self.reply_temperature_entry.pack(fill="x", padx=10, pady=(0, 10))
+
+        persona_frame = ctk.CTkFrame(sidebar)
+        persona_frame.pack(fill="x", padx=8, pady=6)
+        ctk.CTkLabel(persona_frame, text="Persona", font=(FONT_FAMILY, 14, "bold")).pack(anchor="w", padx=10, pady=(8, 2))
+
+        def add_persona_slider(label: str, variable: ctk.DoubleVar, label_var: ctk.StringVar) -> None:
+            row = ctk.CTkFrame(persona_frame, fg_color="transparent")
+            row.pack(fill="x", padx=10, pady=(3, 2))
+            row.grid_columnconfigure(0, weight=1)
+
+            ctk.CTkLabel(row, text=label).grid(row=0, column=0, sticky="w")
+            ctk.CTkLabel(row, textvariable=label_var, width=34, anchor="e").grid(row=0, column=1, sticky="e")
+
+            slider = ctk.CTkSlider(
+                persona_frame,
+                from_=0,
+                to=100,
+                number_of_steps=100,
+                variable=variable,
+                command=self._on_persona_slider_changed,
+            )
+            slider.pack(fill="x", padx=10, pady=(0, 6))
+
+        add_persona_slider("Flirty", self.persona_flirty_var, self.persona_flirty_label_var)
+        add_persona_slider("Humor/Sarkasmus", self.persona_humor_var, self.persona_humor_label_var)
+        add_persona_slider("Ernsthaftigkeit", self.persona_serious_var, self.persona_serious_label_var)
+        add_persona_slider("Dominanz", self.persona_dominance_var, self.persona_dominance_label_var)
+        add_persona_slider("Empathie/Waerme", self.persona_empathy_var, self.persona_empathy_label_var)
+        add_persona_slider("Temperament", self.persona_temperament_var, self.persona_temperament_label_var)
+
+        ctk.CTkLabel(persona_frame, text="Lieblingslichtszene").pack(anchor="w", padx=10, pady=(2, 2))
+        self.favorite_light_scene_entry = ctk.CTkEntry(persona_frame, textvariable=self.favorite_light_scene_var)
+        self.favorite_light_scene_entry.pack(fill="x", padx=10, pady=(0, 8))
+
+        self.save_profile_btn = ctk.CTkButton(
+            persona_frame,
+            text="Profil speichern",
+            command=self.save_profile,
+        )
+        self.save_profile_btn.pack(fill="x", padx=10, pady=(0, 10))
+
+        self._refresh_persona_labels()
 
         audio_frame = ctk.CTkFrame(sidebar)
         audio_frame.pack(fill="x", padx=8, pady=6)
@@ -670,6 +916,11 @@ class VoiceAssistantUI(ctk.CTk):
 
         self.debug_log_box = ctk.CTkTextbox(debug_tab, wrap="none")
         self.debug_log_box.grid(row=1, column=0, padx=10, pady=(0, 10), sticky="nsew")
+        self.debug_log_box.tag_config("log_debug", foreground="#8f9bb3")
+        self.debug_log_box.tag_config("log_info", foreground="#d7dce2")
+        self.debug_log_box.tag_config("log_warning", foreground="#f4c86a")
+        self.debug_log_box.tag_config("log_error", foreground="#ff6b6b")
+        self.debug_log_box.tag_config("log_critical", foreground="#ff4d4d")
 
     def set_status(self, message: str) -> None:
         self.logger.info("Status: %s", message)
@@ -803,6 +1054,161 @@ class VoiceAssistantUI(ctk.CTk):
     def clear_history(self) -> None:
         self.history_box.delete("1.0", "end")
         self._track_event("Verlauf geloescht")
+
+    def _refresh_light_popup_visuals(self) -> None:
+        label_widget = self.light_state_label
+        indicator_widget = self.light_indicator
+
+        if self.light_state:
+            self.light_state_var.set("Lichtstatus: AN")
+            if label_widget is not None and label_widget.winfo_exists():
+                label_widget.configure(text_color="#ffd166")
+            if indicator_widget is not None and indicator_widget.winfo_exists():
+                indicator_widget.configure(fg_color="#facc15")
+            return
+
+        self.light_state_var.set("Lichtstatus: AUS")
+        if label_widget is not None and label_widget.winfo_exists():
+            label_widget.configure(text_color="gray70")
+        if indicator_widget is not None and indicator_widget.winfo_exists():
+            indicator_widget.configure(fg_color="#334155")
+
+    def set_light_state(self, is_on: bool, source: str = "manual") -> None:
+        self.light_state = is_on
+        self._refresh_light_popup_visuals()
+        human_state = "AN" if is_on else "AUS"
+        self.logger.info("LightController (%s): %s", source, human_state)
+        self._track_event(f"Licht auf {human_state} gesetzt ({source})")
+
+    def open_light_test_popup(self) -> None:
+        if self.light_popup is not None and self.light_popup.winfo_exists():
+            self.light_popup.focus()
+            self.light_popup.lift()
+            return
+
+        popup = ctk.CTkToplevel(self)
+        popup.title("Light Controller Test")
+        popup.geometry("360x240")
+        popup.transient(self)
+        popup.grab_set()
+        popup.grid_columnconfigure(0, weight=1)
+
+        ctk.CTkLabel(popup, text="Licht-Teststeuerung", font=(FONT_FAMILY, 18, "bold")).grid(
+            row=0, column=0, padx=16, pady=(16, 10), sticky="w"
+        )
+
+        self.light_indicator = ctk.CTkFrame(popup, height=70, fg_color="#334155")
+        self.light_indicator.grid(row=1, column=0, padx=16, pady=(0, 12), sticky="ew")
+
+        self.light_state_label = ctk.CTkLabel(popup, textvariable=self.light_state_var, font=(FONT_FAMILY, 15, "bold"))
+        self.light_state_label.grid(row=2, column=0, padx=16, pady=(0, 12), sticky="w")
+
+        controls = ctk.CTkFrame(popup, fg_color="transparent")
+        controls.grid(row=3, column=0, padx=16, pady=(0, 16), sticky="ew")
+        controls.grid_columnconfigure((0, 1), weight=1)
+
+        ctk.CTkButton(
+            controls,
+            text="Licht AN",
+            fg_color="#15803d",
+            hover_color="#166534",
+            command=lambda: self.set_light_state(True, source="popup"),
+        ).grid(row=0, column=0, padx=(0, 6), pady=0, sticky="ew")
+
+        ctk.CTkButton(
+            controls,
+            text="Licht AUS",
+            fg_color="#b91c1c",
+            hover_color="#991b1b",
+            command=lambda: self.set_light_state(False, source="popup"),
+        ).grid(row=0, column=1, padx=(6, 0), pady=0, sticky="ew")
+
+        self.light_popup = popup
+        self._refresh_light_popup_visuals()
+        self._track_event("Light-Test-Popup geoeffnet")
+
+        def on_popup_close() -> None:
+            self.light_popup = None
+            self.light_state_label = None
+            self.light_indicator = None
+            popup.destroy()
+
+        popup.protocol("WM_DELETE_WINDOW", on_popup_close)
+
+    def _parse_light_command(self, text: str) -> str | None:
+        lowered = text.lower()
+        has_light_keyword = "licht" in lowered or "lichter" in lowered or "light" in lowered
+        if not has_light_keyword:
+            return None
+
+        if " an" in lowered or lowered.endswith("an") or "einschalten" in lowered:
+            return "on"
+        if " aus" in lowered or lowered.endswith("aus") or "ausschalten" in lowered:
+            return "off"
+        return None
+
+    def _extract_json_object(self, text: str) -> dict[str, Any] | None:
+        candidate = text.strip()
+        if not candidate:
+            return None
+
+        try:
+            parsed = json.loads(candidate)
+            if isinstance(parsed, dict):
+                return parsed
+        except json.JSONDecodeError:
+            pass
+
+        start = candidate.find("{")
+        end = candidate.rfind("}")
+        if start == -1 or end == -1 or end <= start:
+            return None
+
+        try:
+            parsed = json.loads(candidate[start : end + 1])
+            if isinstance(parsed, dict):
+                return parsed
+        except json.JSONDecodeError:
+            return None
+        return None
+
+    def _decide_tool_action_with_ollama(self, user_text: str) -> str:
+        model_name, ollama_url = self.check_ollama()
+        payload = {
+            "model": model_name,
+            "messages": [
+                {"role": "system", "content": OLLAMA_TOOL_ROUTER_PROMPT},
+                {"role": "user", "content": user_text},
+            ],
+            "stream": False,
+            "keep_alive": "30m",
+            "options": {
+                "num_predict": 120,
+                "temperature": 0.0,
+                "top_p": 0.9,
+            },
+        }
+
+        response = self.http_session.post(
+            f"{ollama_url.rstrip('/')}/api/chat",
+            json=payload,
+            timeout=(10, 60),
+        )
+        response.raise_for_status()
+        data = response.json()
+        content = str(data.get("message", {}).get("content", "")).strip()
+        decision = self._extract_json_object(content)
+        if decision is None:
+            self.logger.warning("Tool-Router gab kein gueltiges JSON zurueck: %s", content[:200])
+            return "none"
+
+        tool = str(decision.get("tool", "none")).strip().lower()
+        if tool in {"light_on", "light_off", "none"}:
+            self.logger.info("Tool-Router Entscheidung: %s", tool)
+            return tool
+
+        self.logger.warning("Unbekanntes Tool vom Router: %s", tool)
+        return "none"
 
     def refresh_piper_model_options(self) -> None:
         project_root = Path(__file__).resolve().parent
@@ -947,6 +1353,10 @@ class VoiceAssistantUI(ctk.CTk):
     def on_close(self) -> None:
         self.stt_loading_active = False
         self.logger.info("Voice Studio wird beendet")
+        try:
+            self.save_profile(notify=False)
+        except Exception as exc:
+            self.logger.warning("Profil konnte beim Beenden nicht gespeichert werden: %s", exc)
         if self.stt_loading_job_id is not None:
             try:
                 self.after_cancel(self.stt_loading_job_id)
@@ -1342,12 +1752,13 @@ class VoiceAssistantUI(ctk.CTk):
         return max(0.0, min(1.2, value))
 
     def _build_chat_messages(self, user_text: str) -> list[dict[str, str]]:
+        system_prompt = self._build_persona_system_prompt()
         if self.concise_reply_var.get():
-            return [
-                {"role": "system", "content": OLLAMA_VOICE_SYSTEM_PROMPT},
-                {"role": "user", "content": user_text},
-            ]
-        return [{"role": "user", "content": user_text}]
+            system_prompt = f"{system_prompt} {OLLAMA_VOICE_SYSTEM_PROMPT}"
+        return [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_text},
+        ]
 
     def ask_ollama(
         self,
@@ -1441,6 +1852,32 @@ class VoiceAssistantUI(ctk.CTk):
             return
 
         self.speak_text_pyttsx3(text)
+
+    def _speak_text_background(self, text: str, done_status: str = "Fertig") -> None:
+        def worker() -> None:
+            try:
+                if self.cancel_tts_event.is_set():
+                    return
+
+                self.set_status("Antwort wird vorgelesen...")
+                self.logger.info("TTS gestartet (%d Zeichen)", len(text))
+
+                try:
+                    self.speak_text(text)
+                except Exception as first_exc:
+                    # Fallback to local engine when network/engine specific TTS fails.
+                    self.logger.warning("Primaere TTS fehlgeschlagen, fallback pyttsx3: %s", first_exc)
+                    self.speak_text_pyttsx3(text)
+
+                self.logger.info("TTS abgeschlossen")
+            except Exception as exc:
+                self._log_exception("TTS Hintergrund", exc)
+            finally:
+                if not self.cancel_tts_event.is_set():
+                    self.set_status(done_status)
+
+        tts_worker = threading.Thread(target=worker, daemon=True)
+        tts_worker.start()
 
     def _resolve_piper_config_path(self, model_path: Path, configured_config_path: str) -> Path | None:
         if configured_config_path:
@@ -1780,6 +2217,35 @@ class VoiceAssistantUI(ctk.CTk):
             self.set_status("Frage Ollama... (erster Lauf kann etwas dauern)")
             self.add_history_entry("Du", transcript)
             self.set_textbox(self.answer_box, "")
+
+            tool_action = self._decide_tool_action_with_ollama(transcript)
+
+            # Fallback for malformed router output: keep prototype responsive.
+            if tool_action == "none":
+                local_fallback = self._parse_light_command(transcript)
+                if local_fallback == "on":
+                    tool_action = "light_on"
+                elif local_fallback == "off":
+                    tool_action = "light_off"
+
+            if tool_action in {"light_on", "light_off"}:
+                self.after(0, self.open_light_test_popup)
+                if tool_action == "light_on":
+                    self.after(0, lambda: self.set_light_state(True, source="ollama-tool-router"))
+                    answer = "Alles klar, ich habe das Licht fuer dich eingeschaltet."
+                else:
+                    self.after(0, lambda: self.set_light_state(False, source="ollama-tool-router"))
+                    answer = "Alles klar, ich habe das Licht fuer dich ausgeschaltet."
+
+                self.set_textbox(self.answer_box, answer)
+                self.add_history_entry("Assistent", answer)
+
+                if self.auto_speak_var.get() and not self.cancel_tts_event.is_set():
+                    self._speak_text_background(answer, done_status="Lichtbefehl ueber Ollama-Toolrouting ausgefuehrt")
+                else:
+                    self.set_status("Lichtbefehl ueber Ollama-Toolrouting ausgefuehrt")
+
+                return
 
             chunk_buffer: list[str] = []
             first_token_received = False

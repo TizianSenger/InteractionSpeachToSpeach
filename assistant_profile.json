@@ -1,0 +1,16 @@
+{
+  "persona": {
+    "flirty": 100.0,
+    "humor": 55.0,
+    "serious": 40.0,
+    "dominance": 35.0,
+    "empathy": 70.0,
+    "temperament": 100.0
+  },
+  "preferences": {
+    "favorite_light_scene": "Abendlicht",
+    "mic_device_label": "Standard (Windows)",
+    "tts_engine": "edge-tts (nat\u00fcrlich)",
+    "tts_voice": "Deutsch (m\u00e4nnlich, tief) - Killian"
+  }
+}

@@ -122,6 +122,11 @@ Funktionen in der UI:
 - Gesprächsverlauf mit Zeitstempeln (inkl. Button zum Leeren)
 - Statistik-Tab mit Laufzeit, Countern und durchschnittlichen Latenzen
 - Debug-Logs-Tab mit Live-Logstream, Log-Level-Filter und "Logs leeren"
+- Light Controller Test-Popup mit Buttons `Licht AN` / `Licht AUS`
+- Sprachbefehle fuer Lichtsteuerung (z. B. `Licht an`, `Licht aus`, `Licht einschalten`, `Licht ausschalten`)
+- Lichtbefehle werden ueber ein Ollama-Tool-Routing (JSON-Entscheidung) erkannt und dann lokal ausgefuehrt
+- Persona-System mit Slidern: `Flirty`, `Humor/Sarkasmus`, `Ernsthaftigkeit`, `Dominanz`, `Empathie/Waerme`, `Temperament`
+- Profil-Memory mit persistenter Datei `assistant_profile.json` (merkt Stilpraeferenzen, Lieblingslichtszene, Standardgeraete)
 - Statusanzeige (Aufnahme, Transkription, Ollama, TTS)
 - Anzeige von Transkript und Modellantwort
 - Mikrofon-Sample-Rate, Whisper-Modell, Ollama-Modell/URL, TTS-Rate einstellbar
