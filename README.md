@@ -1,3 +1,7 @@
+# ! piper voice files need to be downloaded those are not provided in this project
+
+
+
 # Local Voice Assistant (Whisper + Ollama + pyttsx3)
 
 Dieses Projekt baut genau den gewünschten lokalen Stack:
