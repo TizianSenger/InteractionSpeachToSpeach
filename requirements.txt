@@ -1,0 +1,6 @@
+openai-whisper
+pyttsx3
+requests
+sounddevice
+numpy
+customtkinter
