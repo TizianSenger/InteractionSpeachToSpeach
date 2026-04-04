@@ -23,6 +23,7 @@ OLLAMA_MODEL_OPTIONS = ["phi4-mini", "dolphin-mistral"]
 EDGE_VOICE_OPTIONS: dict[str, str] = {
     "Deutsch (weiblich) - Katja": "de-DE-KatjaNeural",
     "Deutsch (männlich) - Conrad": "de-DE-ConradNeural",
+    "Deutsch (männlich, tief) - Killian": "de-DE-KillianNeural",
     "Deutsch (weiblich) - Amala": "de-DE-AmalaNeural",
     "Deutsch (männlich) - Florian": "de-DE-FlorianMultilingualNeural",
 }
@@ -101,7 +102,7 @@ class VoiceAssistantUI(ctk.CTk):
         self.sample_rate_var = ctk.StringVar(value="16000")
         self.tts_rate_var = ctk.StringVar(value="170")
         self.tts_engine_var = ctk.StringVar(value="edge-tts (natürlich)")
-        self.tts_voice_var = ctk.StringVar(value="Deutsch (weiblich) - Katja")
+        self.tts_voice_var = ctk.StringVar(value="Deutsch (männlich, tief) - Killian")
         self.tts_emotion_var = ctk.StringVar(value="freundlich")
         self.mic_level_text_var = ctk.StringVar(value="Pegel: 0%")
         self.auto_speak_var = ctk.BooleanVar(value=True)
