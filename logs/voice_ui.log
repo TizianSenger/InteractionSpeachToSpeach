@@ -287,3 +287,38 @@
 2026-04-04 22:33:08,575 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
 2026-04-04 22:33:08,578 | INFO | MainThread | Status: Antwort abgebrochen
 2026-04-04 22:33:08,774 | INFO | MainThread | Status: Avatar-Viewer gestoppt
+2026-04-04 22:37:17,181 | INFO | MainThread | Voice Studio gestartet
+2026-04-04 22:37:18,197 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-04 22:37:20,204 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-04 22:37:20,209 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-04 22:37:34,996 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-04 22:37:35,139 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-04 22:37:37,247 | INFO | MainThread | Status: Mikrofon läuft... (Standard (Windows))
+2026-04-04 22:37:40,335 | INFO | MainThread | Aufnahmedauer: 3.09s
+2026-04-04 22:37:40,354 | INFO | MainThread | Status: Aufnahme beendet. Bereit zum Verarbeiten.
+2026-04-04 22:37:46,155 | INFO | Thread-3 (_run_transcription) | Status: Transkribiere Audio...
+2026-04-04 22:37:48,760 | INFO | Thread-3 (_run_transcription) | Transkription fertig (22 Zeichen)
+2026-04-04 22:37:48,760 | INFO | Thread-3 (_run_transcription) | Status: Transkript erkannt
+2026-04-04 22:37:59,309 | INFO | Thread-7 (_run_ollama_test) | Status: Prüfe Ollama...
+2026-04-04 22:37:59,326 | INFO | Thread-7 (_run_ollama_test) | Status: Ollama OK. Modell erreichbar: phi4-mini
+2026-04-04 22:38:06,200 | INFO | Thread-8 (_run_ollama_only) | Ollama Anfrage gestartet (22 Zeichen Input)
+2026-04-04 22:38:06,200 | INFO | Thread-8 (_run_ollama_only) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-04 22:38:06,236 | DEBUG | Thread-8 (_run_ollama_only) | History Du: Wie geht es dir heute?
+2026-04-04 22:38:14,867 | INFO | Thread-8 (_run_ollama_only) | Tool-Router Entscheidung: none
+2026-04-04 22:38:22,164 | INFO | Thread-8 (_run_ollama_only) | Status: Ollama antwortet...
+2026-04-04 22:38:27,472 | INFO | Thread-8 (_run_ollama_only) | Ollama Antwort fertig (188 Zeichen, 21.27s)
+2026-04-04 22:38:27,473 | DEBUG | Thread-8 (_run_ollama_only) | History Assistent: Hallo! Ich bin nur eine Software, also habe ich keine Gefühle, aber ich bin bereit, Ihnen bei allen Aufgaben zu helfen, die Sie benötigen kö
+2026-04-04 22:38:27,568 | INFO | Thread-8 (_run_ollama_only) | Status: Antwort fertig. Audio streamt...
+2026-04-04 22:40:16,717 | INFO | MainThread | Voice Studio wird beendet
+2026-04-04 22:40:16,719 | INFO | MainThread | Profil gespeichert: C:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\assistant_profile.json
+2026-04-04 22:40:16,719 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-04 22:40:16,722 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-04 22:40:17,037 | INFO | MainThread | Status: Avatar-Viewer gestoppt
+2026-04-04 22:44:36,785 | INFO | MainThread | Voice Studio gestartet
+2026-04-04 22:44:37,674 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-04 22:44:49,845 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-04 22:44:49,849 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-04 22:46:58,549 | INFO | MainThread | Voice Studio gestartet
+2026-04-04 22:46:59,350 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-04 22:47:01,904 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-04 22:47:01,904 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)

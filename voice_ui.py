@@ -4,7 +4,6 @@ from datetime import datetime
 import importlib
 import json
 import logging
-import math
 import os
 import queue
 import shutil
@@ -13,7 +12,6 @@ import sys
 import tempfile
 import threading
 import time
-import urllib.parse
 import wave
 from pathlib import Path
 from typing import Any, Callable
@@ -22,6 +20,8 @@ import customtkinter as ctk
 import pyttsx3
 import requests
 import sounddevice as sd
+
+from avatar_bridge import AvatarBridge
 
 FONT_FAMILY = "Segoe UI"
 NO_MIC_DEVICES_LABEL = "Keine Geräte gefunden"
@@ -68,7 +68,6 @@ MODEL_GLOB_PATTERN = "*.onnx"
 LOG_DIR_NAME = "logs"
 LOG_FILE_NAME = "voice_ui.log"
 PROFILE_FILE_NAME = "assistant_profile.json"
-DEFAULT_VRM_RELATIVE_PATH = "runtime_assets/model/vrm_AvatarSample_S.vrm"
 
 _FFMPEG_CHECKED = False
 _FFMPEG_AVAILABLE = False
@@ -168,11 +167,6 @@ class VoiceAssistantUI(ctk.CTk):
         self.pyttsx3_engine: Any | None = None
         self.pyttsx3_engine_lock = threading.Lock()
         self.avatar_lipsync_var = ctk.BooleanVar(value=True)
-        self.avatar_http_port: int | None = None
-        self.avatar_server_module: Any | None = None
-        self.avatar_viewer_process: subprocess.Popen[str] | None = None
-        self.avatar_last_push_at = 0.0
-        self.avatar_auto_start_attempted = False
         self.light_popup: ctk.CTkToplevel | None = None
         self.light_state_label: ctk.CTkLabel | None = None
         self.light_indicator: ctk.CTkFrame | None = None
@@ -209,6 +203,14 @@ class VoiceAssistantUI(ctk.CTk):
         }
         self.app_started_at = time.time()
         self.logger = self._setup_logger()
+        self.avatar_bridge = AvatarBridge(
+            base_dir=Path(__file__).resolve().parent,
+            http_session=self.http_session,
+            lipsync_enabled_getter=lambda: bool(self.avatar_lipsync_var.get()),
+            set_status=self.set_status,
+            log_exception=self._log_exception,
+            logger=self.logger,
+        )
 
         self.status_var = ctk.StringVar(value="Bereit")
         self.debug_log_level_var = ctk.StringVar(value="INFO")
@@ -1376,160 +1378,40 @@ class VoiceAssistantUI(ctk.CTk):
         if not self.is_recording:
             self.start_level_monitor()
 
-    def _character_model_base_dir(self) -> Path:
-        return Path(__file__).resolve().parent
+    def _avatar_button_or_none(self) -> Any | None:
+        return self.avatar_btn if hasattr(self, "avatar_btn") else None
 
     def _is_avatar_viewer_running(self) -> bool:
-        return self.avatar_viewer_process is not None and self.avatar_viewer_process.poll() is None
+        return self.avatar_bridge.is_running()
 
     def _update_avatar_button_state(self) -> None:
-        if not hasattr(self, "avatar_btn"):
-            return
-
-        if self._is_avatar_viewer_running():
-            self.avatar_btn.configure(text="Avatar stoppen", fg_color="#991b1b", hover_color="#7f1d1d")
-        else:
-            self.avatar_btn.configure(text="Avatar starten", fg_color="#1d4ed8", hover_color="#1e40af")
-
-    def _build_avatar_viewer_url(self, port: int, base_dir: Path) -> str:
-        vrm_file = base_dir / DEFAULT_VRM_RELATIVE_PATH
-        if not vrm_file.exists():
-            raise FileNotFoundError(f"VRM-Datei nicht gefunden: {vrm_file}")
-
-        rel_vrm = DEFAULT_VRM_RELATIVE_PATH.replace("\\", "/")
-        vrm_url = f"http://127.0.0.1:{port}/{urllib.parse.quote(rel_vrm, safe='/')}"
-        query = urllib.parse.urlencode({"vrm": vrm_url})
-        return f"http://127.0.0.1:{port}/web/vrm_viewer.html?{query}"
+        avatar_btn = self._avatar_button_or_none()
+        if avatar_btn is not None:
+            self.avatar_bridge.update_button_state(avatar_btn)
 
     def _start_avatar_viewer(self) -> bool:
-        if self._is_avatar_viewer_running():
-            self._update_avatar_button_state()
-            return True
-
-        base_dir = self._character_model_base_dir()
-        if not base_dir.exists():
-            self.set_status(f"Avatar-Ordner fehlt: {base_dir}")
-            return False
-
-        try:
-            if self.avatar_server_module is None:
-                self.avatar_server_module = importlib.import_module("local_http_server")
-
-            self.avatar_http_port = int(self.avatar_server_module.start(str(base_dir)))
-            viewer_url = self._build_avatar_viewer_url(self.avatar_http_port, base_dir)
-            viewer_script = base_dir / "viewer_process.py"
-            self.avatar_viewer_process = subprocess.Popen(
-                [sys.executable, str(viewer_script), viewer_url],
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                text=True,
-            )
-            self.avatar_auto_start_attempted = True
-            self._update_avatar_button_state()
-            self.set_status("Avatar-Viewer gestartet")
-            self.logger.info("Avatar-Viewer gestartet (Port %s)", self.avatar_http_port)
-            return True
-        except Exception as exc:
-            self._log_exception("Avatar-Viewer Start", exc)
-            self.avatar_viewer_process = None
-            self._update_avatar_button_state()
-            self.set_status(f"Avatar-Viewer Start fehlgeschlagen: {exc}")
-            return False
+        return self.avatar_bridge.start(self._avatar_button_or_none())
 
     def _stop_avatar_viewer(self) -> None:
-        self._reset_avatar_lipsync()
-        proc = self.avatar_viewer_process
-        self.avatar_viewer_process = None
-        if proc is not None and proc.poll() is None:
-            try:
-                proc.terminate()
-            except Exception:
-                pass
-
-        if self.avatar_server_module is not None:
-            try:
-                self.avatar_server_module.stop()
-            except Exception:
-                pass
-
-        self.avatar_http_port = None
-        self._update_avatar_button_state()
-        self.set_status("Avatar-Viewer gestoppt")
+        self.avatar_bridge.stop(self._avatar_button_or_none())
 
     def toggle_avatar_viewer(self) -> None:
-        if self._is_avatar_viewer_running():
-            self._stop_avatar_viewer()
-            return
-        self._start_avatar_viewer()
+        self.avatar_bridge.toggle(self._avatar_button_or_none())
 
     def _post_avatar_lipsync(self, active: bool, energy: float = 0.0, force: bool = False) -> None:
-        if not self.avatar_lipsync_var.get():
-            return
-
-        if self.avatar_http_port is None or not self._is_avatar_viewer_running():
-            return
-
-        now = time.perf_counter()
-        if not force and (now - self.avatar_last_push_at) < 0.045:
-            return
-
-        self.avatar_last_push_at = now
-        try:
-            self.http_session.post(
-                f"http://127.0.0.1:{self.avatar_http_port}/api/lipsync",
-                json={"active": bool(active), "energy": max(0.0, min(1.0, float(energy)))},
-                timeout=(0.5, 0.5),
-            )
-        except Exception:
-            # Do not interrupt voice playback when avatar bridge is unavailable.
-            pass
+        self.avatar_bridge.post_lipsync(active=active, energy=energy, force=force)
 
     def _reset_avatar_lipsync(self) -> None:
-        if self.avatar_http_port is None or not self._is_avatar_viewer_running():
-            return
-        try:
-            self.http_session.post(
-                f"http://127.0.0.1:{self.avatar_http_port}/api/lipsync",
-                json={"active": False, "energy": 0.0},
-                timeout=(0.5, 0.5),
-            )
-        except Exception:
-            pass
+        self.avatar_bridge.reset_lipsync()
 
     def _estimate_lipsync_energy(self, text: str, elapsed_seconds: float) -> float:
-        vowel_count = sum(1 for ch in text.lower() if ch in "aeiouäöüy")
-        density = vowel_count / max(1, len(text))
-        text_factor = max(0.35, min(0.95, 0.45 + density * 2.6))
-        pulse = 0.55 + 0.45 * abs(math.sin(elapsed_seconds * 11.5))
-        return max(0.12, min(1.0, text_factor * pulse))
+        return self.avatar_bridge.estimate_lipsync_energy(text, elapsed_seconds)
 
     def _start_avatar_lipsync_background(self, text: str) -> tuple[threading.Event, threading.Thread | None]:
-        stop_event = threading.Event()
-
-        if not self.avatar_lipsync_var.get() or self.avatar_http_port is None:
-            return stop_event, None
-
-        def worker() -> None:
-            started_at = time.perf_counter()
-            while not stop_event.is_set():
-                elapsed = time.perf_counter() - started_at
-                self._post_avatar_lipsync(True, self._estimate_lipsync_energy(text, elapsed))
-                time.sleep(0.05)
-
-            self._reset_avatar_lipsync()
-
-        thread = threading.Thread(target=worker, daemon=True)
-        thread.start()
-        return stop_event, thread
+        return self.avatar_bridge.start_lipsync_background(text)
 
     def _ensure_avatar_for_lipsync(self) -> None:
-        if not self.avatar_lipsync_var.get():
-            return
-        if self._is_avatar_viewer_running() and self.avatar_http_port is not None:
-            return
-        if self.avatar_auto_start_attempted:
-            return
-        self._start_avatar_viewer()
+        self.avatar_bridge.ensure_for_lipsync(self._avatar_button_or_none())
 
     def on_close(self) -> None:
         self.stt_loading_active = False

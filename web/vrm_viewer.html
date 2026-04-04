@@ -236,6 +236,8 @@
             28, window.innerWidth / window.innerHeight, 0.01, 200
         );
         camera.position.set(0, 1.35, 2.8);
+        const defaultCameraPosition = new THREE.Vector3(0, 1.35, 2.8);
+        const defaultCameraTarget = new THREE.Vector3(0, 1.0, 0);
 
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.target.set(0, 1.0, 0);
@@ -246,11 +248,50 @@
         controls.update();
 
         function resetCamera() {
-            camera.position.set(0, 1.35, 2.8);
-            controls.target.set(0, 1.0, 0);
+            camera.position.copy(defaultCameraPosition);
+            controls.target.copy(defaultCameraTarget);
             controls.update();
         }
         window.resetCamera = resetCamera;
+
+        function fitCameraToModel(vrmInstance) {
+            if (!vrmInstance || !vrmInstance.scene) return;
+
+            const box = new THREE.Box3().setFromObject(vrmInstance.scene);
+            if (!Number.isFinite(box.min.y) || !Number.isFinite(box.max.y)) return;
+
+            const size = new THREE.Vector3();
+            const center = new THREE.Vector3();
+            box.getSize(size);
+            box.getCenter(center);
+
+            const height = Math.max(0.1, size.y);
+            const width = Math.max(0.1, size.x);
+
+            // Frame full body but prevent T-pose arm span from zooming too far out.
+            const vFov = THREE.MathUtils.degToRad(camera.fov);
+            const hFov = 2 * Math.atan(Math.tan(vFov / 2) * camera.aspect);
+            const distForHeight = (height * 0.56) / Math.tan(vFov / 2);
+            const distForWidth = (width * 0.50) / Math.tan(hFov / 2);
+            const boundedWidthDistance = Math.min(distForWidth, distForHeight * 1.18);
+            const fitDistance = Math.max(distForHeight, boundedWidthDistance) * 1.10;
+
+            const targetY = box.min.y + height * 0.38;
+            controls.target.set(center.x, targetY, center.z);
+
+            // Keep model centered vertically with slight top-down angle.
+            camera.position.set(center.x, box.min.y + height * 0.52, center.z + fitDistance);
+            camera.near = Math.max(0.01, fitDistance / 250);
+            camera.far = Math.max(200, fitDistance * 12);
+            camera.updateProjectionMatrix();
+
+            controls.minDistance = Math.max(0.3, fitDistance * 0.35);
+            controls.maxDistance = Math.max(20, fitDistance * 6.0);
+            controls.update();
+
+            defaultCameraPosition.copy(camera.position);
+            defaultCameraTarget.copy(controls.target);
+        }
 
         // ─────────────────────────────────────────────────────────────────────────
         // Lights
@@ -390,6 +431,54 @@
             return true;
         }
 
+        function alignVRMToGround(vrmInstance) {
+            if (!vrmInstance || !vrmInstance.scene) return;
+
+            // Ensure world matrices are up to date before reading bounds.
+            vrmInstance.scene.updateWorldMatrix(true, true);
+
+            const box = new THREE.Box3().setFromObject(vrmInstance.scene);
+            if (!Number.isFinite(box.min.y) || !Number.isFinite(box.max.y)) return;
+
+            const bonePos = new THREE.Vector3();
+            const humanoid = vrmInstance.humanoid;
+
+            const getBoneY = (name) => {
+                if (!humanoid) return null;
+                const node = humanoid.getNormalizedBoneNode(name);
+                if (!node) return null;
+                node.getWorldPosition(bonePos);
+                return Number.isFinite(bonePos.y) ? bonePos.y : null;
+            };
+
+            const toeYs = ['leftToes', 'rightToes']
+                .map(getBoneY)
+                .filter(v => v !== null);
+            const footYs = ['leftFoot', 'rightFoot']
+                .map(getBoneY)
+                .filter(v => v !== null);
+
+            let boneGroundY = null;
+            if (toeYs.length > 0) {
+                boneGroundY = Math.min(...toeYs) - 0.015;
+            } else if (footYs.length > 0) {
+                // Foot bones are often around ankle height; compensate with a small sole offset.
+                boneGroundY = Math.min(...footYs) - 0.08;
+            }
+
+            const estimatedGroundY = boneGroundY === null
+                ? box.min.y
+                : Math.min(box.min.y, boneGroundY);
+            const floorPadding = 0.01;
+            const yOffset = floorPadding - estimatedGroundY;
+            if (Math.abs(yOffset) > 1e-4) {
+                vrmInstance.scene.position.y += yOffset;
+                vrmInstance.scene.updateWorldMatrix(true, true);
+            }
+
+            fitCameraToModel(vrmInstance);
+        }
+
         // ─────────────────────────────────────────────────────────────────────────
         // Load VRM
         // ─────────────────────────────────────────────────────────────────────────
@@ -408,6 +497,9 @@
                 VRMUtils.rotateVRM0(vrm);   // VRM 0.x → correct orientation
 
                 scene.add(vrm.scene);
+                alignVRMToGround(vrm);
+                setTimeout(() => alignVRMToGround(vrm), 80);
+                setTimeout(() => alignVRMToGround(vrm), 400);
 
                 mixer = new THREE.AnimationMixer(vrm.scene);
                 hudTopEl.textContent = url.split('/').pop().split('?')[0];
