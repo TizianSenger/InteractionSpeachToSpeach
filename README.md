@@ -118,7 +118,7 @@ Funktionen in der UI:
 - Statusanzeige (Aufnahme, Transkription, Ollama, TTS)
 - Anzeige von Transkript und Modellantwort
 - Mikrofon-Sample-Rate, Whisper-Modell, Ollama-Modell/URL, TTS-Rate einstellbar
-- TTS Engine-Auswahl: `edge-tts (natürlich)` oder `pyttsx3 (lokal)`
+- TTS Engine-Auswahl: `edge-tts (natürlich)`, `piper (lokal, natürlich)` oder `pyttsx3 (lokal)`
 - Mehrere Stimmen (u. a. weiblich/männlich) + Emotions-Presets
 - Whisper ist standardmäßig auf `large` gesetzt
 - Ollama-Modell in der UI umschaltbar: `phi4-mini` oder `dolphin-mistral`
@@ -127,3 +127,11 @@ Funktionen in der UI:
 
 Hinweis: `edge-tts` klingt natürlicher, benötigt aber eine Internetverbindung.
 Für die Wiedergabe in der UI wird dafür `pygame` genutzt.
+
+Piper (offline, natürlich):
+
+1. In der UI bei TTS Engine `piper (lokal, natürlich)` wählen.
+2. Bei `Piper Modell (.onnx)` den Pfad zu einer lokalen Stimme eintragen (z. B. `models/de_DE-karlsson-medium.onnx`).
+3. `Piper Config (.json)` optional leer lassen, wenn die passende JSON neben der ONNX-Datei liegt.
+
+Hinweis: Piper ist komplett offline, benötigt aber lokal heruntergeladene Stimmen.

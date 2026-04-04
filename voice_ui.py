@@ -3,6 +3,8 @@ from datetime import datetime
 import importlib
 import os
 import shutil
+import subprocess
+import sys
 import tempfile
 import threading
 import time
@@ -19,7 +21,9 @@ import whisper
 FONT_FAMILY = "Segoe UI"
 NO_MIC_DEVICES_LABEL = "Keine Geräte gefunden"
 WINDOWS_DEFAULT_MIC_LABEL = "Standard (Windows)"
+NO_PIPER_MODELS_LABEL = "Keine Piper-Stimmen gefunden"
 OLLAMA_MODEL_OPTIONS = ["phi4-mini", "dolphin-mistral"]
+PYTTSX3_VOICE_OPTIONS = ["Deutsch (weiblich) - Lokal", "Deutsch (männlich) - Lokal"]
 EDGE_VOICE_OPTIONS: dict[str, str] = {
     "Deutsch (weiblich) - Katja": "de-DE-KatjaNeural",
     "Deutsch (männlich) - Conrad": "de-DE-ConradNeural",
@@ -91,6 +95,7 @@ class VoiceAssistantUI(ctk.CTk):
         self.last_transcript: str = ""
         self.whisper_model_cache: dict[str, Any] = {}
         self.mic_devices_map: dict[str, int] = {}
+        self.piper_models_map: dict[str, str] = {}
 
         self.status_var = ctk.StringVar(value="Bereit")
         self.whisper_model_var = ctk.StringVar(value="small")
@@ -104,11 +109,15 @@ class VoiceAssistantUI(ctk.CTk):
         self.tts_engine_var = ctk.StringVar(value="edge-tts (natürlich)")
         self.tts_voice_var = ctk.StringVar(value="Deutsch (männlich, tief) - Killian")
         self.tts_emotion_var = ctk.StringVar(value="freundlich")
+        self.piper_model_path_var = ctk.StringVar(value="models/de_DE-karlsson-medium.onnx")
+        self.piper_config_path_var = ctk.StringVar(value="")
         self.mic_level_text_var = ctk.StringVar(value="Pegel: 0%")
         self.auto_speak_var = ctk.BooleanVar(value=True)
         self.auto_pipeline_var = ctk.BooleanVar(value=False)
 
         self._build_layout()
+        self.refresh_piper_model_options()
+        self.on_tts_engine_changed(self.tts_engine_var.get())
         self.refresh_input_devices()
         self.start_level_monitor()
         self.protocol("WM_DELETE_WINDOW", self.on_close)
@@ -270,8 +279,13 @@ class VoiceAssistantUI(ctk.CTk):
         ctk.CTkLabel(tts_frame, text="TTS", font=(FONT_FAMILY, 14, "bold")).pack(anchor="w", padx=10, pady=(8, 2))
 
         ctk.CTkLabel(tts_frame, text="TTS Engine").pack(anchor="w", padx=10, pady=(4, 2))
-        tts_engines = ["edge-tts (natürlich)", "pyttsx3 (lokal)"]
-        self.tts_engine_menu = ctk.CTkOptionMenu(tts_frame, values=tts_engines, variable=self.tts_engine_var)
+        tts_engines = ["edge-tts (natürlich)", "piper (lokal, natürlich)", "pyttsx3 (lokal)"]
+        self.tts_engine_menu = ctk.CTkOptionMenu(
+            tts_frame,
+            values=tts_engines,
+            variable=self.tts_engine_var,
+            command=self.on_tts_engine_changed,
+        )
         self.tts_engine_menu.pack(fill="x", padx=10, pady=(0, 8))
 
         ctk.CTkLabel(tts_frame, text="Stimme").pack(anchor="w", padx=10, pady=(4, 2))
@@ -279,6 +293,7 @@ class VoiceAssistantUI(ctk.CTk):
             tts_frame,
             values=list(EDGE_VOICE_OPTIONS.keys()),
             variable=self.tts_voice_var,
+            command=self.on_tts_voice_changed,
         )
         self.tts_voice_menu.pack(fill="x", padx=10, pady=(0, 8))
 
@@ -292,7 +307,19 @@ class VoiceAssistantUI(ctk.CTk):
 
         ctk.CTkLabel(tts_frame, text="TTS Rate").pack(anchor="w", padx=10, pady=(2, 2))
         self.tts_rate_entry = ctk.CTkEntry(tts_frame, textvariable=self.tts_rate_var)
-        self.tts_rate_entry.pack(fill="x", padx=10, pady=(0, 10))
+        self.tts_rate_entry.pack(fill="x", padx=10, pady=(0, 8))
+
+        ctk.CTkLabel(tts_frame, text="Piper Modell (.onnx)").pack(anchor="w", padx=10, pady=(2, 2))
+        self.piper_model_entry = ctk.CTkEntry(tts_frame, textvariable=self.piper_model_path_var)
+        self.piper_model_entry.pack(fill="x", padx=10, pady=(0, 8))
+
+        ctk.CTkLabel(tts_frame, text="Piper Config (.json, optional)").pack(anchor="w", padx=10, pady=(2, 2))
+        self.piper_config_entry = ctk.CTkEntry(tts_frame, textvariable=self.piper_config_path_var)
+        self.piper_config_entry.pack(fill="x", padx=10, pady=(0, 4))
+
+        ctk.CTkLabel(tts_frame, text="Hinweis: Piper braucht eine lokale .onnx Stimme", text_color="gray70").pack(
+            anchor="w", padx=10, pady=(0, 10)
+        )
 
         transcript_frame = ctk.CTkFrame(self)
         transcript_frame.grid(row=2, column=1, columnspan=2, padx=(8, 16), pady=(0, 8), sticky="nsew")
@@ -363,6 +390,92 @@ class VoiceAssistantUI(ctk.CTk):
 
     def clear_history(self) -> None:
         self.history_box.delete("1.0", "end")
+
+    def refresh_piper_model_options(self) -> None:
+        project_root = Path(__file__).resolve().parent
+        candidate_dirs = [
+            project_root / "piperVoices",
+            project_root / "models",
+        ]
+
+        configured_model_input = self.piper_model_path_var.get().strip()
+        if configured_model_input:
+            configured_candidate = Path(configured_model_input).expanduser()
+            if not configured_candidate.is_absolute():
+                configured_candidate = (project_root / configured_candidate).resolve()
+            if configured_candidate.is_dir():
+                candidate_dirs.append(configured_candidate)
+
+        model_paths: list[Path] = []
+        seen: set[Path] = set()
+        for directory in candidate_dirs:
+            if directory.exists() and directory.is_dir():
+                for model_path in sorted(directory.rglob("*.onnx")):
+                    resolved = model_path.resolve()
+                    if resolved not in seen:
+                        seen.add(resolved)
+                        model_paths.append(resolved)
+
+        new_map: dict[str, str] = {}
+        for model_path in model_paths:
+            label = model_path.stem
+            if label in new_map:
+                label = str(model_path.relative_to(project_root)) if model_path.is_relative_to(project_root) else str(model_path)
+            new_map[label] = str(model_path)
+
+        self.piper_models_map = new_map
+
+    def on_tts_voice_changed(self, selected: str) -> None:
+        selected_engine = self.tts_engine_var.get().strip().lower()
+        if "piper" in selected_engine:
+            model_path = self.piper_models_map.get(selected)
+            if model_path:
+                self.piper_model_path_var.set(model_path)
+
+    def on_tts_engine_changed(self, _selected: str) -> None:
+        selected_engine = self.tts_engine_var.get().strip().lower()
+
+        if "piper" in selected_engine:
+            self.refresh_piper_model_options()
+            piper_labels = list(self.piper_models_map.keys())
+            if not piper_labels:
+                piper_labels = [NO_PIPER_MODELS_LABEL]
+
+            self.tts_voice_menu.configure(values=piper_labels)
+            current_voice = self.tts_voice_var.get().strip()
+            if current_voice not in piper_labels:
+                self.tts_voice_var.set(piper_labels[0])
+
+            selected_label = self.tts_voice_var.get().strip()
+            model_path = self.piper_models_map.get(selected_label)
+            if model_path:
+                self.piper_model_path_var.set(model_path)
+
+            self.tts_emotion_menu.configure(state="disabled")
+            self.piper_model_entry.configure(state="normal")
+            self.piper_config_entry.configure(state="normal")
+            return
+
+        if "pyttsx3" in selected_engine:
+            self.tts_voice_menu.configure(values=PYTTSX3_VOICE_OPTIONS)
+            current_voice = self.tts_voice_var.get().strip()
+            if current_voice not in PYTTSX3_VOICE_OPTIONS:
+                self.tts_voice_var.set(PYTTSX3_VOICE_OPTIONS[0])
+
+            self.tts_emotion_menu.configure(state="disabled")
+            self.piper_model_entry.configure(state="disabled")
+            self.piper_config_entry.configure(state="disabled")
+            return
+
+        edge_labels = list(EDGE_VOICE_OPTIONS.keys())
+        self.tts_voice_menu.configure(values=edge_labels)
+        current_voice = self.tts_voice_var.get().strip()
+        if current_voice not in edge_labels:
+            self.tts_voice_var.set(edge_labels[0])
+
+        self.tts_emotion_menu.configure(state="normal")
+        self.piper_model_entry.configure(state="disabled")
+        self.piper_config_entry.configure(state="disabled")
 
     def set_mic_level(self, level: float) -> None:
         clamped = max(0.0, min(1.0, level))
@@ -656,7 +769,145 @@ class VoiceAssistantUI(ctk.CTk):
             self.speak_text_edge_tts(text)
             return
 
+        if "piper" in selected_engine:
+            self.speak_text_piper(text)
+            return
+
         self.speak_text_pyttsx3(text)
+
+    def _resolve_piper_config_path(self, model_path: Path, configured_config_path: str) -> Path | None:
+        if configured_config_path:
+            config_path = Path(configured_config_path).expanduser()
+            if not config_path.is_absolute():
+                config_path = (Path(__file__).resolve().parent / config_path).resolve()
+            return config_path if config_path.exists() else None
+
+        model_str = str(model_path)
+        candidates = [
+            Path(f"{model_str}.json"),
+            Path(model_str.replace(".onnx", ".onnx.json")),
+            model_path.with_suffix(".json"),
+        ]
+        for candidate in candidates:
+            if candidate.exists():
+                return candidate
+        return None
+
+    def _resolve_piper_model_path(self, configured_model_path: str) -> Path | None:
+        project_root = Path(__file__).resolve().parent
+        normalized_input = configured_model_path.strip()
+
+        if normalized_input:
+            candidate = Path(normalized_input).expanduser()
+            if not candidate.is_absolute():
+                candidate = (project_root / candidate).resolve()
+
+            if candidate.is_file() and candidate.suffix.lower() == ".onnx":
+                return candidate
+
+            if candidate.is_dir():
+                found = sorted(candidate.rglob("*.onnx"))
+                if found:
+                    return found[0]
+
+        fallback_dirs = [project_root / "piperVoices", project_root / "models"]
+        for fallback_dir in fallback_dirs:
+            if fallback_dir.exists():
+                found = sorted(fallback_dir.rglob("*.onnx"))
+                if found:
+                    return found[0]
+
+        return None
+
+    def speak_text_piper(self, text: str) -> None:
+        try:
+            pygame_module = importlib.import_module("pygame")
+        except ModuleNotFoundError as exc:
+            raise RuntimeError(
+                "pygame fehlt im aktiven Python. Bitte im gleichen Interpreter installieren: pip install pygame"
+            ) from exc
+
+        piper_executable = shutil.which("piper")
+        python_cmd: list[str] | None = None
+
+        try:
+            importlib.import_module("piper")
+            python_cmd = [sys.executable, "-m", "piper"]
+        except ModuleNotFoundError:
+            python_cmd = None
+
+        if piper_executable is None and python_cmd is None:
+            raise RuntimeError(
+                "Piper nicht gefunden. Installiere piper-tts im gleichen Python wie die App oder waehle einen Interpreter, in dem piper verfuegbar ist."
+            )
+
+        configured_model_input = self.piper_model_path_var.get().strip()
+        model_path = self._resolve_piper_model_path(configured_model_input)
+        if model_path is None:
+            raise RuntimeError(
+                "Piper Modell nicht gefunden. Bitte gueltigen .onnx Pfad eintragen oder eine .onnx Datei in piperVoices/models ablegen."
+            )
+
+        if str(model_path) != configured_model_input:
+            self.after(0, lambda: self.piper_model_path_var.set(str(model_path)))
+
+        config_path = self._resolve_piper_config_path(model_path, self.piper_config_path_var.get().strip())
+        if config_path is None:
+            raise RuntimeError(
+                "Piper Config fehlt. Neben der .onnx wird meist eine .onnx.json benoetigt. "
+                f"Modell: {model_path}"
+            )
+
+        try:
+            tts_rate = int(self.tts_rate_var.get().strip())
+        except ValueError:
+            tts_rate = 170
+
+        safe_rate = max(80, min(300, tts_rate))
+        length_scale = max(0.7, min(1.6, 170.0 / float(safe_rate)))
+
+        fd, temp_path = tempfile.mkstemp(suffix=".wav")
+        os.close(fd)
+
+        cmd = [
+            *(python_cmd if python_cmd is not None else [piper_executable]),
+            "--model",
+            str(model_path),
+            "--output_file",
+            temp_path,
+            "--length_scale",
+            f"{length_scale:.3f}",
+        ]
+        if config_path is not None:
+            cmd.extend(["--config", str(config_path)])
+
+        try:
+            completed = subprocess.run(
+                cmd,
+                input=text,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            if completed.returncode != 0:
+                error_output = (completed.stderr or completed.stdout or "").strip()
+                raise RuntimeError(
+                    f"Piper fehlgeschlagen: {error_output or 'Unbekannter Fehler'} | Modell: {model_path} | Config: {config_path}"
+                )
+
+            if not pygame_module.mixer.get_init():
+                pygame_module.mixer.init()
+            pygame_module.mixer.music.load(temp_path)
+            pygame_module.mixer.music.play()
+            while pygame_module.mixer.music.get_busy():
+                time.sleep(0.05)
+            pygame_module.mixer.music.stop()
+            try:
+                pygame_module.mixer.music.unload()
+            except Exception:
+                pass
+        finally:
+            safe_remove_file(temp_path)
 
     def speak_text_pyttsx3(self, text: str) -> None:
         try:

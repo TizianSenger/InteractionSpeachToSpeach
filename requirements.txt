@@ -6,3 +6,4 @@ numpy
 customtkinter
 edge-tts
 pygame
+piper-tts
