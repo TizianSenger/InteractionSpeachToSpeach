@@ -132,6 +132,8 @@ Funktionen in der UI:
 - Mikrofon-Sample-Rate, Whisper-Modell, Ollama-Modell/URL, TTS-Rate einstellbar
 - TTS Engine-Auswahl: `edge-tts (natürlich)`, `piper (lokal, natürlich)` oder `pyttsx3 (lokal)`
 - Mehrere Stimmen (u. a. weiblich/männlich) + Emotions-Presets
+- Integrierter Avatar-Button: startet den VRM-Viewer direkt aus dem Projekt
+- `Avatar LipSync`-Schalter: synchronisiert Mundbewegung waehrend TTS-Wiedergabe
 - Whisper ist standardmäßig auf `large` gesetzt
 - Ollama-Modell in der UI umschaltbar: `phi4-mini` oder `dolphin-mistral`
 - STT Sprache wählbar: `Deutsch`, `Englisch` oder `Auto`
@@ -140,6 +142,24 @@ Funktionen in der UI:
 
 Hinweis: `edge-tts` klingt natürlicher, benötigt aber eine Internetverbindung.
 Für die Wiedergabe in der UI wird dafür `pygame` genutzt.
+
+## Avatar + LipSync (neu)
+
+In der Workflow-Leiste gibt es jetzt:
+
+- `Avatar starten` / `Avatar stoppen`
+- `Avatar LipSync` (ein/aus)
+
+Ablauf:
+
+1. `Avatar starten` klicken.
+2. Eine Antwort erzeugen und vorlesen lassen (`Antwort vorlesen` aktiv).
+3. Waehrend der Wiedergabe wird der Mund des VRM-Avatars automatisch animiert.
+
+Hinweis:
+
+- Benoetigte Datei: `runtime_assets/model/vrm_AvatarSample_S.vrm`
+- LipSync arbeitet lokal ueber eine interne HTTP-Bridge (`/api/lipsync`) zwischen Voice-UI und Viewer.
 
 Debug-Logdatei:
 

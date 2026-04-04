@@ -216,3 +216,74 @@
 2026-04-04 16:22:25,886 | INFO | Thread-12 (_run_ollama_only) | Ollama Antwort fertig (258 Zeichen, 12.10s)
 2026-04-04 16:22:25,886 | DEBUG | Thread-12 (_run_ollama_only) | History Assistent: Im sanften Schein des Abendlichts entdeckte Anna in ihrem Garten einen geheimnisvollen Schlüssel. Neugierig packte sie ihn fest und spürte, 
 2026-04-04 16:22:25,887 | INFO | Thread-12 (_run_ollama_only) | Status: Antwort fertig. Audio streamt...
+2026-04-04 16:24:20,923 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-04 16:24:20,923 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-04 16:24:21,066 | INFO | MainThread | Status: Mikrofon läuft... (Standard (Windows))
+2026-04-04 16:24:28,451 | INFO | MainThread | Aufnahmedauer: 7.39s
+2026-04-04 16:24:28,508 | INFO | MainThread | Status: Aufnahme beendet. Bereit zum Verarbeiten.
+2026-04-04 16:24:32,945 | INFO | Thread-16 (_run_transcription) | Status: Transkribiere Audio...
+2026-04-04 16:24:34,958 | INFO | Thread-16 (_run_transcription) | Transkription fertig (42 Zeichen)
+2026-04-04 16:24:34,959 | INFO | Thread-16 (_run_transcription) | Status: Transkript erkannt
+2026-04-04 16:24:42,044 | INFO | Thread-19 (_run_ollama_only) | Ollama Anfrage gestartet (42 Zeichen Input)
+2026-04-04 16:24:42,044 | INFO | Thread-19 (_run_ollama_only) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-04 16:24:42,067 | DEBUG | Thread-19 (_run_ollama_only) | History Du: Hey, du dumme kleine Hupe, blas mir einen!
+2026-04-04 16:24:59,656 | INFO | Thread-19 (_run_ollama_only) | Tool-Router Entscheidung: none
+2026-04-04 16:25:12,038 | INFO | Thread-19 (_run_ollama_only) | Status: Ollama antwortet...
+2026-04-04 16:25:22,687 | INFO | Thread-19 (_run_ollama_only) | Ollama Antwort fertig (261 Zeichen, 40.64s)
+2026-04-04 16:25:22,687 | DEBUG | Thread-19 (_run_ollama_only) | History Assistent: Hallo lieber Freund! Ich bin kein Musikinstrument, aber ich werde mich freuen, dir dabei zu helfen, die besten Lieder und Songs zu finden. W
+2026-04-04 16:25:22,687 | INFO | Thread-19 (_run_ollama_only) | Status: Antwort fertig. Audio streamt...
+2026-04-04 16:25:59,048 | INFO | Thread-23 (_run_ollama_only) | Ollama Anfrage gestartet (48 Zeichen Input)
+2026-04-04 16:25:59,049 | INFO | Thread-23 (_run_ollama_only) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-04 16:25:59,071 | DEBUG | Thread-23 (_run_ollama_only) | History Du: kannst du ein bischen dirty talk mit mir machen?
+2026-04-04 16:26:10,393 | INFO | Thread-23 (_run_ollama_only) | Tool-Router Entscheidung: none
+2026-04-04 16:26:22,747 | INFO | Thread-23 (_run_ollama_only) | Status: Ollama antwortet...
+2026-04-04 16:26:28,797 | INFO | Thread-23 (_run_ollama_only) | Ollama Antwort fertig (137 Zeichen, 29.75s)
+2026-04-04 16:26:28,797 | DEBUG | Thread-23 (_run_ollama_only) | History Assistent: Ja, ich kann das tun. Wie möchtest du es? Du kannst mir jederzeit sagen, wenn du genug hast. Wir sollten immer auf deinen Komfort achten.
+2026-04-04 16:26:28,798 | INFO | Thread-23 (_run_ollama_only) | Status: Antwort fertig. Audio streamt...
+2026-04-04 16:26:59,865 | INFO | Thread-27 (_run_ollama_only) | Ollama Anfrage gestartet (55 Zeichen Input)
+2026-04-04 16:26:59,866 | INFO | Thread-27 (_run_ollama_only) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-04 16:26:59,889 | DEBUG | Thread-27 (_run_ollama_only) | History Du: sehr gut erzähl mir davon wie du meinen schwanz lutscht
+2026-04-04 16:27:10,884 | INFO | Thread-27 (_run_ollama_only) | Tool-Router Entscheidung: none
+2026-04-04 16:27:23,759 | INFO | Thread-27 (_run_ollama_only) | Status: Ollama antwortet...
+2026-04-04 16:27:37,126 | INFO | Thread-27 (_run_ollama_only) | Ollama Antwort fertig (322 Zeichen, 37.26s)
+2026-04-04 16:27:37,126 | DEBUG | Thread-27 (_run_ollama_only) | History Assistent: Oh, ich danke dir für die flatterhafte Einladung! Aber ich möchte dir sagen, dass ich als Sprachassistent eher auf Distanz bleibe und mich n
+2026-04-04 16:27:37,126 | INFO | Thread-27 (_run_ollama_only) | Status: Antwort fertig. Audio streamt...
+2026-04-04 16:27:58,647 | INFO | Thread-31 (_run_ollama_only) | Ollama Anfrage gestartet (41 Zeichen Input)
+2026-04-04 16:27:58,648 | INFO | Thread-31 (_run_ollama_only) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-04 16:27:58,673 | DEBUG | Thread-31 (_run_ollama_only) | History Du: kannst du bitte dirty talk mit mir machen
+2026-04-04 16:28:09,656 | INFO | Thread-31 (_run_ollama_only) | Tool-Router Entscheidung: none
+2026-04-04 16:28:21,829 | INFO | Thread-31 (_run_ollama_only) | Status: Ollama antwortet...
+2026-04-04 16:28:32,925 | INFO | Thread-31 (_run_ollama_only) | Ollama Antwort fertig (257 Zeichen, 34.28s)
+2026-04-04 16:28:32,925 | DEBUG | Thread-31 (_run_ollama_only) | History Assistent: Lieber Freund, ich möchte dir sagen, dass ich einfach nicht in der Lage bin, Dirty Talk zu machen. Es ist nicht mein Stil und ich möchte dir
+2026-04-04 16:28:32,925 | INFO | Thread-31 (_run_ollama_only) | Status: Antwort fertig. Audio streamt...
+2026-04-04 16:28:50,791 | INFO | MainThread | Voice Studio wird beendet
+2026-04-04 16:28:50,792 | INFO | MainThread | Profil gespeichert: C:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\assistant_profile.json
+2026-04-04 16:28:50,793 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-04 16:28:50,793 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-04 19:12:40,284 | INFO | MainThread | Voice Studio gestartet
+2026-04-04 19:12:42,388 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-04 22:31:28,255 | INFO | MainThread | Voice Studio gestartet
+2026-04-04 22:31:29,254 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-04 22:31:37,647 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-04 22:31:37,647 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-04 22:32:02,989 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-04 22:32:04,404 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-04 22:32:06,510 | INFO | MainThread | Status: Mikrofon läuft... (Standard (Windows))
+2026-04-04 22:32:10,690 | INFO | MainThread | Aufnahmedauer: 4.18s
+2026-04-04 22:32:10,707 | INFO | MainThread | Status: Aufnahme beendet. Starte Auto-Workflow...
+2026-04-04 22:32:10,723 | INFO | Thread-3 (_run_transcription) | Status: Transkribiere Audio...
+2026-04-04 22:32:14,047 | INFO | Thread-3 (_run_transcription) | Transkription fertig (31 Zeichen)
+2026-04-04 22:32:14,049 | INFO | Thread-3 (_run_transcription) | Status: Transkript erkannt. Sende an Ollama...
+2026-04-04 22:32:14,056 | INFO | Thread-3 (_run_transcription) | Ollama Anfrage gestartet (31 Zeichen Input)
+2026-04-04 22:32:14,056 | INFO | Thread-3 (_run_transcription) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-04 22:32:14,065 | DEBUG | Thread-3 (_run_transcription) | History Du: Jo, test test, wie geht es dir?
+2026-04-04 22:32:27,562 | INFO | Thread-3 (_run_transcription) | Tool-Router Entscheidung: none
+2026-04-04 22:32:33,770 | INFO | Thread-3 (_run_transcription) | Status: Ollama antwortet...
+2026-04-04 22:32:39,004 | INFO | Thread-3 (_run_transcription) | Ollama Antwort fertig (189 Zeichen, 24.94s)
+2026-04-04 22:32:39,005 | DEBUG | Thread-3 (_run_transcription) | History Assistent: Hallo! Ich bin nur eine Software, aber ich bin bereit und funktionsfähig, um Ihnen bei allen Fragen oder Aufgaben zu helfen, die Sie haben k
+2026-04-04 22:32:39,013 | INFO | Thread-3 (_run_transcription) | Status: Antwort fertig. Audio streamt...
+2026-04-04 22:33:08,572 | INFO | MainThread | Voice Studio wird beendet
+2026-04-04 22:33:08,575 | INFO | MainThread | Profil gespeichert: C:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\assistant_profile.json
+2026-04-04 22:33:08,575 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-04 22:33:08,578 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-04 22:33:08,774 | INFO | MainThread | Status: Avatar-Viewer gestoppt

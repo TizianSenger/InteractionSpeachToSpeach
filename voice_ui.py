@@ -4,6 +4,7 @@ from datetime import datetime
 import importlib
 import json
 import logging
+import math
 import os
 import queue
 import shutil
@@ -12,6 +13,7 @@ import sys
 import tempfile
 import threading
 import time
+import urllib.parse
 import wave
 from pathlib import Path
 from typing import Any, Callable
@@ -66,6 +68,7 @@ MODEL_GLOB_PATTERN = "*.onnx"
 LOG_DIR_NAME = "logs"
 LOG_FILE_NAME = "voice_ui.log"
 PROFILE_FILE_NAME = "assistant_profile.json"
+DEFAULT_VRM_RELATIVE_PATH = "runtime_assets/model/vrm_AvatarSample_S.vrm"
 
 _FFMPEG_CHECKED = False
 _FFMPEG_AVAILABLE = False
@@ -164,6 +167,12 @@ class VoiceAssistantUI(ctk.CTk):
         self.current_tts_queue: queue.Queue[str | None] | None = None
         self.pyttsx3_engine: Any | None = None
         self.pyttsx3_engine_lock = threading.Lock()
+        self.avatar_lipsync_var = ctk.BooleanVar(value=True)
+        self.avatar_http_port: int | None = None
+        self.avatar_server_module: Any | None = None
+        self.avatar_viewer_process: subprocess.Popen[str] | None = None
+        self.avatar_last_push_at = 0.0
+        self.avatar_auto_start_attempted = False
         self.light_popup: ctk.CTkToplevel | None = None
         self.light_state_label: ctk.CTkLabel | None = None
         self.light_indicator: ctk.CTkFrame | None = None
@@ -583,7 +592,7 @@ class VoiceAssistantUI(ctk.CTk):
 
         workflow = ctk.CTkFrame(self)
         workflow.grid(row=1, column=0, columnspan=3, padx=16, pady=(0, 10), sticky="ew")
-        for i in range(11):
+        for i in range(12):
             workflow.grid_columnconfigure(i, weight=1)
 
         self.start_btn = ctk.CTkButton(workflow, text="🎙️ Mic Start", command=self.start_recording)
@@ -648,7 +657,23 @@ class VoiceAssistantUI(ctk.CTk):
             text="Auto: Stop -> Transkribieren -> Senden",
             variable=self.auto_pipeline_var,
         )
-        self.auto_pipeline_switch.grid(row=0, column=9, columnspan=2, padx=6, pady=10, sticky="w")
+        self.auto_pipeline_switch.grid(row=0, column=9, columnspan=1, padx=6, pady=10, sticky="w")
+
+        self.avatar_btn = ctk.CTkButton(
+            workflow,
+            text="Avatar starten",
+            command=self.toggle_avatar_viewer,
+            fg_color="#1d4ed8",
+            hover_color="#1e40af",
+        )
+        self.avatar_btn.grid(row=0, column=10, padx=6, pady=10, sticky="ew")
+
+        self.avatar_lipsync_switch = ctk.CTkSwitch(
+            workflow,
+            text="Avatar LipSync",
+            variable=self.avatar_lipsync_var,
+        )
+        self.avatar_lipsync_switch.grid(row=0, column=11, padx=6, pady=10, sticky="w")
 
         sidebar = ctk.CTkScrollableFrame(self, label_text="Einstellungen")
         sidebar.grid(row=2, column=0, rowspan=3, padx=(16, 8), pady=(0, 16), sticky="nsew")
@@ -1016,6 +1041,7 @@ class VoiceAssistantUI(ctk.CTk):
         self.after(0, lambda: self.text_send_btn.configure(state="normal"))
 
     def _stop_active_audio_playback(self) -> None:
+        self._reset_avatar_lipsync()
         try:
             pygame_module = importlib.import_module("pygame")
             if pygame_module.mixer.get_init():
@@ -1350,6 +1376,161 @@ class VoiceAssistantUI(ctk.CTk):
         if not self.is_recording:
             self.start_level_monitor()
 
+    def _character_model_base_dir(self) -> Path:
+        return Path(__file__).resolve().parent
+
+    def _is_avatar_viewer_running(self) -> bool:
+        return self.avatar_viewer_process is not None and self.avatar_viewer_process.poll() is None
+
+    def _update_avatar_button_state(self) -> None:
+        if not hasattr(self, "avatar_btn"):
+            return
+
+        if self._is_avatar_viewer_running():
+            self.avatar_btn.configure(text="Avatar stoppen", fg_color="#991b1b", hover_color="#7f1d1d")
+        else:
+            self.avatar_btn.configure(text="Avatar starten", fg_color="#1d4ed8", hover_color="#1e40af")
+
+    def _build_avatar_viewer_url(self, port: int, base_dir: Path) -> str:
+        vrm_file = base_dir / DEFAULT_VRM_RELATIVE_PATH
+        if not vrm_file.exists():
+            raise FileNotFoundError(f"VRM-Datei nicht gefunden: {vrm_file}")
+
+        rel_vrm = DEFAULT_VRM_RELATIVE_PATH.replace("\\", "/")
+        vrm_url = f"http://127.0.0.1:{port}/{urllib.parse.quote(rel_vrm, safe='/')}"
+        query = urllib.parse.urlencode({"vrm": vrm_url})
+        return f"http://127.0.0.1:{port}/web/vrm_viewer.html?{query}"
+
+    def _start_avatar_viewer(self) -> bool:
+        if self._is_avatar_viewer_running():
+            self._update_avatar_button_state()
+            return True
+
+        base_dir = self._character_model_base_dir()
+        if not base_dir.exists():
+            self.set_status(f"Avatar-Ordner fehlt: {base_dir}")
+            return False
+
+        try:
+            if self.avatar_server_module is None:
+                self.avatar_server_module = importlib.import_module("local_http_server")
+
+            self.avatar_http_port = int(self.avatar_server_module.start(str(base_dir)))
+            viewer_url = self._build_avatar_viewer_url(self.avatar_http_port, base_dir)
+            viewer_script = base_dir / "viewer_process.py"
+            self.avatar_viewer_process = subprocess.Popen(
+                [sys.executable, str(viewer_script), viewer_url],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                text=True,
+            )
+            self.avatar_auto_start_attempted = True
+            self._update_avatar_button_state()
+            self.set_status("Avatar-Viewer gestartet")
+            self.logger.info("Avatar-Viewer gestartet (Port %s)", self.avatar_http_port)
+            return True
+        except Exception as exc:
+            self._log_exception("Avatar-Viewer Start", exc)
+            self.avatar_viewer_process = None
+            self._update_avatar_button_state()
+            self.set_status(f"Avatar-Viewer Start fehlgeschlagen: {exc}")
+            return False
+
+    def _stop_avatar_viewer(self) -> None:
+        self._reset_avatar_lipsync()
+        proc = self.avatar_viewer_process
+        self.avatar_viewer_process = None
+        if proc is not None and proc.poll() is None:
+            try:
+                proc.terminate()
+            except Exception:
+                pass
+
+        if self.avatar_server_module is not None:
+            try:
+                self.avatar_server_module.stop()
+            except Exception:
+                pass
+
+        self.avatar_http_port = None
+        self._update_avatar_button_state()
+        self.set_status("Avatar-Viewer gestoppt")
+
+    def toggle_avatar_viewer(self) -> None:
+        if self._is_avatar_viewer_running():
+            self._stop_avatar_viewer()
+            return
+        self._start_avatar_viewer()
+
+    def _post_avatar_lipsync(self, active: bool, energy: float = 0.0, force: bool = False) -> None:
+        if not self.avatar_lipsync_var.get():
+            return
+
+        if self.avatar_http_port is None or not self._is_avatar_viewer_running():
+            return
+
+        now = time.perf_counter()
+        if not force and (now - self.avatar_last_push_at) < 0.045:
+            return
+
+        self.avatar_last_push_at = now
+        try:
+            self.http_session.post(
+                f"http://127.0.0.1:{self.avatar_http_port}/api/lipsync",
+                json={"active": bool(active), "energy": max(0.0, min(1.0, float(energy)))},
+                timeout=(0.5, 0.5),
+            )
+        except Exception:
+            # Do not interrupt voice playback when avatar bridge is unavailable.
+            pass
+
+    def _reset_avatar_lipsync(self) -> None:
+        if self.avatar_http_port is None or not self._is_avatar_viewer_running():
+            return
+        try:
+            self.http_session.post(
+                f"http://127.0.0.1:{self.avatar_http_port}/api/lipsync",
+                json={"active": False, "energy": 0.0},
+                timeout=(0.5, 0.5),
+            )
+        except Exception:
+            pass
+
+    def _estimate_lipsync_energy(self, text: str, elapsed_seconds: float) -> float:
+        vowel_count = sum(1 for ch in text.lower() if ch in "aeiouäöüy")
+        density = vowel_count / max(1, len(text))
+        text_factor = max(0.35, min(0.95, 0.45 + density * 2.6))
+        pulse = 0.55 + 0.45 * abs(math.sin(elapsed_seconds * 11.5))
+        return max(0.12, min(1.0, text_factor * pulse))
+
+    def _start_avatar_lipsync_background(self, text: str) -> tuple[threading.Event, threading.Thread | None]:
+        stop_event = threading.Event()
+
+        if not self.avatar_lipsync_var.get() or self.avatar_http_port is None:
+            return stop_event, None
+
+        def worker() -> None:
+            started_at = time.perf_counter()
+            while not stop_event.is_set():
+                elapsed = time.perf_counter() - started_at
+                self._post_avatar_lipsync(True, self._estimate_lipsync_energy(text, elapsed))
+                time.sleep(0.05)
+
+            self._reset_avatar_lipsync()
+
+        thread = threading.Thread(target=worker, daemon=True)
+        thread.start()
+        return stop_event, thread
+
+    def _ensure_avatar_for_lipsync(self) -> None:
+        if not self.avatar_lipsync_var.get():
+            return
+        if self._is_avatar_viewer_running() and self.avatar_http_port is not None:
+            return
+        if self.avatar_auto_start_attempted:
+            return
+        self._start_avatar_viewer()
+
     def on_close(self) -> None:
         self.stt_loading_active = False
         self.logger.info("Voice Studio wird beendet")
@@ -1380,6 +1561,7 @@ class VoiceAssistantUI(ctk.CTk):
 
         self.cancel_current_response()
         self._stop_active_audio_playback()
+        self._stop_avatar_viewer()
         self.stop_level_monitor()
         if self.recording_stream is not None:
             self.recording_stream.stop()
@@ -1842,6 +2024,7 @@ class VoiceAssistantUI(ctk.CTk):
             self.after(0, lambda: self.test_btn.configure(state="normal"))
 
     def speak_text(self, text: str) -> None:
+        self._ensure_avatar_for_lipsync()
         selected_engine = self.tts_engine_var.get().strip().lower()
         if "edge-tts" in selected_engine:
             self.speak_text_edge_tts(text)
@@ -2003,16 +2186,20 @@ class VoiceAssistantUI(ctk.CTk):
                 pygame_module.mixer.init()
             pygame_module.mixer.music.load(temp_path)
             pygame_module.mixer.music.play()
+            started_at = time.perf_counter()
             while pygame_module.mixer.music.get_busy():
                 if self.cancel_tts_event.is_set():
                     pygame_module.mixer.music.stop()
                     break
+                elapsed = time.perf_counter() - started_at
+                self._post_avatar_lipsync(True, self._estimate_lipsync_energy(text, elapsed))
                 time.sleep(0.05)
             pygame_module.mixer.music.stop()
             try:
                 pygame_module.mixer.music.unload()
             except Exception:
                 pass
+            self._reset_avatar_lipsync()
         finally:
             safe_remove_file(temp_path)
 
@@ -2046,9 +2233,16 @@ class VoiceAssistantUI(ctk.CTk):
         if chosen_voice_id:
             engine.setProperty("voice", chosen_voice_id)
 
+        stop_lipsync_event, lipsync_thread = self._start_avatar_lipsync_background(text)
         engine.stop()
-        engine.say(text)
-        engine.runAndWait()
+        try:
+            engine.say(text)
+            engine.runAndWait()
+        finally:
+            stop_lipsync_event.set()
+            if lipsync_thread is not None:
+                lipsync_thread.join(timeout=0.3)
+            self._reset_avatar_lipsync()
 
     def speak_text_edge_tts(self, text: str) -> None:
         try:
@@ -2077,16 +2271,20 @@ class VoiceAssistantUI(ctk.CTk):
                 pygame_module.mixer.init()
             pygame_module.mixer.music.load(temp_path)
             pygame_module.mixer.music.play()
+            started_at = time.perf_counter()
             while pygame_module.mixer.music.get_busy():
                 if self.cancel_tts_event.is_set():
                     pygame_module.mixer.music.stop()
                     break
+                elapsed = time.perf_counter() - started_at
+                self._post_avatar_lipsync(True, self._estimate_lipsync_energy(text, elapsed))
                 time.sleep(0.05)
             pygame_module.mixer.music.stop()
             try:
                 pygame_module.mixer.music.unload()
             except Exception:
                 pass
+            self._reset_avatar_lipsync()
         finally:
             safe_remove_file(temp_path)
 

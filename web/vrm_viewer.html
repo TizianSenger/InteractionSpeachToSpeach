@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="utf-8" />
+    <title>VRM Viewer</title>
+    <!-- importmap: bare 'three' specifier used inside three-vrm modules -->
+    <script type="importmap">
+    {
+      "imports": {
+        "three": "/web/vendor/three.module.js",
+        "three/addons/": "/web/vendor/"
+      }
+    }
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #12121e;
+            overflow: hidden;
+            width: 100vw;
+            height: 100vh;
+            font-family: 'Segoe UI', monospace;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        #hud-top {
+            position: fixed;
+            top: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #00ff99;
+            font-size: 13px;
+            letter-spacing: 1px;
+            pointer-events: none;
+            text-shadow: 0 0 8px #00ff99aa;
+        }
+
+        #status {
+            position: fixed;
+            bottom: 14px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #888;
+            font-size: 11px;
+            background: rgba(0, 0, 0, 0.45);
+            padding: 4px 14px;
+            border-radius: 20px;
+            pointer-events: none;
+        }
+
+        #controls {
+            position: fixed;
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            padding: 8px 22px;
+            border: none;
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: opacity 0.15s;
+        }
+
+        button:hover {
+            opacity: 0.85;
+        }
+
+        #btn-play {
+            background: #1f7a5c;
+            color: #fff;
+        }
+
+        #btn-stop {
+            background: #7a1f1f;
+            color: #fff;
+        }
+
+        #btn-reset {
+            background: #333;
+            color: #ccc;
+        }
+
+        #loader {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #12121e;
+            color: #aaa;
+            font-size: 15px;
+            gap: 18px;
+            z-index: 99;
+        }
+
+        .spinner {
+            width: 42px;
+            height: 42px;
+            border: 3px solid #333;
+            border-top-color: #00ff99;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="loader">
+        <div class="spinner"></div>
+        <span id="loader-text">Initialisiere Three.js…</span>
+    </div>
+
+    <div id="hud-top"></div>
+    <div id="status">Bereit</div>
+
+    <div id="controls">
+        <button id="btn-play" onclick="playAnimation()">▶ Abspielen</button>
+        <button id="btn-stop" onclick="stopAnimation()">⏹ Stopp</button>
+        <button id="btn-reset" onclick="resetCamera()">↺ Kamera</button>
+    </div>
+
+    <!-- Fehler-Overlay: zeigt JS/Netzwerk-Fehler sichtbar an -->
+    <div id="error-overlay" style="
+        display:none; position:fixed; inset:0; z-index:999;
+        background:#1a0000cc; color:#ff6666;
+        font-family:'Segoe UI',monospace; font-size:13px;
+        padding:30px; overflow-y:auto; white-space:pre-wrap;
+    "></div>
+    <script>
+        // Globaler Fehler-Handler (läuft BEVOR das module-Script startet)
+        const _errEl = document.getElementById('error-overlay');
+        function _showErr(msg) {
+            _errEl.style.display = 'block';
+            _errEl.textContent += msg + '\n';
+            const lt = document.getElementById('loader-text');
+            if (lt) lt.textContent = 'Fehler! Siehe roten Text.';
+        }
+        window.onerror = (msg, src, line, col, err) => {
+            _showErr(`❌ JS-Fehler: ${msg}\n   in ${src}:${line}:${col}`);
+            return false;
+        };
+        window.addEventListener('unhandledrejection', e => {
+            _showErr(`❌ Promise rejected: ${e.reason}`);
+        });
+    </script>
+
+    <script type="module">
+        // ─────────────────────────────────────────────────────────────────────────
+        // Imports – lokale vendor-Dateien (kein CDN nötig)
+        // ─────────────────────────────────────────────────────────────────────────
+        import * as THREE from '/web/vendor/three.module.js';
+
+        import { OrbitControls } from '/web/vendor/OrbitControls.js';
+
+        import { GLTFLoader } from '/web/vendor/GLTFLoader.js';
+
+        import { RGBELoader } from '/web/vendor/RGBELoader.js';
+
+        import {
+            VRMLoaderPlugin,
+            VRMUtils,
+        } from '/web/vendor/three-vrm.module.js';
+
+        import {
+            VRMAnimationLoaderPlugin,
+            createVRMAnimationClip,
+        } from '/web/vendor/three-vrm-animation.module.js';
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // URL Parameters
+        // ─────────────────────────────────────────────────────────────────────────
+        const params = new URLSearchParams(location.search);
+        const VRM_URL = params.get('vrm') || null;
+        const VRMA_URL = params.get('vrma') || null;
+        const HDR_URL = params.get('hdr') || null;
+        const AUTOPLAY = params.get('autoplay') === '1';
+        const MOUTH_TEST = params.get('mouthtest') === '1';
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // DOM refs
+        // ─────────────────────────────────────────────────────────────────────────
+        const loaderEl = document.getElementById('loader');
+        const loaderTextEl = document.getElementById('loader-text');
+        const statusEl = document.getElementById('status');
+        const hudTopEl = document.getElementById('hud-top');
+
+        function setStatus(msg) { statusEl.textContent = msg; }
+        function setLoader(msg) { loaderTextEl.textContent = msg; }
+        function hideLoader() { loaderEl.style.display = 'none'; }
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // Renderer
+        // ─────────────────────────────────────────────────────────────────────────
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.outputColorSpace = THREE.SRGBColorSpace;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.1;
+        renderer.shadowMap.enabled = true;
+        document.body.insertBefore(renderer.domElement, document.body.firstChild);
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // Scene
+        // ─────────────────────────────────────────────────────────────────────────
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x12121e);
+        scene.fog = new THREE.FogExp2(0x12121e, 0.06);
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // Camera + Controls
+        // ─────────────────────────────────────────────────────────────────────────
+        const camera = new THREE.PerspectiveCamera(
+            28, window.innerWidth / window.innerHeight, 0.01, 200
+        );
+        camera.position.set(0, 1.35, 2.8);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.target.set(0, 1.0, 0);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.08;
+        controls.minDistance = 0.5;
+        controls.maxDistance = 20;
+        controls.update();
+
+        function resetCamera() {
+            camera.position.set(0, 1.35, 2.8);
+            controls.target.set(0, 1.0, 0);
+            controls.update();
+        }
+        window.resetCamera = resetCamera;
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // Lights
+        // ─────────────────────────────────────────────────────────────────────────
+        const ambient = new THREE.AmbientLight(0xffffff, 0.7);
+        scene.add(ambient);
+
+        const sun = new THREE.DirectionalLight(0xfff4e0, 1.4);
+        sun.position.set(2, 4, 3);
+        sun.castShadow = true;
+        sun.shadow.mapSize.setScalar(2048);
+        scene.add(sun);
+
+        const fill = new THREE.DirectionalLight(0xaaccff, 0.5);
+        fill.position.set(-3, 1, -2);
+        scene.add(fill);
+
+        const rim = new THREE.DirectionalLight(0xffd0ff, 0.3);
+        rim.position.set(0, 3, -4);
+        scene.add(rim);
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // Floor grid
+        // ─────────────────────────────────────────────────────────────────────────
+        const grid = new THREE.GridHelper(20, 40, 0x333355, 0x222233);
+        grid.position.y = 0;
+        scene.add(grid);
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // HDR environment (optional)
+        // ─────────────────────────────────────────────────────────────────────────
+        if (HDR_URL) {
+            new RGBELoader().load(
+                HDR_URL,
+                (tex) => {
+                    tex.mapping = THREE.EquirectangularReflectionMapping;
+                    scene.environment = tex;
+                    // keep dark background
+                    scene.background = new THREE.Color(0x12121e);
+                    setStatus('HDR geladen ✓');
+                },
+                undefined,
+                (err) => console.warn('HDR load failed:', err)
+            );
+        }
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // GLTF loader (shared for VRM + VRMA)
+        // ─────────────────────────────────────────────────────────────────────────
+        const loader = new GLTFLoader();
+        loader.register(p => new VRMLoaderPlugin(p));
+        loader.register(p => new VRMAnimationLoaderPlugin(p));
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // State
+        // ─────────────────────────────────────────────────────────────────────────
+        let vrm = null;
+        let mixer = null;
+        let vrmaClip = null;
+        let vrmaAction = null;
+        let isAnimating = false;
+        let idleT = 0;
+        let lastMs = performance.now();
+        let mouthTestT = 0;
+        const MOUTH_TEST_DURATION = 5 * 60;
+        let externalLipActive = false;
+        let externalLipEnergy = 0;
+        let externalLipSmoothed = 0;
+        let externalLipLastPollMs = 0;
+        let externalLipLastUpdate = 0;
+
+        function setLipOpen(open) {
+            const clamped = Math.min(1.0, Math.max(0.0, open));
+            _setExpr('aa', clamped);
+            _setExpr('a', clamped);
+            _setExpr('oh', clamped * 0.42);
+            _setExpr('o', clamped * 0.42);
+        }
+
+        function _setExpr(name, value) {
+            if (!vrm || !vrm.expressionManager) return;
+            try {
+                vrm.expressionManager.setValue(name, value);
+            } catch {
+                // Some models/presets differ; ignore missing expression names.
+            }
+        }
+
+        function applyTestMouth(dt) {
+            if (!MOUTH_TEST || !vrm || !vrm.expressionManager) return;
+            if (mouthTestT >= MOUTH_TEST_DURATION) {
+                setLipOpen(0);
+                return;
+            }
+
+            mouthTestT += dt;
+
+            const wave = (Math.sin(mouthTestT * 11.5) + 1.0) * 0.5;
+            const pulse = (Math.sin(mouthTestT * 2.7) + 1.0) * 0.5;
+            const open = Math.min(1.0, Math.max(0.0, (wave * 0.72) + (pulse * 0.28)));
+            setLipOpen(open);
+        }
+
+        async function pollExternalLipSync(nowMs) {
+            if ((nowMs - externalLipLastPollMs) < 70) return;
+            externalLipLastPollMs = nowMs;
+
+            try {
+                const resp = await fetch(`/api/lipsync?ts=${Math.floor(nowMs)}`, { cache: 'no-store' });
+                if (!resp.ok) return;
+                const data = await resp.json();
+                externalLipActive = !!data.active;
+                const energy = Number(data.energy ?? 0);
+                externalLipEnergy = Math.min(1, Math.max(0, Number.isFinite(energy) ? energy : 0));
+                externalLipLastUpdate = Number(data.updated_at ?? 0);
+            } catch {
+                // Keep silent when bridge API is unavailable.
+            }
+        }
+
+        function applyExternalLipSync(dt) {
+            if (!vrm || !vrm.expressionManager) return false;
+
+            const nowSec = performance.now() / 1000;
+            const stateIsFresh = (nowSec - externalLipLastUpdate) < 0.8;
+            const target = (externalLipActive && stateIsFresh) ? externalLipEnergy : 0;
+
+            const smoothing = Math.min(1.0, dt * 14.0);
+            externalLipSmoothed += (target - externalLipSmoothed) * smoothing;
+            if (externalLipSmoothed < 0.01 && target <= 0) {
+                setLipOpen(0);
+                return false;
+            }
+
+            const animated = externalLipSmoothed * 0.75 + (Math.sin(nowSec * 26.0) * 0.08);
+            setLipOpen(Math.min(1, Math.max(0, animated)));
+            return true;
+        }
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // Load VRM
+        // ─────────────────────────────────────────────────────────────────────────
+        async function loadVRM(url) {
+            setLoader('Lade VRM-Modell…');
+            try {
+                const gltf = await new Promise((res, rej) =>
+                    loader.load(url, res, (e) => setLoader(`${Math.round(e.loaded / 1024)} KB…`), rej)
+                );
+
+                vrm = gltf.userData.vrm;
+                if (!vrm) throw new Error('Keine VRM-Daten im Modell gefunden');
+
+                // optimise
+                VRMUtils.removeUnnecessaryVertices(gltf.scene);
+                VRMUtils.rotateVRM0(vrm);   // VRM 0.x → correct orientation
+
+                scene.add(vrm.scene);
+
+                mixer = new THREE.AnimationMixer(vrm.scene);
+                hudTopEl.textContent = url.split('/').pop().split('?')[0];
+                setStatus('VRM geladen ✓');
+            } catch (e) {
+                setLoader('');
+                hideLoader();
+                setStatus('⚠ VRM-Fehler: ' + e.message);
+                console.error(e);
+                throw e;
+            }
+        }
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // Load VRMA
+        // ─────────────────────────────────────────────────────────────────────────
+        async function loadVRMA(url) {
+            if (!vrm) return;
+            setLoader('Lade Animation…');
+            try {
+                const gltf = await new Promise((res, rej) =>
+                    loader.load(url, res, undefined, rej)
+                );
+
+                const vrmAnims = gltf.userData.vrmAnimations;
+                if (!vrmAnims || vrmAnims.length === 0) {
+                    throw new Error('Keine VRMAnimation in der VRMA-Datei');
+                }
+
+                vrmaClip = createVRMAnimationClip(vrmAnims[0], vrm);
+                setStatus('Animation bereit ✓  –  ▶ Abspielen klicken');
+            } catch (e) {
+                setLoader('');
+                hideLoader();
+                setStatus('⚠ VRMA-Fehler: ' + e.message);
+                console.error(e);
+            }
+        }
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // Animation control  (also callable from Python via evaluate_js)
+        // ─────────────────────────────────────────────────────────────────────────
+        window.playAnimation = function () {
+            if (!mixer || !vrmaClip) {
+                setStatus('⚠ Animation noch nicht geladen');
+                return;
+            }
+            if (vrmaAction) vrmaAction.stop();
+            vrmaAction = mixer.clipAction(vrmaClip);
+            vrmaAction.loop = THREE.LoopRepeat;
+            vrmaAction.clampWhenFinished = false;
+            vrmaAction.play();
+            isAnimating = true;
+            setStatus('▶ ' + (vrmaClip.name || 'Animation läuft…'));
+        };
+
+        window.stopAnimation = function () {
+            if (vrmaAction) { vrmaAction.fadeOut(0.3); vrmaAction = null; }
+            isAnimating = false;
+            setStatus('⏹ Animation gestoppt');
+        };
+
+        window.toggleAnimation = function () {
+            isAnimating ? window.stopAnimation() : window.playAnimation();
+        };
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // Idle (breathing, head bob, blink)
+        // ─────────────────────────────────────────────────────────────────────────
+        function applyIdle(dt) {
+            if (!vrm) return;
+            idleT += dt;
+
+            if (vrm.humanoid) {
+                const chest = vrm.humanoid.getNormalizedBoneNode('chest');
+                if (chest) {
+                    chest.rotation.x = Math.sin(idleT * 1.15) * 0.012;
+                }
+                const head = vrm.humanoid.getNormalizedBoneNode('head');
+                if (head) {
+                    head.rotation.y = Math.sin(idleT * 0.38) * 0.07;
+                    head.rotation.x = Math.sin(idleT * 0.27 + 1.0) * 0.04;
+                }
+                const hips = vrm.humanoid.getNormalizedBoneNode('hips');
+                if (hips) {
+                    hips.position.y = Math.sin(idleT * 1.15) * 0.003;
+                }
+            }
+
+            if (vrm.expressionManager) {
+                const cycle = idleT % 5.5;
+                const blink = cycle < 0.12
+                    ? Math.sin((cycle / 0.12) * Math.PI)
+                    : 0;
+                vrm.expressionManager.setValue('blink', blink);
+                vrm.expressionManager.setValue('blinkLeft', blink);
+                vrm.expressionManager.setValue('blinkRight', blink);
+            }
+        }
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // Resize handler
+        // ─────────────────────────────────────────────────────────────────────────
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // Render loop
+        // ─────────────────────────────────────────────────────────────────────────
+        function renderLoop() {
+            requestAnimationFrame(renderLoop);
+
+            const nowMs = performance.now();
+            const dt = Math.min((nowMs - lastMs) / 1000, 0.05);
+            lastMs = nowMs;
+            pollExternalLipSync(nowMs);
+
+            controls.update();
+
+            if (mixer) mixer.update(dt);
+            if (!isAnimating) applyIdle(dt);
+            const usedExternalLip = applyExternalLipSync(dt);
+            if (!usedExternalLip) {
+                applyTestMouth(dt);
+            }
+            if (vrm) vrm.update(dt);
+
+            renderer.render(scene, camera);
+        }
+        renderLoop();
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // Bootstrap
+        // ─────────────────────────────────────────────────────────────────────────
+        if (VRM_URL) {
+            loadVRM(VRM_URL)
+                .then(() => {
+                    if (VRMA_URL) return loadVRMA(VRMA_URL);
+                })
+                .then(() => {
+                    if (AUTOPLAY && VRMA_URL) {
+                        setTimeout(() => window.playAnimation(), 300);
+                    }
+                    if (MOUTH_TEST) {
+                        setStatus('Mouth test aktiv (5 Minuten)');
+                    }
+                })
+                .finally(() => hideLoader());
+        } else {
+            hideLoader();
+            setStatus('Kein VRM angegeben – öffne via Python-Button');
+        }
+
+    </script>
+</body>
+
+</html>
