@@ -129,9 +129,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--whisper-model",
-        default="small",
+        default="large",
         choices=["tiny", "base", "small", "medium", "large"],
-        help="Whisper-Modellgröße (Standard: small)",
+        help="Whisper-Modellgröße (Standard: large)",
     )
     parser.add_argument(
         "--ollama-model",

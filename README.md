@@ -107,9 +107,23 @@ Starten:
 Funktionen in der UI:
 
 - Mic Start / Mic Stop
+- Getrennter Ablauf: 1) Aufnehmen 2) Transkribieren 3) An Ollama senden
+- Optionaler Auto-Workflow: nach `Mic Stop` automatisch transkribieren und an Modell senden
+- Mikrofon kann umgangen werden: Text direkt ins Transkriptfeld schreiben und `Text direkt senden` nutzen
 - Ollama Test Button (Server + Modell-Check)
 - Mikrofon-Auswahl (Input Device) + Geräte-Refresh
 - Live-Mikrofonpegel (auch ohne aktive Aufnahme)
+- Gruppierte Einstellungs-Panels: STT, Modell, Audio, TTS
+- Gesprächsverlauf mit Zeitstempeln (inkl. Button zum Leeren)
 - Statusanzeige (Aufnahme, Transkription, Ollama, TTS)
 - Anzeige von Transkript und Modellantwort
 - Mikrofon-Sample-Rate, Whisper-Modell, Ollama-Modell/URL, TTS-Rate einstellbar
+- TTS Engine-Auswahl: `edge-tts (natürlich)` oder `pyttsx3 (lokal)`
+- Mehrere Stimmen (u. a. weiblich/männlich) + Emotions-Presets
+- Whisper ist standardmäßig auf `large` gesetzt
+- Ollama-Modell in der UI umschaltbar: `phi4-mini` oder `dolphin-mistral`
+- STT Sprache wählbar: `Deutsch`, `Englisch` oder `Auto`
+- STT Modus wählbar: `Schnell` (niedrigere Latenz) oder `Genau`
+
+Hinweis: `edge-tts` klingt natürlicher, benötigt aber eine Internetverbindung.
+Für die Wiedergabe in der UI wird dafür `pygame` genutzt.

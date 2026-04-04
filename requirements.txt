@@ -4,3 +4,5 @@ requests
 sounddevice
 numpy
 customtkinter
+edge-tts
+pygame
