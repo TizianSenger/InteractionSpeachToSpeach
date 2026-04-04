@@ -1,7 +1,9 @@
 import asyncio
 from datetime import datetime
 import importlib
+import json
 import os
+import queue
 import shutil
 import subprocess
 import sys
@@ -10,13 +12,12 @@ import threading
 import time
 import wave
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import customtkinter as ctk
 import pyttsx3
 import requests
 import sounddevice as sd
-import whisper
 
 FONT_FAMILY = "Segoe UI"
 NO_MIC_DEVICES_LABEL = "Keine Geräte gefunden"
@@ -45,17 +46,32 @@ WHISPER_LANGUAGE_OPTIONS: dict[str, str] = {
 }
 WHISPER_SPEED_OPTIONS = ["Schnell", "Genau"]
 
+_FFMPEG_CHECKED = False
+_FFMPEG_AVAILABLE = False
+
 
 def ensure_ffmpeg_available() -> bool:
+    global _FFMPEG_CHECKED
+    global _FFMPEG_AVAILABLE
+
+    if _FFMPEG_CHECKED:
+        return _FFMPEG_AVAILABLE
+
     if shutil.which("ffmpeg"):
+        _FFMPEG_CHECKED = True
+        _FFMPEG_AVAILABLE = True
         return True
 
     packages_root = Path.home() / "AppData" / "Local" / "Microsoft" / "WinGet" / "Packages"
     if not packages_root.exists():
+        _FFMPEG_CHECKED = True
+        _FFMPEG_AVAILABLE = False
         return False
 
     candidates = list(packages_root.rglob("ffmpeg.exe"))
     if not candidates:
+        _FFMPEG_CHECKED = True
+        _FFMPEG_AVAILABLE = False
         return False
 
     ffmpeg_dir = str(candidates[0].parent)
@@ -63,7 +79,9 @@ def ensure_ffmpeg_available() -> bool:
     if ffmpeg_dir not in current_path:
         os.environ["PATH"] = f"{ffmpeg_dir};{current_path}" if current_path else ffmpeg_dir
 
-    return shutil.which("ffmpeg") is not None
+    _FFMPEG_AVAILABLE = shutil.which("ffmpeg") is not None
+    _FFMPEG_CHECKED = True
+    return _FFMPEG_AVAILABLE
 
 
 def safe_remove_file(path: str, retries: int = 6, delay_seconds: float = 0.15) -> None:
@@ -94,8 +112,24 @@ class VoiceAssistantUI(ctk.CTk):
         self.is_recording = False
         self.last_transcript: str = ""
         self.whisper_model_cache: dict[str, Any] = {}
+        self.whisper_module: Any | None = None
         self.mic_devices_map: dict[str, int] = {}
         self.piper_models_map: dict[str, str] = {}
+        self.http_session = requests.Session()
+        self.ollama_cache_ttl_seconds = 300.0
+        self.ollama_check_cache: dict[str, Any] = {
+            "cache_key": "",
+            "checked_at": 0.0,
+            "model_name": "",
+            "ollama_url": "",
+        }
+        self.cancel_ollama_event = threading.Event()
+        self.cancel_tts_event = threading.Event()
+        self.active_ollama_response_lock = threading.Lock()
+        self.active_ollama_response: Any | None = None
+        self.current_tts_queue: queue.Queue[str | None] | None = None
+        self.pyttsx3_engine: Any | None = None
+        self.pyttsx3_engine_lock = threading.Lock()
 
         self.status_var = ctk.StringVar(value="Bereit")
         self.whisper_model_var = ctk.StringVar(value="small")
@@ -120,6 +154,7 @@ class VoiceAssistantUI(ctk.CTk):
         self.on_tts_engine_changed(self.tts_engine_var.get())
         self.refresh_input_devices()
         self.start_level_monitor()
+        self._start_background_warmup()
         self.protocol("WM_DELETE_WINDOW", self.on_close)
 
     def _build_layout(self) -> None:
@@ -152,7 +187,7 @@ class VoiceAssistantUI(ctk.CTk):
 
         workflow = ctk.CTkFrame(self)
         workflow.grid(row=1, column=0, columnspan=3, padx=16, pady=(0, 10), sticky="ew")
-        for i in range(9):
+        for i in range(10):
             workflow.grid_columnconfigure(i, weight=1)
 
         self.start_btn = ctk.CTkButton(workflow, text="🎙️ Mic Start", command=self.start_recording)
@@ -179,8 +214,18 @@ class VoiceAssistantUI(ctk.CTk):
         )
         self.send_btn.grid(row=0, column=3, padx=6, pady=10, sticky="ew")
 
+        self.cancel_btn = ctk.CTkButton(
+            workflow,
+            text="⛔ Antwort abbrechen",
+            command=self.cancel_current_response,
+            state="disabled",
+            fg_color="#b42318",
+            hover_color="#8f1d15",
+        )
+        self.cancel_btn.grid(row=0, column=4, padx=6, pady=10, sticky="ew")
+
         self.test_btn = ctk.CTkButton(workflow, text="🔎 Ollama Test", command=self.test_ollama)
-        self.test_btn.grid(row=0, column=4, padx=6, pady=10, sticky="ew")
+        self.test_btn.grid(row=0, column=5, padx=6, pady=10, sticky="ew")
 
         self.text_send_btn = ctk.CTkButton(
             workflow,
@@ -188,17 +233,17 @@ class VoiceAssistantUI(ctk.CTk):
             command=self.send_to_ollama,
             fg_color="#7c3aed",
         )
-        self.text_send_btn.grid(row=0, column=5, padx=6, pady=10, sticky="ew")
+        self.text_send_btn.grid(row=0, column=6, padx=6, pady=10, sticky="ew")
 
         self.speak_switch = ctk.CTkSwitch(workflow, text="Antwort vorlesen", variable=self.auto_speak_var)
-        self.speak_switch.grid(row=0, column=6, padx=6, pady=10, sticky="w")
+        self.speak_switch.grid(row=0, column=7, padx=6, pady=10, sticky="w")
 
         self.auto_pipeline_switch = ctk.CTkSwitch(
             workflow,
             text="Auto: Stop -> Transkribieren -> Senden",
             variable=self.auto_pipeline_var,
         )
-        self.auto_pipeline_switch.grid(row=0, column=7, columnspan=2, padx=6, pady=10, sticky="w")
+        self.auto_pipeline_switch.grid(row=0, column=8, columnspan=2, padx=6, pady=10, sticky="w")
 
         sidebar = ctk.CTkScrollableFrame(self, label_text="Einstellungen")
         sidebar.grid(row=2, column=0, rowspan=3, padx=(16, 8), pady=(0, 16), sticky="nsew")
@@ -212,6 +257,7 @@ class VoiceAssistantUI(ctk.CTk):
             stt_frame,
             values=["tiny", "base", "small", "medium", "large"],
             variable=self.whisper_model_var,
+            command=self.on_whisper_model_changed,
         )
         self.whisper_menu.pack(fill="x", padx=10, pady=(0, 8))
 
@@ -379,6 +425,105 @@ class VoiceAssistantUI(ctk.CTk):
 
         self.after(0, updater)
 
+    def append_textbox(self, textbox: ctk.CTkTextbox, content: str) -> None:
+        def updater() -> None:
+            textbox.insert("end", content)
+            textbox.see("end")
+
+        self.after(0, updater)
+
+    def _extract_complete_sentences(self, text_buffer: str) -> tuple[list[str], str]:
+        completed: list[str] = []
+        last_split_index = 0
+        sentence_end_chars = ".!?\n"
+
+        for index, char in enumerate(text_buffer):
+            if char in sentence_end_chars:
+                sentence = text_buffer[last_split_index : index + 1].strip()
+                if sentence:
+                    completed.append(sentence)
+                last_split_index = index + 1
+
+        remaining = text_buffer[last_split_index:]
+        return completed, remaining
+
+    def _start_streaming_tts_worker(self) -> tuple[queue.Queue[str | None], threading.Thread]:
+        tts_queue: queue.Queue[str | None] = queue.Queue()
+        self.current_tts_queue = tts_queue
+
+        def worker() -> None:
+            while True:
+                item = tts_queue.get()
+                if item is None:
+                    tts_queue.task_done()
+                    break
+                try:
+                    if self.cancel_tts_event.is_set():
+                        continue
+                    self.speak_text(item)
+                except Exception:
+                    # Ignore per-chunk TTS failures so the rest of the response can continue.
+                    pass
+                finally:
+                    tts_queue.task_done()
+
+            if self.current_tts_queue is tts_queue:
+                self.current_tts_queue = None
+
+        tts_thread = threading.Thread(target=worker, daemon=True)
+        tts_thread.start()
+        return tts_queue, tts_thread
+
+    def cancel_current_response(self) -> None:
+        self.cancel_ollama_event.set()
+        self.cancel_tts_event.set()
+
+        queue_ref = self.current_tts_queue
+        if queue_ref is not None:
+            queue_ref.put(None)
+
+        with self.active_ollama_response_lock:
+            active_response = self.active_ollama_response
+        if active_response is not None:
+            try:
+                active_response.close()
+            except Exception:
+                pass
+
+        self._stop_active_audio_playback()
+
+        self.set_status("Antwort abgebrochen")
+        self.after(0, lambda: self.cancel_btn.configure(state="disabled"))
+        self.after(0, lambda: self.send_btn.configure(state="normal"))
+        self.after(0, lambda: self.transcribe_btn.configure(state="normal"))
+        self.after(0, lambda: self.text_send_btn.configure(state="normal"))
+
+    def _stop_active_audio_playback(self) -> None:
+        try:
+            pygame_module = importlib.import_module("pygame")
+            if pygame_module.mixer.get_init():
+                pygame_module.mixer.music.stop()
+                try:
+                    pygame_module.mixer.music.unload()
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+        try:
+            with self.pyttsx3_engine_lock:
+                engine = self.pyttsx3_engine
+            if engine is not None:
+                engine.stop()
+        except Exception:
+            pass
+
+    def _get_pyttsx3_engine(self) -> Any:
+        with self.pyttsx3_engine_lock:
+            if self.pyttsx3_engine is None:
+                self.pyttsx3_engine = pyttsx3.init()
+            return self.pyttsx3_engine
+
     def add_history_entry(self, role: str, content: str) -> None:
         timestamp = datetime.now().strftime("%H:%M:%S")
 
@@ -532,6 +677,8 @@ class VoiceAssistantUI(ctk.CTk):
             self.start_level_monitor()
 
     def on_close(self) -> None:
+        self.cancel_current_response()
+        self._stop_active_audio_playback()
         self.stop_level_monitor()
         if self.recording_stream is not None:
             self.recording_stream.stop()
@@ -540,7 +687,33 @@ class VoiceAssistantUI(ctk.CTk):
         if self.recording_wave is not None:
             self.recording_wave.close()
             self.recording_wave = None
+        self.http_session.close()
         self.destroy()
+
+    def _start_background_warmup(self) -> None:
+        worker = threading.Thread(target=self._run_background_warmup, daemon=True)
+        worker.start()
+
+    def _run_background_warmup(self) -> None:
+        # Warm up expensive dependencies once so first interaction feels immediate.
+        try:
+            ensure_ffmpeg_available()
+            self.load_whisper_model(self.whisper_model_var.get().strip() or "small", announce=False)
+            self.check_ollama(force_refresh=True)
+        except Exception:
+            # Warmup should never block or break normal interaction.
+            pass
+
+    def on_whisper_model_changed(self, selected_model: str) -> None:
+        if selected_model in self.whisper_model_cache:
+            return
+
+        worker = threading.Thread(
+            target=self.load_whisper_model,
+            kwargs={"model_name": selected_model, "announce": False},
+            daemon=True,
+        )
+        worker.start()
 
     def refresh_input_devices(self) -> None:
         try:
@@ -697,17 +870,29 @@ class VoiceAssistantUI(ctk.CTk):
             self.transcribe_btn.configure(state="normal")
             self.send_btn.configure(state="disabled")
 
-    def load_whisper_model(self, model_name: str) -> Any:
+    def load_whisper_model(self, model_name: str, announce: bool = True) -> Any:
+        if self.whisper_module is None:
+            self.whisper_module = importlib.import_module("whisper")
+
         if model_name not in self.whisper_model_cache:
-            self.set_status(f"Lade Whisper-Modell: {model_name}")
-            self.whisper_model_cache[model_name] = whisper.load_model(model_name)
+            if announce:
+                self.set_status(f"Lade Whisper-Modell: {model_name}")
+            self.whisper_model_cache[model_name] = self.whisper_module.load_model(model_name)
         return self.whisper_model_cache[model_name]
 
-    def check_ollama(self) -> tuple[str, str]:
+    def check_ollama(self, force_refresh: bool = False) -> tuple[str, str]:
         model_name = self.ollama_model_var.get().strip() or "phi4-mini"
         ollama_url = self.ollama_url_var.get().strip() or "http://localhost:11434"
+        cache_key = f"{ollama_url.rstrip('/')}::{model_name}"
+        now = time.time()
+
+        if not force_refresh and self.ollama_check_cache.get("cache_key") == cache_key:
+            checked_at = float(self.ollama_check_cache.get("checked_at", 0.0))
+            if (now - checked_at) <= self.ollama_cache_ttl_seconds:
+                return model_name, ollama_url
+
         try:
-            tags_resp = requests.get(f"{ollama_url.rstrip('/')}/api/tags", timeout=5)
+            tags_resp = self.http_session.get(f"{ollama_url.rstrip('/')}/api/tags", timeout=5)
             tags_resp.raise_for_status()
         except requests.RequestException as exc:
             raise RuntimeError(
@@ -729,24 +914,76 @@ class VoiceAssistantUI(ctk.CTk):
         except ValueError as exc:
             raise RuntimeError("Ungültige Antwort von Ollama /api/tags") from exc
 
+        self.ollama_check_cache.update(
+            {
+                "cache_key": cache_key,
+                "checked_at": now,
+                "model_name": model_name,
+                "ollama_url": ollama_url,
+            }
+        )
+
         return model_name, ollama_url
 
-    def ask_ollama(self, user_text: str) -> str:
+    def ask_ollama(
+        self,
+        user_text: str,
+        on_chunk: Callable[[str], None] | None = None,
+        cancel_event: threading.Event | None = None,
+    ) -> str:
         model_name, ollama_url = self.check_ollama()
 
         payload = {
             "model": model_name,
             "messages": [{"role": "user", "content": user_text}],
-            "stream": False,
+            "stream": True,
+            "keep_alive": "30m",
         }
-        response = requests.post(
-            f"{ollama_url.rstrip('/')}/api/chat",
-            json=payload,
-            timeout=120,
-        )
-        response.raise_for_status()
-        data = response.json()
-        return data["message"]["content"].strip()
+
+        answer_parts: list[str] = []
+        try:
+            with self.http_session.post(
+                f"{ollama_url.rstrip('/')}/api/chat",
+                json=payload,
+                stream=True,
+                timeout=(10, 300),
+            ) as response:
+                with self.active_ollama_response_lock:
+                    self.active_ollama_response = response
+
+                response.raise_for_status()
+                for raw_line in response.iter_lines(decode_unicode=True):
+                    if cancel_event is not None and cancel_event.is_set():
+                        break
+
+                    if not raw_line:
+                        continue
+
+                    try:
+                        data = json.loads(raw_line)
+                    except json.JSONDecodeError:
+                        continue
+
+                    message = data.get("message", {})
+                    chunk = str(message.get("content", ""))
+                    if chunk:
+                        answer_parts.append(chunk)
+                        if on_chunk is not None:
+                            on_chunk(chunk)
+
+                    if bool(data.get("done", False)):
+                        break
+        except Exception as exc:
+            # When a streaming response is force-closed during cancel, urllib can raise
+            # transport errors like "NoneType has no attribute read"; treat these as a normal abort.
+            if cancel_event is not None and cancel_event.is_set():
+                return "".join(answer_parts).strip()
+            raise exc
+        finally:
+            with self.active_ollama_response_lock:
+                self.active_ollama_response = None
+
+        return "".join(answer_parts).strip()
 
     def test_ollama(self) -> None:
         self.test_btn.configure(state="disabled")
@@ -900,6 +1137,9 @@ class VoiceAssistantUI(ctk.CTk):
             pygame_module.mixer.music.load(temp_path)
             pygame_module.mixer.music.play()
             while pygame_module.mixer.music.get_busy():
+                if self.cancel_tts_event.is_set():
+                    pygame_module.mixer.music.stop()
+                    break
                 time.sleep(0.05)
             pygame_module.mixer.music.stop()
             try:
@@ -910,12 +1150,15 @@ class VoiceAssistantUI(ctk.CTk):
             safe_remove_file(temp_path)
 
     def speak_text_pyttsx3(self, text: str) -> None:
+        if self.cancel_tts_event.is_set():
+            return
+
         try:
             tts_rate = int(self.tts_rate_var.get().strip())
         except ValueError:
             tts_rate = 170
 
-        engine = pyttsx3.init()
+        engine = self._get_pyttsx3_engine()
         engine.setProperty("rate", tts_rate)
 
         selected_voice = self.tts_voice_var.get().strip().lower()
@@ -936,6 +1179,7 @@ class VoiceAssistantUI(ctk.CTk):
         if chosen_voice_id:
             engine.setProperty("voice", chosen_voice_id)
 
+        engine.stop()
         engine.say(text)
         engine.runAndWait()
 
@@ -967,6 +1211,9 @@ class VoiceAssistantUI(ctk.CTk):
             pygame_module.mixer.music.load(temp_path)
             pygame_module.mixer.music.play()
             while pygame_module.mixer.music.get_busy():
+                if self.cancel_tts_event.is_set():
+                    pygame_module.mixer.music.stop()
+                    break
                 time.sleep(0.05)
             pygame_module.mixer.music.stop()
             try:
@@ -1069,25 +1316,91 @@ class VoiceAssistantUI(ctk.CTk):
         self.send_btn.configure(state="disabled")
         self.transcribe_btn.configure(state="disabled")
         self.text_send_btn.configure(state="disabled")
+        self.cancel_btn.configure(state="normal")
         worker = threading.Thread(target=self._run_ollama_only, args=(transcript,), daemon=True)
         worker.start()
 
     def _run_ollama_only(self, transcript: str, manage_buttons: bool = True) -> None:
         try:
+            self.cancel_ollama_event.clear()
+            self.cancel_tts_event.clear()
+            self.after(0, lambda: self.cancel_btn.configure(state="normal"))
+
             self.set_status("Frage Ollama... (erster Lauf kann etwas dauern)")
             self.add_history_entry("Du", transcript)
-            answer = self.ask_ollama(transcript)
-            self.set_textbox(self.answer_box, answer)
-            self.add_history_entry("Assistent", answer)
+            self.set_textbox(self.answer_box, "")
+
+            chunk_buffer: list[str] = []
+            first_token_received = False
+            tts_queue: queue.Queue[str | None] | None = None
+            tts_text_buffer = ""
 
             if self.auto_speak_var.get():
-                self.set_status("Lese Antwort vor...")
-                self.speak_text(answer)
+                tts_queue, _ = self._start_streaming_tts_worker()
+
+            def flush_chunks() -> None:
+                if not chunk_buffer:
+                    return
+                chunk_text = "".join(chunk_buffer)
+                chunk_buffer.clear()
+                self.append_textbox(self.answer_box, chunk_text)
+
+            def on_chunk(chunk: str) -> None:
+                nonlocal first_token_received
+                nonlocal tts_text_buffer
+
+                if self.cancel_ollama_event.is_set():
+                    return
+
+                chunk_buffer.append(chunk)
+                if not first_token_received:
+                    first_token_received = True
+                    self.set_status("Ollama antwortet...")
+
+                if tts_queue is not None:
+                    tts_text_buffer += chunk
+                    ready_sentences, tts_text_buffer = self._extract_complete_sentences(tts_text_buffer)
+                    for sentence in ready_sentences:
+                        tts_queue.put(sentence)
+
+                should_flush = len(chunk_buffer) >= 8 or chunk.endswith((".", "!", "?", "\n"))
+                if should_flush:
+                    flush_chunks()
+
+            answer = self.ask_ollama(
+                transcript,
+                on_chunk=on_chunk,
+                cancel_event=self.cancel_ollama_event,
+            )
+            flush_chunks()
+
+            if tts_queue is not None:
+                trailing = tts_text_buffer.strip()
+                if trailing:
+                    tts_queue.put(trailing)
+                tts_queue.put(None)
+
+            if self.cancel_ollama_event.is_set():
+                self.set_status("Antwort abgebrochen")
+                return
+
+            if not answer:
+                self.set_textbox(self.answer_box, "[Keine Antwort erhalten]")
+
+            self.add_history_entry("Assistent", answer)
+
+            if tts_queue is not None:
+                self.set_status("Antwort fertig. Audio streamt...")
+                return
 
             self.set_status("Fertig")
         except Exception as exc:
+            if self.cancel_ollama_event.is_set():
+                self.set_status("Antwort abgebrochen")
+                return
             self.set_status(f"Fehler: {exc}")
         finally:
+            self.after(0, lambda: self.cancel_btn.configure(state="disabled"))
             if manage_buttons:
                 self.after(0, lambda: self.send_btn.configure(state="normal"))
                 self.after(0, lambda: self.transcribe_btn.configure(state="normal"))
