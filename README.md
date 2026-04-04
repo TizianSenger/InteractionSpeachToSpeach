@@ -11,7 +11,7 @@ Mikrofon/Audio-Datei -> Whisper (STT) -> Ollama (Phi4-mini) -> pyttsx3 (TTS)
 ## Status
 
 - [x] Grundstruktur erstellt
-- [x] STT mit Whisper integriert
+- [x] STT mit Faster-Whisper (Fallback: Whisper) integriert
 - [x] Ollama-Anbindung integriert
 - [x] TTS mit pyttsx3 integriert
 - [x] End-to-End Test und Feinschliff
@@ -25,6 +25,7 @@ Mikrofon/Audio-Datei -> Whisper (STT) -> Ollama (Phi4-mini) -> pyttsx3 (TTS)
 
 2. Pakete installieren (explizit)
 
+	pip install faster-whisper
 	pip install openai-whisper
 	pip install pyttsx3
 	pip install requests
@@ -128,6 +129,7 @@ Funktionen in der UI:
 - Ollama-Modell in der UI umschaltbar: `phi4-mini` oder `dolphin-mistral`
 - STT Sprache wählbar: `Deutsch`, `Englisch` oder `Auto`
 - STT Modus wählbar: `Schnell` (niedrigere Latenz) oder `Genau`
+- Fast-Reply Controls fuer Ollama: `Max Tokens`, `Temperatur`, `Kurze Voice-Antworten`
 
 Hinweis: `edge-tts` klingt natürlicher, benötigt aber eine Internetverbindung.
 Für die Wiedergabe in der UI wird dafür `pygame` genutzt.

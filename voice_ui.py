@@ -45,8 +45,15 @@ WHISPER_LANGUAGE_OPTIONS: dict[str, str] = {
     "Englisch": "en",
 }
 WHISPER_SPEED_OPTIONS = ["Schnell", "Genau"]
+WHISPER_MODEL_OPTIONS = ["small", "medium"]
 TTS_STREAM_MIN_CHARS = 120
 TTS_STREAM_MAX_SENTENCES = 2
+DEFAULT_ABORTED_STATUS = "Antwort abgebrochen"
+OLLAMA_VOICE_SYSTEM_PROMPT = (
+    "Du bist ein Sprachassistent. Antworte kurz, klar und direkt auf Deutsch. "
+    "Standard: 1-3 Saetze, keine langen Ausfuehrungen."
+)
+MODEL_GLOB_PATTERN = "*.onnx"
 
 _FFMPEG_CHECKED = False
 _FFMPEG_AVAILABLE = False
@@ -132,6 +139,12 @@ class VoiceAssistantUI(ctk.CTk):
         self.current_tts_queue: queue.Queue[str | None] | None = None
         self.pyttsx3_engine: Any | None = None
         self.pyttsx3_engine_lock = threading.Lock()
+        self.whisper_backend = ""
+        self.stt_progress_var = ctk.StringVar(value="STT Laden: 0%")
+        self.stt_loading_active = False
+        self.stt_loading_value = 0.0
+        self.stt_loading_job_id: str | None = None
+        self.stt_loading_model_name = ""
 
         self.status_var = ctk.StringVar(value="Bereit")
         self.whisper_model_var = ctk.StringVar(value="small")
@@ -150,6 +163,9 @@ class VoiceAssistantUI(ctk.CTk):
         self.mic_level_text_var = ctk.StringVar(value="Pegel: 0%")
         self.auto_speak_var = ctk.BooleanVar(value=True)
         self.auto_pipeline_var = ctk.BooleanVar(value=False)
+        self.reply_max_tokens_var = ctk.StringVar(value="120")
+        self.reply_temperature_var = ctk.StringVar(value="0.3")
+        self.concise_reply_var = ctk.BooleanVar(value=True)
 
         self._build_layout()
         self.refresh_piper_model_options()
@@ -257,7 +273,7 @@ class VoiceAssistantUI(ctk.CTk):
         ctk.CTkLabel(stt_frame, text="Whisper Modell").pack(anchor="w", padx=10, pady=(4, 2))
         self.whisper_menu = ctk.CTkOptionMenu(
             stt_frame,
-            values=["tiny", "base", "small", "medium", "large"],
+            values=WHISPER_MODEL_OPTIONS,
             variable=self.whisper_model_var,
             command=self.on_whisper_model_changed,
         )
@@ -279,6 +295,13 @@ class VoiceAssistantUI(ctk.CTk):
         )
         self.whisper_speed_menu.pack(fill="x", padx=10, pady=(0, 10))
 
+        self.stt_progress_bar = ctk.CTkProgressBar(stt_frame)
+        self.stt_progress_bar.pack(fill="x", padx=10, pady=(0, 4))
+        self.stt_progress_bar.set(0)
+
+        self.stt_progress_label = ctk.CTkLabel(stt_frame, textvariable=self.stt_progress_var, text_color="gray70")
+        self.stt_progress_label.pack(anchor="w", padx=10, pady=(0, 10))
+
         model_frame = ctk.CTkFrame(sidebar)
         model_frame.pack(fill="x", padx=8, pady=6)
         ctk.CTkLabel(model_frame, text="Modell", font=(FONT_FAMILY, 14, "bold")).pack(anchor="w", padx=10, pady=(8, 2))
@@ -294,6 +317,21 @@ class VoiceAssistantUI(ctk.CTk):
         ctk.CTkLabel(model_frame, text="Ollama URL").pack(anchor="w", padx=10, pady=(4, 2))
         self.ollama_url_entry = ctk.CTkEntry(model_frame, textvariable=self.ollama_url_var)
         self.ollama_url_entry.pack(fill="x", padx=10, pady=(0, 10))
+
+        self.concise_reply_switch = ctk.CTkSwitch(
+            model_frame,
+            text="Kurze Voice-Antworten",
+            variable=self.concise_reply_var,
+        )
+        self.concise_reply_switch.pack(anchor="w", padx=10, pady=(0, 8))
+
+        ctk.CTkLabel(model_frame, text="Max Tokens (num_predict)").pack(anchor="w", padx=10, pady=(2, 2))
+        self.reply_max_tokens_entry = ctk.CTkEntry(model_frame, textvariable=self.reply_max_tokens_var)
+        self.reply_max_tokens_entry.pack(fill="x", padx=10, pady=(0, 8))
+
+        ctk.CTkLabel(model_frame, text="Temperatur").pack(anchor="w", padx=10, pady=(2, 2))
+        self.reply_temperature_entry = ctk.CTkEntry(model_frame, textvariable=self.reply_temperature_var)
+        self.reply_temperature_entry.pack(fill="x", padx=10, pady=(0, 10))
 
         audio_frame = ctk.CTkFrame(sidebar)
         audio_frame.pack(fill="x", padx=8, pady=6)
@@ -494,7 +532,7 @@ class VoiceAssistantUI(ctk.CTk):
 
         self._stop_active_audio_playback()
 
-        self.set_status("Antwort abgebrochen")
+        self.set_status(DEFAULT_ABORTED_STATUS)
         self.after(0, lambda: self.cancel_btn.configure(state="disabled"))
         self.after(0, lambda: self.send_btn.configure(state="normal"))
         self.after(0, lambda: self.transcribe_btn.configure(state="normal"))
@@ -557,7 +595,7 @@ class VoiceAssistantUI(ctk.CTk):
         seen: set[Path] = set()
         for directory in candidate_dirs:
             if directory.exists() and directory.is_dir():
-                for model_path in sorted(directory.rglob("*.onnx")):
+                for model_path in sorted(directory.rglob(MODEL_GLOB_PATTERN)):
                     resolved = model_path.resolve()
                     if resolved not in seen:
                         seen.add(resolved)
@@ -633,7 +671,7 @@ class VoiceAssistantUI(ctk.CTk):
 
         self.after(0, updater)
 
-    def _monitor_callback(self, indata: Any, frames: int, time: Any, status: Any) -> None:
+    def _monitor_callback(self, indata: Any, frames: int, callback_time: Any, status: Any) -> None:
         peak = float(abs(indata).max()) / 32767.0
         self.set_mic_level(peak)
 
@@ -679,6 +717,14 @@ class VoiceAssistantUI(ctk.CTk):
             self.start_level_monitor()
 
     def on_close(self) -> None:
+        self.stt_loading_active = False
+        if self.stt_loading_job_id is not None:
+            try:
+                self.after_cancel(self.stt_loading_job_id)
+            except Exception:
+                pass
+            self.stt_loading_job_id = None
+
         self.cancel_current_response()
         self._stop_active_audio_playback()
         self.stop_level_monitor()
@@ -706,16 +752,88 @@ class VoiceAssistantUI(ctk.CTk):
             # Warmup should never block or break normal interaction.
             pass
 
-    def on_whisper_model_changed(self, selected_model: str) -> None:
-        if selected_model in self.whisper_model_cache:
+    def _set_stt_progress(self, value: float, label: str | None = None) -> None:
+        clamped = max(0.0, min(1.0, value))
+
+        def updater() -> None:
+            self.stt_progress_bar.set(clamped)
+            if label is not None:
+                self.stt_progress_var.set(label)
+            else:
+                self.stt_progress_var.set(f"STT Laden: {int(clamped * 100)}%")
+
+        self.after(0, updater)
+
+    def _tick_stt_progress(self) -> None:
+        if not self.stt_loading_active:
+            self.stt_loading_job_id = None
             return
 
+        # Approximate progress: backend download/init has no reliable percentage callback.
+        self.stt_loading_value = min(0.95, self.stt_loading_value + 0.02)
+        self._set_stt_progress(
+            self.stt_loading_value,
+            f"STT Laden ({self.stt_loading_model_name}): {int(self.stt_loading_value * 100)}%",
+        )
+        self.stt_loading_job_id = self.after(350, self._tick_stt_progress)
+
+    def _start_stt_progress(self, model_name: str) -> None:
+        self.stt_loading_active = True
+        self.stt_loading_model_name = model_name
+        self.stt_loading_value = 0.05
+        self._set_stt_progress(self.stt_loading_value, f"STT Laden ({model_name}): 5%")
+        if self.stt_loading_job_id is None:
+            self.stt_loading_job_id = self.after(350, self._tick_stt_progress)
+
+    def _finish_stt_progress(self, model_name: str, success: bool) -> None:
+        self.stt_loading_active = False
+        if self.stt_loading_job_id is not None:
+            try:
+                self.after_cancel(self.stt_loading_job_id)
+            except Exception:
+                pass
+            self.stt_loading_job_id = None
+
+        if success:
+            self.stt_loading_value = 1.0
+            self._set_stt_progress(1.0, f"STT Modell bereit ({model_name}): 100%")
+        else:
+            self.stt_loading_value = 0.0
+            self._set_stt_progress(0.0, f"STT Laden fehlgeschlagen ({model_name})")
+
+    def on_whisper_model_changed(self, selected_model: str) -> None:
+        if selected_model in self.whisper_model_cache:
+            self._set_stt_progress(1.0, f"STT Modell bereits geladen ({selected_model}): 100%")
+            return
+
+        self._start_stt_progress(selected_model)
+        self.set_status(f"Lade STT-Modell im Hintergrund: {selected_model}")
         worker = threading.Thread(
-            target=self.load_whisper_model,
-            kwargs={"model_name": selected_model, "announce": False},
+            target=self._preload_whisper_model_safe,
+            kwargs={"model_name": selected_model},
             daemon=True,
         )
         worker.start()
+
+    def _preload_whisper_model_safe(self, model_name: str) -> None:
+        try:
+            self.load_whisper_model(model_name=model_name, announce=False)
+            self._finish_stt_progress(model_name, success=True)
+            self.set_status(f"STT-Modell bereit: {model_name}")
+        except Exception as exc:
+            self._finish_stt_progress(model_name, success=False)
+            self.set_status(f"STT-Modell konnte nicht geladen werden: {exc}")
+
+    def _resolve_whisper_model_name(self, model_name: str) -> str:
+        normalized = model_name.strip().lower()
+        if self.whisper_backend == "faster-whisper":
+            if normalized == "large":
+                return "large-v3"
+            return normalized
+
+        if normalized == "large-v3":
+            return "large"
+        return normalized
 
     def refresh_input_devices(self) -> None:
         try:
@@ -779,7 +897,7 @@ class VoiceAssistantUI(ctk.CTk):
             return None
         return device
 
-    def _audio_callback(self, indata: Any, frames: int, time: Any, status: Any) -> None:
+    def _audio_callback(self, indata: Any, frames: int, callback_time: Any, status: Any) -> None:
         if self.recording_wave is None:
             return
 
@@ -790,6 +908,8 @@ class VoiceAssistantUI(ctk.CTk):
     def start_recording(self) -> None:
         if self.is_recording:
             return
+
+        self.cancel_current_response()
 
         try:
             sample_rate = int(self.sample_rate_var.get().strip())
@@ -874,12 +994,41 @@ class VoiceAssistantUI(ctk.CTk):
 
     def load_whisper_model(self, model_name: str, announce: bool = True) -> Any:
         if self.whisper_module is None:
-            self.whisper_module = importlib.import_module("whisper")
+            try:
+                self.whisper_module = importlib.import_module("faster_whisper")
+                self.whisper_backend = "faster-whisper"
+            except ModuleNotFoundError:
+                self.whisper_module = importlib.import_module("whisper")
+                self.whisper_backend = "openai-whisper"
+
+        resolved_model_name = self._resolve_whisper_model_name(model_name)
 
         if model_name not in self.whisper_model_cache:
             if announce:
-                self.set_status(f"Lade Whisper-Modell: {model_name}")
-            self.whisper_model_cache[model_name] = self.whisper_module.load_model(model_name)
+                self.set_status(
+                    f"Lade STT-Modell: {resolved_model_name} ({self.whisper_backend}) - "
+                    "beim ersten Mal kann Download dauern"
+                )
+
+            if self.whisper_backend == "faster-whisper":
+                device = "cpu"
+                compute_type = "int8"
+                try:
+                    torch_module = importlib.import_module("torch")
+                    if bool(torch_module.cuda.is_available()):
+                        device = "cuda"
+                        compute_type = "float16"
+                except Exception:
+                    pass
+
+                self.whisper_model_cache[model_name] = self.whisper_module.WhisperModel(
+                    resolved_model_name,
+                    device=device,
+                    compute_type=compute_type,
+                )
+            else:
+                self.whisper_model_cache[model_name] = self.whisper_module.load_model(resolved_model_name)
+
         return self.whisper_model_cache[model_name]
 
     def check_ollama(self, force_refresh: bool = False) -> tuple[str, str]:
@@ -927,6 +1076,28 @@ class VoiceAssistantUI(ctk.CTk):
 
         return model_name, ollama_url
 
+    def _get_reply_max_tokens(self) -> int:
+        try:
+            value = int(self.reply_max_tokens_var.get().strip())
+        except ValueError:
+            value = 120
+        return max(32, min(1024, value))
+
+    def _get_reply_temperature(self) -> float:
+        try:
+            value = float(self.reply_temperature_var.get().strip())
+        except ValueError:
+            value = 0.3
+        return max(0.0, min(1.2, value))
+
+    def _build_chat_messages(self, user_text: str) -> list[dict[str, str]]:
+        if self.concise_reply_var.get():
+            return [
+                {"role": "system", "content": OLLAMA_VOICE_SYSTEM_PROMPT},
+                {"role": "user", "content": user_text},
+            ]
+        return [{"role": "user", "content": user_text}]
+
     def ask_ollama(
         self,
         user_text: str,
@@ -937,9 +1108,15 @@ class VoiceAssistantUI(ctk.CTk):
 
         payload = {
             "model": model_name,
-            "messages": [{"role": "user", "content": user_text}],
+            "messages": self._build_chat_messages(user_text),
             "stream": True,
             "keep_alive": "30m",
+            "options": {
+                "num_predict": self._get_reply_max_tokens(),
+                "temperature": self._get_reply_temperature(),
+                "top_p": 0.9,
+                "repeat_penalty": 1.05,
+            },
         }
 
         answer_parts: list[str] = []
@@ -1045,14 +1222,14 @@ class VoiceAssistantUI(ctk.CTk):
                 return candidate
 
             if candidate.is_dir():
-                found = sorted(candidate.rglob("*.onnx"))
+                found = sorted(candidate.rglob(MODEL_GLOB_PATTERN))
                 if found:
                     return found[0]
 
         fallback_dirs = [project_root / "piperVoices", project_root / "models"]
         for fallback_dir in fallback_dirs:
             if fallback_dir.exists():
-                found = sorted(fallback_dir.rglob("*.onnx"))
+                found = sorted(fallback_dir.rglob(MODEL_GLOB_PATTERN))
                 if found:
                     return found[0]
 
@@ -1257,29 +1434,42 @@ class VoiceAssistantUI(ctk.CTk):
                 )
 
             model = self.load_whisper_model(model_name)
-            use_fp16 = str(model.device).lower().startswith("cuda")
             language_label = self.whisper_language_var.get().strip()
             language_code = WHISPER_LANGUAGE_OPTIONS.get(language_label, "")
             speed_mode = self.whisper_speed_var.get().strip()
 
-            transcribe_options: dict[str, Any] = {
-                "fp16": use_fp16,
-            }
-            if language_code:
-                transcribe_options["language"] = language_code
+            if self.whisper_backend == "faster-whisper":
+                transcribe_options: dict[str, Any] = {
+                    "beam_size": 1 if speed_mode == "Schnell" else 5,
+                    "condition_on_previous_text": False if speed_mode == "Schnell" else True,
+                    "vad_filter": True,
+                }
+                if language_code:
+                    transcribe_options["language"] = language_code
 
-            if speed_mode == "Schnell":
-                transcribe_options.update(
-                    {
-                        "beam_size": 1,
-                        "best_of": 1,
-                        "temperature": 0.0,
-                        "condition_on_previous_text": False,
-                    }
-                )
+                segments, _info = model.transcribe(audio_path, **transcribe_options)
+                transcript = "".join(segment.text for segment in segments).strip()
+            else:
+                use_fp16 = str(model.device).lower().startswith("cuda")
+                transcribe_options = {
+                    "fp16": use_fp16,
+                }
+                if language_code:
+                    transcribe_options["language"] = language_code
 
-            result = model.transcribe(audio_path, **transcribe_options)
-            transcript = str(result.get("text", "")).strip()
+                if speed_mode == "Schnell":
+                    transcribe_options.update(
+                        {
+                            "beam_size": 1,
+                            "best_of": 1,
+                            "temperature": 0.0,
+                            "condition_on_previous_text": False,
+                        }
+                    )
+
+                result = model.transcribe(audio_path, **transcribe_options)
+                transcript = str(result.get("text", "")).strip()
+
             if not transcript:
                 self.last_transcript = ""
                 self.set_textbox(self.transcript_box, "[Kein Text erkannt. Bitte deutlicher/länger sprechen und erneut versuchen.]")
@@ -1407,7 +1597,7 @@ class VoiceAssistantUI(ctk.CTk):
                 tts_queue.put(None)
 
             if self.cancel_ollama_event.is_set():
-                self.set_status("Antwort abgebrochen")
+                self.set_status(DEFAULT_ABORTED_STATUS)
                 return
 
             if not answer:
@@ -1422,7 +1612,7 @@ class VoiceAssistantUI(ctk.CTk):
             self.set_status("Fertig")
         except Exception as exc:
             if self.cancel_ollama_event.is_set():
-                self.set_status("Antwort abgebrochen")
+                self.set_status(DEFAULT_ABORTED_STATUS)
                 return
             self.set_status(f"Fehler: {exc}")
         finally:

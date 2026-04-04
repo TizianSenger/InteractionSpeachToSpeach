@@ -1,4 +1,5 @@
 openai-whisper
+faster-whisper
 pyttsx3
 requests
 sounddevice
