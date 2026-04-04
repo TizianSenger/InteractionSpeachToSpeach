@@ -1,5 +1,7 @@
 import asyncio
 from collections import deque
+import ctypes
+import ctypes.wintypes
 from datetime import datetime
 import importlib
 import json
@@ -167,6 +169,13 @@ class VoiceAssistantUI(ctk.CTk):
         self.pyttsx3_engine: Any | None = None
         self.pyttsx3_engine_lock = threading.Lock()
         self.avatar_lipsync_var = ctk.BooleanVar(value=True)
+        self.column_visible: dict[str, bool] = {"left": True, "middle": True, "right": True}
+        self.column_frames: dict[str, ctk.CTkFrame] = {}
+        self.body_frame: ctk.CTkFrame | None = None
+        self.column_weights: dict[str, int] = {"left": 5, "middle": 2, "right": 5}
+        self.settings_popup: ctk.CTkToplevel | None = None
+        self.viewer_host_frame: ctk.CTkFrame | None = None
+        self.embedded_viewer_hwnd: int | None = None
         self.light_popup: ctk.CTkToplevel | None = None
         self.light_state_label: ctk.CTkLabel | None = None
         self.light_indicator: ctk.CTkFrame | None = None
@@ -565,101 +574,115 @@ class VoiceAssistantUI(ctk.CTk):
         )
 
     def _build_layout(self) -> None:
-        self.grid_columnconfigure(0, weight=0)
-        self.grid_columnconfigure(1, weight=1)
-        self.grid_columnconfigure(2, weight=1)
+        self.grid_columnconfigure(0, weight=1)
         self.grid_rowconfigure(0, weight=0)
-        self.grid_rowconfigure(1, weight=0)
-        self.grid_rowconfigure(2, weight=1)
-        self.grid_rowconfigure(3, weight=1)
-        self.grid_rowconfigure(4, weight=1)
+        self.grid_rowconfigure(1, weight=1)
 
-        header = ctk.CTkFrame(self)
-        header.grid(row=0, column=0, columnspan=3, padx=16, pady=(16, 10), sticky="ew")
-        header.grid_columnconfigure(1, weight=1)
+        topbar = ctk.CTkFrame(self)
+        topbar.grid(row=0, column=0, padx=12, pady=(10, 6), sticky="ew")
+        topbar.grid_columnconfigure(6, weight=1)
 
-        title = ctk.CTkLabel(header, text="Voice Studio", font=(FONT_FAMILY, 22, "bold"))
-        title.grid(row=0, column=0, padx=12, pady=(10, 2), sticky="w")
-
-        subtitle = ctk.CTkLabel(
-            header,
-            text="Aufnehmen → Transkribieren → An Modell senden (optional automatisch)",
-            font=(FONT_FAMILY, 12),
-            text_color="gray70",
+        ctk.CTkLabel(topbar, text="Voice Studio", font=(FONT_FAMILY, 20, "bold")).grid(
+            row=0, column=0, padx=(10, 12), pady=8, sticky="w"
         )
-        subtitle.grid(row=1, column=0, padx=12, pady=(0, 10), sticky="w")
+        ctk.CTkButton(topbar, text="Links", width=72, command=lambda: self._toggle_column("left")).grid(
+            row=0, column=1, padx=4, pady=8
+        )
+        ctk.CTkButton(topbar, text="Mitte", width=72, command=lambda: self._toggle_column("middle")).grid(
+            row=0, column=2, padx=4, pady=8
+        )
+        ctk.CTkButton(topbar, text="Rechts", width=72, command=lambda: self._toggle_column("right")).grid(
+            row=0, column=3, padx=4, pady=8
+        )
+        ctk.CTkButton(topbar, text="Einstellungen", width=120, command=self.open_settings_popup).grid(
+            row=0, column=4, padx=8, pady=8
+        )
+        ctk.CTkLabel(topbar, textvariable=self.status_var, font=(FONT_FAMILY, 13)).grid(
+            row=0, column=6, padx=8, pady=8, sticky="e"
+        )
 
-        status = ctk.CTkLabel(header, textvariable=self.status_var, font=(FONT_FAMILY, 14))
-        status.grid(row=0, column=1, padx=12, pady=12, sticky="e")
+        body = ctk.CTkFrame(self)
+        body.grid(row=1, column=0, padx=12, pady=(0, 12), sticky="nsew")
+        self.body_frame = body
+        body.grid_rowconfigure(0, weight=1)
+        body.grid_columnconfigure(0, weight=5)
+        body.grid_columnconfigure(1, weight=2)
+        body.grid_columnconfigure(2, weight=5)
 
-        workflow = ctk.CTkFrame(self)
-        workflow.grid(row=1, column=0, columnspan=3, padx=16, pady=(0, 10), sticky="ew")
-        for i in range(12):
+        left_col = ctk.CTkFrame(body)
+        left_col.grid(row=0, column=0, padx=(0, 6), pady=0, sticky="nsew")
+        left_col.grid_rowconfigure(1, weight=1)
+        left_col.grid_columnconfigure(0, weight=1)
+
+        middle_col = ctk.CTkFrame(body)
+        middle_col.grid(row=0, column=1, padx=6, pady=0, sticky="nsew")
+        middle_col.grid_rowconfigure(0, weight=1)
+        middle_col.grid_columnconfigure(0, weight=1)
+        ctk.CTkLabel(
+            middle_col,
+            text="Mitte (frei)",
+            font=(FONT_FAMILY, 16, "bold"),
+            text_color="gray70",
+        ).grid(row=0, column=0, padx=12, pady=12, sticky="n")
+
+        right_col = ctk.CTkFrame(body)
+        right_col.grid(row=0, column=2, padx=(6, 0), pady=0, sticky="nsew")
+        right_col.grid_rowconfigure(1, weight=1)
+        right_col.grid_columnconfigure(0, weight=1)
+        ctk.CTkLabel(right_col, text="Model Viewer", font=(FONT_FAMILY, 16, "bold")).grid(
+            row=0, column=0, padx=12, pady=(10, 6), sticky="w"
+        )
+
+        self.viewer_host_frame = ctk.CTkFrame(right_col, fg_color="#101524")
+        self.viewer_host_frame.grid(row=1, column=0, padx=10, pady=(0, 10), sticky="nsew")
+        ctk.CTkLabel(
+            self.viewer_host_frame,
+            text="Avatar starten, um den Viewer hier einzubetten",
+            text_color="gray70",
+        ).place(relx=0.5, rely=0.5, anchor="center")
+        self.viewer_host_frame.bind("<Configure>", lambda _evt: self._resize_docked_viewer())
+
+        self.column_frames = {"left": left_col, "middle": middle_col, "right": right_col}
+        self._refresh_column_layout()
+
+        workflow = ctk.CTkFrame(left_col)
+        workflow.grid(row=0, column=0, padx=8, pady=(8, 6), sticky="ew")
+        for i in range(6):
             workflow.grid_columnconfigure(i, weight=1)
 
-        self.start_btn = ctk.CTkButton(workflow, text="🎙️ Mic Start", command=self.start_recording)
-        self.start_btn.grid(row=0, column=0, padx=6, pady=10, sticky="ew")
+        self.start_btn = ctk.CTkButton(workflow, text="Mic Start", command=self.start_recording)
+        self.start_btn.grid(row=0, column=0, padx=4, pady=6, sticky="ew")
 
-        self.stop_btn = ctk.CTkButton(workflow, text="⏹ Mic Stop", command=self.stop_recording, state="disabled")
-        self.stop_btn.grid(row=0, column=1, padx=6, pady=10, sticky="ew")
+        self.stop_btn = ctk.CTkButton(workflow, text="Mic Stop", command=self.stop_recording, state="disabled")
+        self.stop_btn.grid(row=0, column=1, padx=4, pady=6, sticky="ew")
 
         self.transcribe_btn = ctk.CTkButton(
             workflow,
-            text="📝 Transkribieren",
+            text="Transkribieren",
             command=self.transcribe_recording,
             state="disabled",
             fg_color="#1f6aa5",
         )
-        self.transcribe_btn.grid(row=0, column=2, padx=6, pady=10, sticky="ew")
+        self.transcribe_btn.grid(row=0, column=2, padx=4, pady=6, sticky="ew")
 
         self.send_btn = ctk.CTkButton(
             workflow,
-            text="📤 An Ollama senden",
+            text="Senden",
             command=self.send_to_ollama,
             state="disabled",
             fg_color="#0f766e",
         )
-        self.send_btn.grid(row=0, column=3, padx=6, pady=10, sticky="ew")
+        self.send_btn.grid(row=0, column=3, padx=4, pady=6, sticky="ew")
 
         self.cancel_btn = ctk.CTkButton(
             workflow,
-            text="⛔ Antwort abbrechen",
+            text="Abbrechen",
             command=self.cancel_current_response,
             state="disabled",
             fg_color="#b42318",
             hover_color="#8f1d15",
         )
-        self.cancel_btn.grid(row=0, column=4, padx=6, pady=10, sticky="ew")
-
-        self.test_btn = ctk.CTkButton(workflow, text="🔎 Ollama Test", command=self.test_ollama)
-        self.test_btn.grid(row=0, column=5, padx=6, pady=10, sticky="ew")
-
-        self.text_send_btn = ctk.CTkButton(
-            workflow,
-            text="⌨️ Text direkt senden",
-            command=self.send_to_ollama,
-            fg_color="#7c3aed",
-        )
-        self.text_send_btn.grid(row=0, column=6, padx=6, pady=10, sticky="ew")
-
-        self.speak_switch = ctk.CTkSwitch(workflow, text="Antwort vorlesen", variable=self.auto_speak_var)
-        self.speak_switch.grid(row=0, column=7, padx=6, pady=10, sticky="w")
-
-        self.light_test_btn = ctk.CTkButton(
-            workflow,
-            text="💡 Licht Test",
-            command=self.open_light_test_popup,
-            fg_color="#a16207",
-            hover_color="#854d0e",
-        )
-        self.light_test_btn.grid(row=0, column=8, padx=6, pady=10, sticky="ew")
-
-        self.auto_pipeline_switch = ctk.CTkSwitch(
-            workflow,
-            text="Auto: Stop -> Transkribieren -> Senden",
-            variable=self.auto_pipeline_var,
-        )
-        self.auto_pipeline_switch.grid(row=0, column=9, columnspan=1, padx=6, pady=10, sticky="w")
+        self.cancel_btn.grid(row=0, column=4, padx=4, pady=6, sticky="ew")
 
         self.avatar_btn = ctk.CTkButton(
             workflow,
@@ -668,203 +691,47 @@ class VoiceAssistantUI(ctk.CTk):
             fg_color="#1d4ed8",
             hover_color="#1e40af",
         )
-        self.avatar_btn.grid(row=0, column=10, padx=6, pady=10, sticky="ew")
+        self.avatar_btn.grid(row=0, column=5, padx=4, pady=6, sticky="ew")
+
+        self.text_send_btn = ctk.CTkButton(
+            workflow,
+            text="Text senden",
+            command=self.send_to_ollama,
+            fg_color="#7c3aed",
+        )
+        self.text_send_btn.grid(row=1, column=0, padx=4, pady=6, sticky="ew")
+
+        self.test_btn = ctk.CTkButton(workflow, text="Ollama Test", command=self.test_ollama)
+        self.test_btn.grid(row=1, column=1, padx=4, pady=6, sticky="ew")
+
+        self.light_test_btn = ctk.CTkButton(
+            workflow,
+            text="Licht Test",
+            command=self.open_light_test_popup,
+            fg_color="#a16207",
+            hover_color="#854d0e",
+        )
+        self.light_test_btn.grid(row=1, column=2, padx=4, pady=6, sticky="ew")
+
+        self.speak_switch = ctk.CTkSwitch(workflow, text="Vorlesen", variable=self.auto_speak_var)
+        self.speak_switch.grid(row=1, column=3, padx=4, pady=6, sticky="w")
+
+        self.auto_pipeline_switch = ctk.CTkSwitch(
+            workflow,
+            text="Auto-Workflow",
+            variable=self.auto_pipeline_var,
+        )
+        self.auto_pipeline_switch.grid(row=1, column=4, padx=4, pady=6, sticky="w")
 
         self.avatar_lipsync_switch = ctk.CTkSwitch(
             workflow,
-            text="Avatar LipSync",
+            text="LipSync",
             variable=self.avatar_lipsync_var,
         )
-        self.avatar_lipsync_switch.grid(row=0, column=11, padx=6, pady=10, sticky="w")
+        self.avatar_lipsync_switch.grid(row=1, column=5, padx=4, pady=6, sticky="w")
 
-        sidebar = ctk.CTkScrollableFrame(self, label_text="Einstellungen")
-        sidebar.grid(row=2, column=0, rowspan=3, padx=(16, 8), pady=(0, 16), sticky="nsew")
-
-        stt_frame = ctk.CTkFrame(sidebar)
-        stt_frame.pack(fill="x", padx=8, pady=(8, 6))
-        ctk.CTkLabel(stt_frame, text="STT", font=(FONT_FAMILY, 14, "bold")).pack(anchor="w", padx=10, pady=(8, 2))
-
-        ctk.CTkLabel(stt_frame, text="Whisper Modell").pack(anchor="w", padx=10, pady=(4, 2))
-        self.whisper_menu = ctk.CTkOptionMenu(
-            stt_frame,
-            values=WHISPER_MODEL_OPTIONS,
-            variable=self.whisper_model_var,
-            command=self.on_whisper_model_changed,
-        )
-        self.whisper_menu.pack(fill="x", padx=10, pady=(0, 8))
-
-        ctk.CTkLabel(stt_frame, text="Sprache").pack(anchor="w", padx=10, pady=(4, 2))
-        self.whisper_language_menu = ctk.CTkOptionMenu(
-            stt_frame,
-            values=list(WHISPER_LANGUAGE_OPTIONS.keys()),
-            variable=self.whisper_language_var,
-        )
-        self.whisper_language_menu.pack(fill="x", padx=10, pady=(0, 8))
-
-        ctk.CTkLabel(stt_frame, text="Modus").pack(anchor="w", padx=10, pady=(4, 2))
-        self.whisper_speed_menu = ctk.CTkOptionMenu(
-            stt_frame,
-            values=WHISPER_SPEED_OPTIONS,
-            variable=self.whisper_speed_var,
-        )
-        self.whisper_speed_menu.pack(fill="x", padx=10, pady=(0, 10))
-
-        self.stt_progress_bar = ctk.CTkProgressBar(stt_frame)
-        self.stt_progress_bar.pack(fill="x", padx=10, pady=(0, 4))
-        self.stt_progress_bar.set(0)
-
-        self.stt_progress_label = ctk.CTkLabel(stt_frame, textvariable=self.stt_progress_var, text_color="gray70")
-        self.stt_progress_label.pack(anchor="w", padx=10, pady=(0, 10))
-
-        model_frame = ctk.CTkFrame(sidebar)
-        model_frame.pack(fill="x", padx=8, pady=6)
-        ctk.CTkLabel(model_frame, text="Modell", font=(FONT_FAMILY, 14, "bold")).pack(anchor="w", padx=10, pady=(8, 2))
-
-        ctk.CTkLabel(model_frame, text="Ollama Modell").pack(anchor="w", padx=10, pady=(4, 2))
-        self.ollama_model_menu = ctk.CTkOptionMenu(
-            model_frame,
-            values=OLLAMA_MODEL_OPTIONS,
-            variable=self.ollama_model_var,
-        )
-        self.ollama_model_menu.pack(fill="x", padx=10, pady=(0, 8))
-
-        ctk.CTkLabel(model_frame, text="Ollama URL").pack(anchor="w", padx=10, pady=(4, 2))
-        self.ollama_url_entry = ctk.CTkEntry(model_frame, textvariable=self.ollama_url_var)
-        self.ollama_url_entry.pack(fill="x", padx=10, pady=(0, 10))
-
-        self.concise_reply_switch = ctk.CTkSwitch(
-            model_frame,
-            text="Kurze Voice-Antworten",
-            variable=self.concise_reply_var,
-        )
-        self.concise_reply_switch.pack(anchor="w", padx=10, pady=(0, 8))
-
-        ctk.CTkLabel(model_frame, text="Max Tokens (num_predict)").pack(anchor="w", padx=10, pady=(2, 2))
-        self.reply_max_tokens_entry = ctk.CTkEntry(model_frame, textvariable=self.reply_max_tokens_var)
-        self.reply_max_tokens_entry.pack(fill="x", padx=10, pady=(0, 8))
-
-        ctk.CTkLabel(model_frame, text="Temperatur").pack(anchor="w", padx=10, pady=(2, 2))
-        self.reply_temperature_entry = ctk.CTkEntry(model_frame, textvariable=self.reply_temperature_var)
-        self.reply_temperature_entry.pack(fill="x", padx=10, pady=(0, 10))
-
-        persona_frame = ctk.CTkFrame(sidebar)
-        persona_frame.pack(fill="x", padx=8, pady=6)
-        ctk.CTkLabel(persona_frame, text="Persona", font=(FONT_FAMILY, 14, "bold")).pack(anchor="w", padx=10, pady=(8, 2))
-
-        def add_persona_slider(label: str, variable: ctk.DoubleVar, label_var: ctk.StringVar) -> None:
-            row = ctk.CTkFrame(persona_frame, fg_color="transparent")
-            row.pack(fill="x", padx=10, pady=(3, 2))
-            row.grid_columnconfigure(0, weight=1)
-
-            ctk.CTkLabel(row, text=label).grid(row=0, column=0, sticky="w")
-            ctk.CTkLabel(row, textvariable=label_var, width=34, anchor="e").grid(row=0, column=1, sticky="e")
-
-            slider = ctk.CTkSlider(
-                persona_frame,
-                from_=0,
-                to=100,
-                number_of_steps=100,
-                variable=variable,
-                command=self._on_persona_slider_changed,
-            )
-            slider.pack(fill="x", padx=10, pady=(0, 6))
-
-        add_persona_slider("Flirty", self.persona_flirty_var, self.persona_flirty_label_var)
-        add_persona_slider("Humor/Sarkasmus", self.persona_humor_var, self.persona_humor_label_var)
-        add_persona_slider("Ernsthaftigkeit", self.persona_serious_var, self.persona_serious_label_var)
-        add_persona_slider("Dominanz", self.persona_dominance_var, self.persona_dominance_label_var)
-        add_persona_slider("Empathie/Waerme", self.persona_empathy_var, self.persona_empathy_label_var)
-        add_persona_slider("Temperament", self.persona_temperament_var, self.persona_temperament_label_var)
-
-        ctk.CTkLabel(persona_frame, text="Lieblingslichtszene").pack(anchor="w", padx=10, pady=(2, 2))
-        self.favorite_light_scene_entry = ctk.CTkEntry(persona_frame, textvariable=self.favorite_light_scene_var)
-        self.favorite_light_scene_entry.pack(fill="x", padx=10, pady=(0, 8))
-
-        self.save_profile_btn = ctk.CTkButton(
-            persona_frame,
-            text="Profil speichern",
-            command=self.save_profile,
-        )
-        self.save_profile_btn.pack(fill="x", padx=10, pady=(0, 10))
-
-        self._refresh_persona_labels()
-
-        audio_frame = ctk.CTkFrame(sidebar)
-        audio_frame.pack(fill="x", padx=8, pady=6)
-        ctk.CTkLabel(audio_frame, text="Audio", font=(FONT_FAMILY, 14, "bold")).pack(anchor="w", padx=10, pady=(8, 2))
-
-        ctk.CTkLabel(audio_frame, text="Mikrofon").pack(anchor="w", padx=10, pady=(4, 2))
-        self.mic_menu = ctk.CTkOptionMenu(
-            audio_frame,
-            values=[NO_MIC_DEVICES_LABEL],
-            variable=self.mic_device_var,
-            command=self.on_mic_selection_changed,
-        )
-        self.mic_menu.pack(fill="x", padx=10, pady=(0, 6))
-
-        self.refresh_mic_btn = ctk.CTkButton(audio_frame, text="🔄 Geräte aktualisieren", command=self.refresh_input_devices)
-        self.refresh_mic_btn.pack(fill="x", padx=10, pady=(0, 6))
-
-        ctk.CTkLabel(audio_frame, text="Sample Rate").pack(anchor="w", padx=10, pady=(2, 2))
-        self.sample_rate_entry = ctk.CTkEntry(audio_frame, textvariable=self.sample_rate_var)
-        self.sample_rate_entry.pack(fill="x", padx=10, pady=(0, 8))
-
-        self.mic_level_bar = ctk.CTkProgressBar(audio_frame)
-        self.mic_level_bar.pack(fill="x", padx=10, pady=(2, 4))
-        self.mic_level_bar.set(0)
-
-        self.mic_level_label = ctk.CTkLabel(audio_frame, textvariable=self.mic_level_text_var)
-        self.mic_level_label.pack(anchor="w", padx=10, pady=(0, 10))
-
-        tts_frame = ctk.CTkFrame(sidebar)
-        tts_frame.pack(fill="x", padx=8, pady=6)
-        ctk.CTkLabel(tts_frame, text="TTS", font=(FONT_FAMILY, 14, "bold")).pack(anchor="w", padx=10, pady=(8, 2))
-
-        ctk.CTkLabel(tts_frame, text="TTS Engine").pack(anchor="w", padx=10, pady=(4, 2))
-        tts_engines = ["edge-tts (natürlich)", "piper (lokal, natürlich)", "pyttsx3 (lokal)"]
-        self.tts_engine_menu = ctk.CTkOptionMenu(
-            tts_frame,
-            values=tts_engines,
-            variable=self.tts_engine_var,
-            command=self.on_tts_engine_changed,
-        )
-        self.tts_engine_menu.pack(fill="x", padx=10, pady=(0, 8))
-
-        ctk.CTkLabel(tts_frame, text="Stimme").pack(anchor="w", padx=10, pady=(4, 2))
-        self.tts_voice_menu = ctk.CTkOptionMenu(
-            tts_frame,
-            values=list(EDGE_VOICE_OPTIONS.keys()),
-            variable=self.tts_voice_var,
-            command=self.on_tts_voice_changed,
-        )
-        self.tts_voice_menu.pack(fill="x", padx=10, pady=(0, 8))
-
-        ctk.CTkLabel(tts_frame, text="Emotion").pack(anchor="w", padx=10, pady=(4, 2))
-        self.tts_emotion_menu = ctk.CTkOptionMenu(
-            tts_frame,
-            values=list(EMOTION_PRESETS.keys()),
-            variable=self.tts_emotion_var,
-        )
-        self.tts_emotion_menu.pack(fill="x", padx=10, pady=(0, 8))
-
-        ctk.CTkLabel(tts_frame, text="TTS Rate").pack(anchor="w", padx=10, pady=(2, 2))
-        self.tts_rate_entry = ctk.CTkEntry(tts_frame, textvariable=self.tts_rate_var)
-        self.tts_rate_entry.pack(fill="x", padx=10, pady=(0, 8))
-
-        ctk.CTkLabel(tts_frame, text="Piper Modell (.onnx)").pack(anchor="w", padx=10, pady=(2, 2))
-        self.piper_model_entry = ctk.CTkEntry(tts_frame, textvariable=self.piper_model_path_var)
-        self.piper_model_entry.pack(fill="x", padx=10, pady=(0, 8))
-
-        ctk.CTkLabel(tts_frame, text="Piper Config (.json, optional)").pack(anchor="w", padx=10, pady=(2, 2))
-        self.piper_config_entry = ctk.CTkEntry(tts_frame, textvariable=self.piper_config_path_var)
-        self.piper_config_entry.pack(fill="x", padx=10, pady=(0, 4))
-
-        ctk.CTkLabel(tts_frame, text="Hinweis: Piper braucht eine lokale .onnx Stimme", text_color="gray70").pack(
-            anchor="w", padx=10, pady=(0, 10)
-        )
-
-        tabs = ctk.CTkTabview(self)
-        tabs.grid(row=2, column=1, rowspan=3, columnspan=2, padx=(8, 16), pady=(0, 16), sticky="nsew")
+        tabs = ctk.CTkTabview(left_col)
+        tabs.grid(row=1, column=0, padx=8, pady=(0, 8), sticky="nsew")
 
         transcript_tab = tabs.add("Transkript")
         transcript_tab.grid_rowconfigure(0, weight=1)
@@ -948,6 +815,224 @@ class VoiceAssistantUI(ctk.CTk):
         self.debug_log_box.tag_config("log_warning", foreground="#f4c86a")
         self.debug_log_box.tag_config("log_error", foreground="#ff6b6b")
         self.debug_log_box.tag_config("log_critical", foreground="#ff4d4d")
+
+        self._build_settings_popup()
+
+    def _build_settings_popup(self) -> None:
+        popup = ctk.CTkToplevel(self)
+        popup.title("Einstellungen")
+        popup.geometry("460x760")
+        popup.withdraw()
+        popup.protocol("WM_DELETE_WINDOW", popup.withdraw)
+        self.settings_popup = popup
+
+        sidebar = ctk.CTkScrollableFrame(popup, label_text="Einstellungen")
+        sidebar.pack(fill="both", expand=True, padx=8, pady=8)
+
+        stt_frame = ctk.CTkFrame(sidebar)
+        stt_frame.pack(fill="x", padx=8, pady=(8, 6))
+        ctk.CTkLabel(stt_frame, text="STT", font=(FONT_FAMILY, 14, "bold")).pack(anchor="w", padx=10, pady=(8, 2))
+
+        ctk.CTkLabel(stt_frame, text="Whisper Modell").pack(anchor="w", padx=10, pady=(4, 2))
+        self.whisper_menu = ctk.CTkOptionMenu(
+            stt_frame,
+            values=WHISPER_MODEL_OPTIONS,
+            variable=self.whisper_model_var,
+            command=self.on_whisper_model_changed,
+        )
+        self.whisper_menu.pack(fill="x", padx=10, pady=(0, 8))
+
+        ctk.CTkLabel(stt_frame, text="Sprache").pack(anchor="w", padx=10, pady=(4, 2))
+        self.whisper_language_menu = ctk.CTkOptionMenu(
+            stt_frame,
+            values=list(WHISPER_LANGUAGE_OPTIONS.keys()),
+            variable=self.whisper_language_var,
+        )
+        self.whisper_language_menu.pack(fill="x", padx=10, pady=(0, 8))
+
+        ctk.CTkLabel(stt_frame, text="Modus").pack(anchor="w", padx=10, pady=(4, 2))
+        self.whisper_speed_menu = ctk.CTkOptionMenu(
+            stt_frame,
+            values=WHISPER_SPEED_OPTIONS,
+            variable=self.whisper_speed_var,
+        )
+        self.whisper_speed_menu.pack(fill="x", padx=10, pady=(0, 10))
+
+        self.stt_progress_bar = ctk.CTkProgressBar(stt_frame)
+        self.stt_progress_bar.pack(fill="x", padx=10, pady=(0, 4))
+        self.stt_progress_bar.set(0)
+        self.stt_progress_label = ctk.CTkLabel(stt_frame, textvariable=self.stt_progress_var, text_color="gray70")
+        self.stt_progress_label.pack(anchor="w", padx=10, pady=(0, 10))
+
+        model_frame = ctk.CTkFrame(sidebar)
+        model_frame.pack(fill="x", padx=8, pady=6)
+        ctk.CTkLabel(model_frame, text="Modell", font=(FONT_FAMILY, 14, "bold")).pack(anchor="w", padx=10, pady=(8, 2))
+
+        ctk.CTkLabel(model_frame, text="Ollama Modell").pack(anchor="w", padx=10, pady=(4, 2))
+        self.ollama_model_menu = ctk.CTkOptionMenu(
+            model_frame,
+            values=OLLAMA_MODEL_OPTIONS,
+            variable=self.ollama_model_var,
+        )
+        self.ollama_model_menu.pack(fill="x", padx=10, pady=(0, 8))
+
+        ctk.CTkLabel(model_frame, text="Ollama URL").pack(anchor="w", padx=10, pady=(4, 2))
+        self.ollama_url_entry = ctk.CTkEntry(model_frame, textvariable=self.ollama_url_var)
+        self.ollama_url_entry.pack(fill="x", padx=10, pady=(0, 10))
+
+        self.concise_reply_switch = ctk.CTkSwitch(
+            model_frame,
+            text="Kurze Voice-Antworten",
+            variable=self.concise_reply_var,
+        )
+        self.concise_reply_switch.pack(anchor="w", padx=10, pady=(0, 8))
+
+        ctk.CTkLabel(model_frame, text="Max Tokens (num_predict)").pack(anchor="w", padx=10, pady=(2, 2))
+        self.reply_max_tokens_entry = ctk.CTkEntry(model_frame, textvariable=self.reply_max_tokens_var)
+        self.reply_max_tokens_entry.pack(fill="x", padx=10, pady=(0, 8))
+
+        ctk.CTkLabel(model_frame, text="Temperatur").pack(anchor="w", padx=10, pady=(2, 2))
+        self.reply_temperature_entry = ctk.CTkEntry(model_frame, textvariable=self.reply_temperature_var)
+        self.reply_temperature_entry.pack(fill="x", padx=10, pady=(0, 10))
+
+        persona_frame = ctk.CTkFrame(sidebar)
+        persona_frame.pack(fill="x", padx=8, pady=6)
+        ctk.CTkLabel(persona_frame, text="Persona", font=(FONT_FAMILY, 14, "bold")).pack(anchor="w", padx=10, pady=(8, 2))
+
+        def add_persona_slider(label: str, variable: ctk.DoubleVar, label_var: ctk.StringVar) -> None:
+            row = ctk.CTkFrame(persona_frame, fg_color="transparent")
+            row.pack(fill="x", padx=10, pady=(3, 2))
+            row.grid_columnconfigure(0, weight=1)
+            ctk.CTkLabel(row, text=label).grid(row=0, column=0, sticky="w")
+            ctk.CTkLabel(row, textvariable=label_var, width=34, anchor="e").grid(row=0, column=1, sticky="e")
+            slider = ctk.CTkSlider(
+                persona_frame,
+                from_=0,
+                to=100,
+                number_of_steps=100,
+                variable=variable,
+                command=self._on_persona_slider_changed,
+            )
+            slider.pack(fill="x", padx=10, pady=(0, 6))
+
+        add_persona_slider("Flirty", self.persona_flirty_var, self.persona_flirty_label_var)
+        add_persona_slider("Humor/Sarkasmus", self.persona_humor_var, self.persona_humor_label_var)
+        add_persona_slider("Ernsthaftigkeit", self.persona_serious_var, self.persona_serious_label_var)
+        add_persona_slider("Dominanz", self.persona_dominance_var, self.persona_dominance_label_var)
+        add_persona_slider("Empathie/Waerme", self.persona_empathy_var, self.persona_empathy_label_var)
+        add_persona_slider("Temperament", self.persona_temperament_var, self.persona_temperament_label_var)
+
+        ctk.CTkLabel(persona_frame, text="Lieblingslichtszene").pack(anchor="w", padx=10, pady=(2, 2))
+        self.favorite_light_scene_entry = ctk.CTkEntry(persona_frame, textvariable=self.favorite_light_scene_var)
+        self.favorite_light_scene_entry.pack(fill="x", padx=10, pady=(0, 8))
+
+        self.save_profile_btn = ctk.CTkButton(persona_frame, text="Profil speichern", command=self.save_profile)
+        self.save_profile_btn.pack(fill="x", padx=10, pady=(0, 10))
+        self._refresh_persona_labels()
+
+        audio_frame = ctk.CTkFrame(sidebar)
+        audio_frame.pack(fill="x", padx=8, pady=6)
+        ctk.CTkLabel(audio_frame, text="Audio", font=(FONT_FAMILY, 14, "bold")).pack(anchor="w", padx=10, pady=(8, 2))
+        ctk.CTkLabel(audio_frame, text="Mikrofon").pack(anchor="w", padx=10, pady=(4, 2))
+        self.mic_menu = ctk.CTkOptionMenu(
+            audio_frame,
+            values=[NO_MIC_DEVICES_LABEL],
+            variable=self.mic_device_var,
+            command=self.on_mic_selection_changed,
+        )
+        self.mic_menu.pack(fill="x", padx=10, pady=(0, 6))
+        self.refresh_mic_btn = ctk.CTkButton(audio_frame, text="Geräte aktualisieren", command=self.refresh_input_devices)
+        self.refresh_mic_btn.pack(fill="x", padx=10, pady=(0, 6))
+        ctk.CTkLabel(audio_frame, text="Sample Rate").pack(anchor="w", padx=10, pady=(2, 2))
+        self.sample_rate_entry = ctk.CTkEntry(audio_frame, textvariable=self.sample_rate_var)
+        self.sample_rate_entry.pack(fill="x", padx=10, pady=(0, 8))
+        self.mic_level_bar = ctk.CTkProgressBar(audio_frame)
+        self.mic_level_bar.pack(fill="x", padx=10, pady=(2, 4))
+        self.mic_level_bar.set(0)
+        self.mic_level_label = ctk.CTkLabel(audio_frame, textvariable=self.mic_level_text_var)
+        self.mic_level_label.pack(anchor="w", padx=10, pady=(0, 10))
+
+        tts_frame = ctk.CTkFrame(sidebar)
+        tts_frame.pack(fill="x", padx=8, pady=6)
+        ctk.CTkLabel(tts_frame, text="TTS", font=(FONT_FAMILY, 14, "bold")).pack(anchor="w", padx=10, pady=(8, 2))
+        ctk.CTkLabel(tts_frame, text="TTS Engine").pack(anchor="w", padx=10, pady=(4, 2))
+        tts_engines = ["edge-tts (natürlich)", "piper (lokal, natürlich)", "pyttsx3 (lokal)"]
+        self.tts_engine_menu = ctk.CTkOptionMenu(
+            tts_frame,
+            values=tts_engines,
+            variable=self.tts_engine_var,
+            command=self.on_tts_engine_changed,
+        )
+        self.tts_engine_menu.pack(fill="x", padx=10, pady=(0, 8))
+        ctk.CTkLabel(tts_frame, text="Stimme").pack(anchor="w", padx=10, pady=(4, 2))
+        self.tts_voice_menu = ctk.CTkOptionMenu(
+            tts_frame,
+            values=list(EDGE_VOICE_OPTIONS.keys()),
+            variable=self.tts_voice_var,
+            command=self.on_tts_voice_changed,
+        )
+        self.tts_voice_menu.pack(fill="x", padx=10, pady=(0, 8))
+        ctk.CTkLabel(tts_frame, text="Emotion").pack(anchor="w", padx=10, pady=(4, 2))
+        self.tts_emotion_menu = ctk.CTkOptionMenu(
+            tts_frame,
+            values=list(EMOTION_PRESETS.keys()),
+            variable=self.tts_emotion_var,
+        )
+        self.tts_emotion_menu.pack(fill="x", padx=10, pady=(0, 8))
+        ctk.CTkLabel(tts_frame, text="TTS Rate").pack(anchor="w", padx=10, pady=(2, 2))
+        self.tts_rate_entry = ctk.CTkEntry(tts_frame, textvariable=self.tts_rate_var)
+        self.tts_rate_entry.pack(fill="x", padx=10, pady=(0, 8))
+        ctk.CTkLabel(tts_frame, text="Piper Modell (.onnx)").pack(anchor="w", padx=10, pady=(2, 2))
+        self.piper_model_entry = ctk.CTkEntry(tts_frame, textvariable=self.piper_model_path_var)
+        self.piper_model_entry.pack(fill="x", padx=10, pady=(0, 8))
+        ctk.CTkLabel(tts_frame, text="Piper Config (.json, optional)").pack(anchor="w", padx=10, pady=(2, 2))
+        self.piper_config_entry = ctk.CTkEntry(tts_frame, textvariable=self.piper_config_path_var)
+        self.piper_config_entry.pack(fill="x", padx=10, pady=(0, 4))
+        ctk.CTkLabel(tts_frame, text="Hinweis: Piper braucht eine lokale .onnx Stimme", text_color="gray70").pack(
+            anchor="w", padx=10, pady=(0, 10)
+        )
+
+    def open_settings_popup(self) -> None:
+        if self.settings_popup is None:
+            return
+        self.settings_popup.deiconify()
+        self.settings_popup.lift()
+        self.settings_popup.focus()
+
+    def _toggle_column(self, column_name: str) -> None:
+        frame = self.column_frames.get(column_name)
+        if frame is None:
+            return
+        visible = self.column_visible.get(column_name, True)
+        if visible and sum(1 for value in self.column_visible.values() if value) == 1:
+            return
+        self.column_visible[column_name] = not visible
+        self._refresh_column_layout()
+
+    def _refresh_column_layout(self) -> None:
+        body = self.body_frame
+        if body is None:
+            return
+
+        order = ["left", "middle", "right"]
+        visible_columns = [name for name in order if self.column_visible.get(name, True)]
+        if not visible_columns:
+            self.column_visible["left"] = True
+            visible_columns = ["left"]
+
+        for slot in range(3):
+            body.grid_columnconfigure(slot, weight=0)
+
+        for name, frame in self.column_frames.items():
+            if name not in visible_columns:
+                frame.grid_remove()
+
+        for slot, name in enumerate(visible_columns):
+            frame = self.column_frames[name]
+            left_pad = 0 if slot == 0 else 6
+            right_pad = 0 if slot == (len(visible_columns) - 1) else 6
+            frame.grid(row=0, column=slot, padx=(left_pad, right_pad), pady=0, sticky="nsew")
+            body.grid_columnconfigure(slot, weight=self.column_weights.get(name, 1))
 
     def set_status(self, message: str) -> None:
         self.logger.info("Status: %s", message)
@@ -1389,14 +1474,57 @@ class VoiceAssistantUI(ctk.CTk):
         if avatar_btn is not None:
             self.avatar_bridge.update_button_state(avatar_btn)
 
+    def _on_avatar_hwnd_ready(self, hwnd: int) -> None:
+        self.after(0, lambda: self._dock_viewer_window(hwnd))
+
+    def _dock_viewer_window(self, hwnd: int) -> None:
+        host = self.viewer_host_frame
+        if host is None or not host.winfo_exists():
+            return
+
+        host.update_idletasks()
+        host_hwnd = host.winfo_id()
+
+        user32 = ctypes.windll.user32
+        GWL_STYLE = -16
+        WS_CHILD = 0x40000000
+        WS_VISIBLE = 0x10000000
+        WS_CAPTION = 0x00C00000
+        WS_THICKFRAME = 0x00040000
+
+        style = user32.GetWindowLongW(hwnd, GWL_STYLE)
+        style = (style | WS_CHILD | WS_VISIBLE) & ~(WS_CAPTION | WS_THICKFRAME)
+        user32.SetWindowLongW(hwnd, GWL_STYLE, style)
+        user32.SetParent(hwnd, host_hwnd)
+        self.embedded_viewer_hwnd = hwnd
+        self._resize_docked_viewer()
+
+    def _resize_docked_viewer(self) -> None:
+        hwnd = self.embedded_viewer_hwnd
+        host = self.viewer_host_frame
+        if hwnd is None or host is None or not host.winfo_exists():
+            return
+
+        user32 = ctypes.windll.user32
+        width = max(1, host.winfo_width())
+        height = max(1, host.winfo_height())
+        user32.MoveWindow(hwnd, 0, 0, width, height, True)
+
     def _start_avatar_viewer(self) -> bool:
-        return self.avatar_bridge.start(self._avatar_button_or_none())
+        return self.avatar_bridge.start(
+            self._avatar_button_or_none(),
+            on_viewer_hwnd=self._on_avatar_hwnd_ready,
+        )
 
     def _stop_avatar_viewer(self) -> None:
         self.avatar_bridge.stop(self._avatar_button_or_none())
+        self.embedded_viewer_hwnd = None
 
     def toggle_avatar_viewer(self) -> None:
-        self.avatar_bridge.toggle(self._avatar_button_or_none())
+        if self._is_avatar_viewer_running():
+            self._stop_avatar_viewer()
+            return
+        self._start_avatar_viewer()
 
     def _post_avatar_lipsync(self, active: bool, energy: float = 0.0, force: bool = False) -> None:
         self.avatar_bridge.post_lipsync(active=active, energy=energy, force=force)
@@ -1411,7 +1539,10 @@ class VoiceAssistantUI(ctk.CTk):
         return self.avatar_bridge.start_lipsync_background(text)
 
     def _ensure_avatar_for_lipsync(self) -> None:
-        self.avatar_bridge.ensure_for_lipsync(self._avatar_button_or_none())
+        self.avatar_bridge.ensure_for_lipsync(
+            self._avatar_button_or_none(),
+            on_viewer_hwnd=self._on_avatar_hwnd_ready,
+        )
 
     def on_close(self) -> None:
         self.stt_loading_active = False

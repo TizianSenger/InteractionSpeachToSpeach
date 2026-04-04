@@ -57,7 +57,11 @@ class AvatarBridge:
         query = urllib.parse.urlencode({"vrm": vrm_url})
         return f"http://127.0.0.1:{self.http_port}/web/vrm_viewer.html?{query}"
 
-    def start(self, button: Any | None = None) -> bool:
+    def start(
+        self,
+        button: Any | None = None,
+        on_viewer_hwnd: Callable[[int], None] | None = None,
+    ) -> bool:
         if self.is_running():
             if button is not None:
                 self.update_button_state(button)
@@ -76,10 +80,18 @@ class AvatarBridge:
             viewer_script = self.base_dir / "viewer_process.py"
             self.viewer_process = subprocess.Popen(
                 [sys.executable, str(viewer_script), viewer_url],
-                stdout=subprocess.DEVNULL,
+                stdout=subprocess.PIPE,
                 stderr=subprocess.DEVNULL,
                 text=True,
             )
+
+            if on_viewer_hwnd is not None and self.viewer_process.stdout is not None:
+                threading.Thread(
+                    target=self._watch_viewer_stdout_for_hwnd,
+                    args=(self.viewer_process, on_viewer_hwnd),
+                    daemon=True,
+                ).start()
+
             self.auto_start_attempted = True
             if button is not None:
                 self.update_button_state(button)
@@ -101,6 +113,11 @@ class AvatarBridge:
         if proc is not None and proc.poll() is None:
             try:
                 proc.terminate()
+            except Exception:
+                pass
+        if proc is not None and proc.stdout is not None:
+            try:
+                proc.stdout.close()
             except Exception:
                 pass
 
@@ -181,11 +198,40 @@ class AvatarBridge:
         thread.start()
         return stop_event, thread
 
-    def ensure_for_lipsync(self, button: Any | None = None) -> None:
+    def ensure_for_lipsync(
+        self,
+        button: Any | None = None,
+        on_viewer_hwnd: Callable[[int], None] | None = None,
+    ) -> None:
         if not self.lipsync_enabled_getter():
             return
         if self.is_running() and self.http_port is not None:
             return
         if self.auto_start_attempted:
             return
-        self.start(button)
+        self.start(button, on_viewer_hwnd=on_viewer_hwnd)
+
+    def _watch_viewer_stdout_for_hwnd(
+        self,
+        proc: subprocess.Popen[str],
+        on_viewer_hwnd: Callable[[int], None],
+    ) -> None:
+        if proc.stdout is None:
+            return
+
+        try:
+            for raw_line in proc.stdout:
+                line = raw_line.strip()
+                if line.startswith("HWND:"):
+                    hwnd_text = line.split(":", 1)[1].strip()
+                    try:
+                        hwnd = int(hwnd_text)
+                    except ValueError:
+                        return
+                    on_viewer_hwnd(hwnd)
+                    return
+                if line.startswith("ERROR:"):
+                    self.logger.warning("Viewer meldet Fehler: %s", line)
+                    return
+        except Exception:
+            return
