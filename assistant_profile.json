@@ -11,6 +11,7 @@
     "favorite_light_scene": "Nacht",
     "mic_device_label": "Standard (Windows)",
     "tts_engine": "edge-tts (nat\u00fcrlich)",
-    "tts_voice": "Deutsch (weiblich) - Amala"
+    "tts_voice": "Deutsch (weiblich) - Amala",
+    "appearance_mode": "System"
   }
 }

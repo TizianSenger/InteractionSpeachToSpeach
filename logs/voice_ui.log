@@ -441,3 +441,21 @@
 2026-04-04 23:32:42,336 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
 2026-04-04 23:32:42,346 | INFO | MainThread | Status: Antwort abgebrochen
 2026-04-04 23:32:42,429 | INFO | MainThread | Status: Avatar-Viewer gestoppt
+2026-04-05 00:02:26,638 | INFO | MainThread | Voice Studio gestartet
+2026-04-05 00:02:27,180 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-05 00:02:42,805 | INFO | MainThread | Voice Studio wird beendet
+2026-04-05 00:02:42,805 | INFO | MainThread | Profil gespeichert: C:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\assistant_profile.json
+2026-04-05 00:02:42,805 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-05 00:02:42,885 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-05 00:02:42,901 | INFO | MainThread | Status: Avatar-Viewer gestoppt
+2026-04-05 00:02:48,651 | INFO | MainThread | Voice Studio gestartet
+2026-04-05 00:02:49,173 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-05 00:04:48,250 | INFO | MainThread | Voice Studio gestartet
+2026-04-05 00:04:48,691 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-05 00:05:04,957 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-05 00:05:04,977 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-05 00:05:57,111 | INFO | MainThread | Voice Studio wird beendet
+2026-04-05 00:05:57,112 | INFO | MainThread | Profil gespeichert: C:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\assistant_profile.json
+2026-04-05 00:05:57,112 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-05 00:05:57,229 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-05 00:05:57,279 | INFO | MainThread | Status: Avatar-Viewer gestoppt

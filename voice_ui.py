@@ -236,6 +236,7 @@ class VoiceAssistantUI(ctk.CTk):
         self.tts_engine_var = ctk.StringVar(value="edge-tts (natürlich)")
         self.tts_voice_var = ctk.StringVar(value="Deutsch (männlich, tief) - Killian")
         self.tts_emotion_var = ctk.StringVar(value="freundlich")
+        self.appearance_mode_var = ctk.StringVar(value="Dark")
         self.piper_model_path_var = ctk.StringVar(value="models/de_DE-karlsson-medium.onnx")
         self.piper_config_path_var = ctk.StringVar(value="")
         self.mic_level_text_var = ctk.StringVar(value="Pegel: 0%")
@@ -259,6 +260,7 @@ class VoiceAssistantUI(ctk.CTk):
         self.persona_temperament_label_var = ctk.StringVar(value="30")
 
         self._load_profile()
+        self.on_appearance_mode_changed(self.appearance_mode_var.get())
 
         self._build_layout()
         self.refresh_piper_model_options()
@@ -464,6 +466,7 @@ class VoiceAssistantUI(ctk.CTk):
                 "mic_device_label": self.mic_device_var.get().strip(),
                 "tts_engine": self.tts_engine_var.get().strip(),
                 "tts_voice": self.tts_voice_var.get().strip(),
+                "appearance_mode": self.appearance_mode_var.get().strip(),
             },
         }
 
@@ -508,10 +511,21 @@ class VoiceAssistantUI(ctk.CTk):
             stored_voice = str(preferences.get("tts_voice", "")).strip()
             if stored_voice:
                 self.tts_voice_var.set(stored_voice)
+
+            stored_appearance_mode = str(preferences.get("appearance_mode", "")).strip()
+            if stored_appearance_mode:
+                self.appearance_mode_var.set(stored_appearance_mode)
         except Exception as exc:
             self.logger.warning("Profil konnte nicht geladen werden: %s", exc)
 
         self._refresh_persona_labels()
+
+    def on_appearance_mode_changed(self, selected_mode: str) -> None:
+        normalized = selected_mode.strip().capitalize() if selected_mode else "Dark"
+        if normalized not in {"Dark", "Light", "System"}:
+            normalized = "Dark"
+        ctk.set_appearance_mode(normalized)
+        self.appearance_mode_var.set(normalized)
 
     def _persona_instruction(self, key: str, value: float) -> str:
         if key == "flirty":
@@ -808,6 +822,20 @@ class VoiceAssistantUI(ctk.CTk):
         workflow_frame = ctk.CTkFrame(sidebar)
         workflow_frame.pack(fill="x", padx=8, pady=(8, 6))
         ctk.CTkLabel(workflow_frame, text="Workflow", font=(FONT_FAMILY, 14, "bold")).pack(anchor="w", padx=10, pady=(8, 6))
+
+        appearance_frame = ctk.CTkFrame(sidebar)
+        appearance_frame.pack(fill="x", padx=8, pady=(0, 6))
+        ctk.CTkLabel(appearance_frame, text="Darstellung", font=(FONT_FAMILY, 14, "bold")).pack(
+            anchor="w", padx=10, pady=(8, 2)
+        )
+        ctk.CTkLabel(appearance_frame, text="Theme Modus").pack(anchor="w", padx=10, pady=(4, 2))
+        self.appearance_mode_menu = ctk.CTkOptionMenu(
+            appearance_frame,
+            values=["Dark", "Light", "System"],
+            variable=self.appearance_mode_var,
+            command=self.on_appearance_mode_changed,
+        )
+        self.appearance_mode_menu.pack(fill="x", padx=10, pady=(0, 10))
 
         self.test_btn = ctk.CTkButton(workflow_frame, text="Ollama Test", command=self.test_ollama)
         self.test_btn.pack(fill="x", padx=10, pady=(0, 6))
