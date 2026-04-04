@@ -393,3 +393,51 @@
 2026-04-04 23:22:58,700 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
 2026-04-04 23:22:58,826 | INFO | MainThread | Status: Antwort abgebrochen
 2026-04-04 23:22:58,903 | INFO | MainThread | Status: Avatar-Viewer gestoppt
+2026-04-04 23:26:05,974 | INFO | MainThread | Voice Studio gestartet
+2026-04-04 23:26:06,405 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-04 23:27:15,229 | INFO | MainThread | Voice Studio wird beendet
+2026-04-04 23:27:15,229 | INFO | MainThread | Profil gespeichert: C:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\assistant_profile.json
+2026-04-04 23:27:15,232 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-04 23:27:15,334 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-04 23:27:15,340 | INFO | MainThread | Status: Avatar-Viewer gestoppt
+2026-04-04 23:27:32,473 | INFO | MainThread | Voice Studio gestartet
+2026-04-04 23:27:32,931 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-04 23:28:01,077 | INFO | Thread-2 (_run_ollama_only) | Ollama Anfrage gestartet (22 Zeichen Input)
+2026-04-04 23:28:01,077 | INFO | Thread-2 (_run_ollama_only) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-04 23:28:01,077 | DEBUG | Thread-2 (_run_ollama_only) | History Du: Wie ghet es dir heute?
+2026-04-04 23:28:06,696 | INFO | Thread-2 (_run_ollama_only) | Tool-Router Entscheidung: none
+2026-04-04 23:28:11,233 | INFO | Thread-2 (_run_ollama_only) | Status: Ollama antwortet...
+2026-04-04 23:28:13,815 | INFO | Thread-3 (worker) | Status: Avatar-Viewer gestartet
+2026-04-04 23:28:13,815 | INFO | Thread-3 (worker) | Avatar-Viewer gestartet (Port 18456)
+2026-04-04 23:28:14,140 | INFO | Thread-2 (_run_ollama_only) | Ollama Antwort fertig (156 Zeichen, 13.06s)
+2026-04-04 23:28:14,140 | DEBUG | Thread-2 (_run_ollama_only) | History Assistent: Als KI habe ich keine Gefühle, aber ich bin voll funktionsfähig und bereit, Ihnen bei allen Aufgaben zu helfen! Wie kann ich Ihnen heute beh
+2026-04-04 23:28:15,181 | INFO | Thread-2 (_run_ollama_only) | Status: Antwort fertig. Audio streamt...
+2026-04-04 23:31:02,206 | INFO | MainThread | Voice Studio gestartet
+2026-04-04 23:31:02,705 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-04 23:31:07,017 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-04 23:31:07,020 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-04 23:31:21,798 | INFO | Thread-4 (_run_ollama_test) | Status: Prüfe Ollama...
+2026-04-04 23:31:21,810 | INFO | Thread-4 (_run_ollama_test) | Status: Ollama OK. Modell erreichbar: phi4-mini
+2026-04-04 23:31:26,392 | INFO | MainThread | LightController (popup): AN
+2026-04-04 23:31:27,246 | INFO | MainThread | LightController (popup): AUS
+2026-04-04 23:31:31,286 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-04 23:31:31,411 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-04 23:31:33,521 | INFO | MainThread | Status: Mikrofon läuft... (Standard (Windows))
+2026-04-04 23:31:38,925 | INFO | MainThread | Aufnahmedauer: 5.40s
+2026-04-04 23:31:38,945 | INFO | MainThread | Status: Aufnahme beendet. Starte Auto-Workflow...
+2026-04-04 23:31:38,956 | INFO | Thread-5 (_run_transcription) | Status: Transkribiere Audio...
+2026-04-04 23:31:41,483 | INFO | Thread-5 (_run_transcription) | Transkription fertig (44 Zeichen)
+2026-04-04 23:31:41,483 | INFO | Thread-5 (_run_transcription) | Status: Transkript erkannt. Sende an Ollama...
+2026-04-04 23:31:41,499 | INFO | Thread-5 (_run_transcription) | Ollama Anfrage gestartet (44 Zeichen Input)
+2026-04-04 23:31:41,499 | INFO | Thread-5 (_run_transcription) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-04 23:31:41,501 | DEBUG | Thread-5 (_run_transcription) | History Du: Das ist ein Test. Hallo, Hallo, Hallo. Test.
+2026-04-04 23:31:48,490 | INFO | Thread-5 (_run_transcription) | Tool-Router Entscheidung: none
+2026-04-04 23:31:54,785 | INFO | Thread-5 (_run_transcription) | Status: Ollama antwortet...
+2026-04-04 23:32:00,680 | INFO | Thread-5 (_run_transcription) | Ollama Antwort fertig (245 Zeichen, 19.18s)
+2026-04-04 23:32:00,681 | DEBUG | Thread-5 (_run_transcription) | History Assistent: Hallo! Es scheint, als ob du bereit bist für eine lustige Interaktion. Wie kann ich dir heute Nacht helfen? Ob es um etwas Spezifisches geht
+2026-04-04 23:32:00,681 | INFO | Thread-5 (_run_transcription) | Status: Antwort fertig. Audio streamt...
+2026-04-04 23:32:42,335 | INFO | MainThread | Voice Studio wird beendet
+2026-04-04 23:32:42,336 | INFO | MainThread | Profil gespeichert: C:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\assistant_profile.json
+2026-04-04 23:32:42,336 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-04 23:32:42,346 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-04 23:32:42,429 | INFO | MainThread | Status: Avatar-Viewer gestoppt

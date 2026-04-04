@@ -240,7 +240,7 @@ class VoiceAssistantUI(ctk.CTk):
         self.piper_config_path_var = ctk.StringVar(value="")
         self.mic_level_text_var = ctk.StringVar(value="Pegel: 0%")
         self.auto_speak_var = ctk.BooleanVar(value=True)
-        self.auto_pipeline_var = ctk.BooleanVar(value=False)
+        self.auto_pipeline_var = ctk.BooleanVar(value=True)
         self.reply_max_tokens_var = ctk.StringVar(value="120")
         self.reply_temperature_var = ctk.StringVar(value="0.3")
         self.concise_reply_var = ctk.BooleanVar(value=True)
@@ -701,50 +701,26 @@ class VoiceAssistantUI(ctk.CTk):
         )
         self.text_send_btn.grid(row=1, column=0, padx=4, pady=6, sticky="ew")
 
-        self.test_btn = ctk.CTkButton(workflow, text="Ollama Test", command=self.test_ollama)
-        self.test_btn.grid(row=1, column=1, padx=4, pady=6, sticky="ew")
-
-        self.light_test_btn = ctk.CTkButton(
-            workflow,
-            text="Licht Test",
-            command=self.open_light_test_popup,
-            fg_color="#a16207",
-            hover_color="#854d0e",
-        )
-        self.light_test_btn.grid(row=1, column=2, padx=4, pady=6, sticky="ew")
-
-        self.speak_switch = ctk.CTkSwitch(workflow, text="Vorlesen", variable=self.auto_speak_var)
-        self.speak_switch.grid(row=1, column=3, padx=4, pady=6, sticky="w")
-
-        self.auto_pipeline_switch = ctk.CTkSwitch(
-            workflow,
-            text="Auto-Workflow",
-            variable=self.auto_pipeline_var,
-        )
-        self.auto_pipeline_switch.grid(row=1, column=4, padx=4, pady=6, sticky="w")
-
-        self.avatar_lipsync_switch = ctk.CTkSwitch(
-            workflow,
-            text="LipSync",
-            variable=self.avatar_lipsync_var,
-        )
-        self.avatar_lipsync_switch.grid(row=1, column=5, padx=4, pady=6, sticky="w")
-
         tabs = ctk.CTkTabview(left_col)
         tabs.grid(row=1, column=0, padx=8, pady=(0, 8), sticky="nsew")
 
-        transcript_tab = tabs.add("Transkript")
-        transcript_tab.grid_rowconfigure(0, weight=1)
-        transcript_tab.grid_columnconfigure(0, weight=1)
-        self.transcript_box = ctk.CTkTextbox(transcript_tab, wrap="word")
-        self.transcript_box.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
-        self.transcript_box.insert("1.0", "Du kannst hier auch direkt Text eintippen und dann auf 'Text direkt senden' klicken.")
+        chat_tab = tabs.add("Chat")
+        chat_tab.grid_columnconfigure(0, weight=1)
+        chat_tab.grid_rowconfigure(1, weight=1)
+        chat_tab.grid_rowconfigure(3, weight=1)
 
-        answer_tab = tabs.add("Antwort")
-        answer_tab.grid_rowconfigure(0, weight=1)
-        answer_tab.grid_columnconfigure(0, weight=1)
-        self.answer_box = ctk.CTkTextbox(answer_tab, wrap="word")
-        self.answer_box.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
+        ctk.CTkLabel(chat_tab, text="Transkript", font=(FONT_FAMILY, 13, "bold")).grid(
+            row=0, column=0, padx=10, pady=(10, 4), sticky="w"
+        )
+        self.transcript_box = ctk.CTkTextbox(chat_tab, wrap="word")
+        self.transcript_box.grid(row=1, column=0, padx=10, pady=(0, 8), sticky="nsew")
+        self.transcript_box.insert("1.0", "Du kannst hier auch direkt Text eintippen und dann auf 'Text senden' klicken.")
+
+        ctk.CTkLabel(chat_tab, text="Antwort", font=(FONT_FAMILY, 13, "bold")).grid(
+            row=2, column=0, padx=10, pady=(4, 4), sticky="w"
+        )
+        self.answer_box = ctk.CTkTextbox(chat_tab, wrap="word")
+        self.answer_box.grid(row=3, column=0, padx=10, pady=(0, 10), sticky="nsew")
 
         history_tab = tabs.add("Verlauf")
         history_tab.grid_rowconfigure(1, weight=1)
@@ -828,6 +804,39 @@ class VoiceAssistantUI(ctk.CTk):
 
         sidebar = ctk.CTkScrollableFrame(popup, label_text="Einstellungen")
         sidebar.pack(fill="both", expand=True, padx=8, pady=8)
+
+        workflow_frame = ctk.CTkFrame(sidebar)
+        workflow_frame.pack(fill="x", padx=8, pady=(8, 6))
+        ctk.CTkLabel(workflow_frame, text="Workflow", font=(FONT_FAMILY, 14, "bold")).pack(anchor="w", padx=10, pady=(8, 6))
+
+        self.test_btn = ctk.CTkButton(workflow_frame, text="Ollama Test", command=self.test_ollama)
+        self.test_btn.pack(fill="x", padx=10, pady=(0, 6))
+
+        self.light_test_btn = ctk.CTkButton(
+            workflow_frame,
+            text="Licht Test",
+            command=self.open_light_test_popup,
+            fg_color="#a16207",
+            hover_color="#854d0e",
+        )
+        self.light_test_btn.pack(fill="x", padx=10, pady=(0, 6))
+
+        self.speak_switch = ctk.CTkSwitch(workflow_frame, text="Antwort vorlesen", variable=self.auto_speak_var)
+        self.speak_switch.pack(anchor="w", padx=10, pady=(0, 6))
+
+        self.auto_pipeline_switch = ctk.CTkSwitch(
+            workflow_frame,
+            text="Auto-Workflow",
+            variable=self.auto_pipeline_var,
+        )
+        self.auto_pipeline_switch.pack(anchor="w", padx=10, pady=(0, 6))
+
+        self.avatar_lipsync_switch = ctk.CTkSwitch(
+            workflow_frame,
+            text="LipSync",
+            variable=self.avatar_lipsync_var,
+        )
+        self.avatar_lipsync_switch.pack(anchor="w", padx=10, pady=(0, 10))
 
         stt_frame = ctk.CTkFrame(sidebar)
         stt_frame.pack(fill="x", padx=8, pady=(8, 6))
