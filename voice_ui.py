@@ -45,6 +45,8 @@ WHISPER_LANGUAGE_OPTIONS: dict[str, str] = {
     "Englisch": "en",
 }
 WHISPER_SPEED_OPTIONS = ["Schnell", "Genau"]
+TTS_STREAM_MIN_CHARS = 120
+TTS_STREAM_MAX_SENTENCES = 2
 
 _FFMPEG_CHECKED = False
 _FFMPEG_AVAILABLE = False
@@ -1334,6 +1336,8 @@ class VoiceAssistantUI(ctk.CTk):
             first_token_received = False
             tts_queue: queue.Queue[str | None] | None = None
             tts_text_buffer = ""
+            tts_phrase_buffer = ""
+            tts_phrase_count = 0
 
             if self.auto_speak_var.get():
                 tts_queue, _ = self._start_streaming_tts_worker()
@@ -1348,6 +1352,8 @@ class VoiceAssistantUI(ctk.CTk):
             def on_chunk(chunk: str) -> None:
                 nonlocal first_token_received
                 nonlocal tts_text_buffer
+                nonlocal tts_phrase_buffer
+                nonlocal tts_phrase_count
 
                 if self.cancel_ollama_event.is_set():
                     return
@@ -1361,7 +1367,25 @@ class VoiceAssistantUI(ctk.CTk):
                     tts_text_buffer += chunk
                     ready_sentences, tts_text_buffer = self._extract_complete_sentences(tts_text_buffer)
                     for sentence in ready_sentences:
-                        tts_queue.put(sentence)
+                        normalized_sentence = sentence.strip()
+                        if not normalized_sentence:
+                            continue
+
+                        if tts_phrase_buffer:
+                            tts_phrase_buffer = f"{tts_phrase_buffer} {normalized_sentence}"
+                        else:
+                            tts_phrase_buffer = normalized_sentence
+                        tts_phrase_count += 1
+
+                        should_emit_phrase = (
+                            len(tts_phrase_buffer) >= TTS_STREAM_MIN_CHARS
+                            or tts_phrase_count >= TTS_STREAM_MAX_SENTENCES
+                            or normalized_sentence.endswith("\n")
+                        )
+                        if should_emit_phrase:
+                            tts_queue.put(tts_phrase_buffer)
+                            tts_phrase_buffer = ""
+                            tts_phrase_count = 0
 
                 should_flush = len(chunk_buffer) >= 8 or chunk.endswith((".", "!", "?", "\n"))
                 if should_flush:
@@ -1375,6 +1399,8 @@ class VoiceAssistantUI(ctk.CTk):
             flush_chunks()
 
             if tts_queue is not None:
+                if tts_phrase_buffer.strip():
+                    tts_queue.put(tts_phrase_buffer.strip())
                 trailing = tts_text_buffer.strip()
                 if trailing:
                     tts_queue.put(trailing)
