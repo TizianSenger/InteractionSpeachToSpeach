@@ -14,6 +14,7 @@ piper-tts>=1.2.0
 sounddevice>=0.4.6
 pygame>=2.5.0
 webrtcvad-wheels>=2.0.14
+openwakeword>=0.6.0
 
 # Numerics
 numpy>=1.24.0

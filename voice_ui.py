@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 import customtkinter as ctk
+import numpy as np
 import pyttsx3
 import requests
 import sounddevice as sd
@@ -27,6 +28,7 @@ from avatar_bridge import AvatarBridge
 from constants import *
 from ollama_mixin import OllamaMixin
 from tts_mixin import TtsMixin
+from wake_word_mixin import WakeWordMixin
 
 _FFMPEG_CHECKED = False
 _FFMPEG_AVAILABLE = False
@@ -79,7 +81,7 @@ class UILogQueueHandler(logging.Handler):
             pass
 
 
-class VoiceAssistantUI(OllamaMixin, TtsMixin, ctk.CTk):
+class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
     def __init__(self) -> None:
         super().__init__()
         ctk.set_appearance_mode("dark")
@@ -88,17 +90,15 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, ctk.CTk):
         self.title("Voice Studio")
         self.geometry("1160x760")
 
-        self.recording_stream: sd.InputStream | None = None
-        self.monitor_stream: sd.InputStream | None = None
+        self.recording_stream: sd.InputStream | None = None  # kept for compat. checks
+        self.monitor_stream: sd.InputStream | None = None     # kept for compat. checks
+        self._bg_stream: sd.InputStream | None = None         # unified permanent stream
         self.recording_wave: wave.Wave_write | None = None
         self.recording_path: str | None = None
         self.is_recording = False
         # VAD runtime state (reset at each recording start)
-        self.vad_instance: Any | None = None
-        self.vad_frame_buffer: bytes = b""
-        self.vad_silence_frames: int = 0
         self.vad_speech_detected: bool = False
-        self.vad_frame_bytes: int = 960  # 30ms @ 16 kHz, 16-bit mono
+        self.vad_last_speech_time: float = 0.0
         self.last_transcript: str = ""
         self.whisper_model_cache: dict[str, Any] = {}
         self.whisper_module: Any | None = None
@@ -217,8 +217,15 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, ctk.CTk):
         self.persona_empathy_label_var = ctk.StringVar(value="70")
         self.persona_temperament_label_var = ctk.StringVar(value="30")
         self.vad_enabled_var = ctk.BooleanVar(value=True)
-        self.vad_aggressiveness_var = ctk.StringVar(value="2")
+        self.vad_aggressiveness_var = ctk.StringVar(value="1")
         self.vad_silence_timeout_var = ctk.StringVar(value="1.5")
+        # Wake-word listener state
+        self.wake_word_enabled_var = ctk.BooleanVar(value=True)
+        self.wake_word_model_var = ctk.StringVar(value="Hey Jarvis")
+        self.wake_word_status_var = ctk.StringVar(value="Inaktiv")
+        self._ww_thread: threading.Thread | None = None
+        self._ww_stop_event: threading.Event = threading.Event()
+        self._ww_whisper_model: Any | None = None
 
         self._load_profile()
         self.on_appearance_mode_changed(self.appearance_mode_var.get())
@@ -227,7 +234,8 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, ctk.CTk):
         self.refresh_piper_model_options()
         self.on_tts_engine_changed(self.tts_engine_var.get())
         self.refresh_input_devices()
-        self.start_level_monitor()
+        self._start_bg_stream()
+        self.start_wake_word_listener()  # no-op if wake_word_enabled_var is False
         self._start_background_warmup()
         self._schedule_log_pump()
         self._schedule_stats_refresh()
@@ -977,6 +985,53 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, ctk.CTk):
         self.vad_silence_entry = ctk.CTkEntry(audio_frame, textvariable=self.vad_silence_timeout_var)
         self.vad_silence_entry.pack(fill="x", padx=10, pady=(0, 10))
 
+        # ── Wake-Word ──────────────────────────────────────────────────────
+        ww_frame = ctk.CTkFrame(sidebar)
+        ww_frame.pack(fill="x", padx=8, pady=6)
+        ctk.CTkLabel(ww_frame, text="Wake-Word", font=(FONT_FAMILY, 14, "bold")).pack(
+            anchor="w", padx=10, pady=(8, 2)
+        )
+        ctk.CTkLabel(
+            ww_frame,
+            text="Sprich das Wort und das Mikrofon startet automatisch.",
+            text_color="gray70",
+            wraplength=380,
+            justify="left",
+        ).pack(anchor="w", padx=10, pady=(0, 6))
+
+        self.ww_switch = ctk.CTkSwitch(
+            ww_frame,
+            text="Wake-Word aktivieren",
+            variable=self.wake_word_enabled_var,
+            command=self.on_wake_word_toggle,
+        )
+        self.ww_switch.pack(anchor="w", padx=10, pady=(0, 6))
+
+        ctk.CTkLabel(ww_frame, text="Wake-Word Aktivierungswort").pack(anchor="w", padx=10, pady=(4, 2))
+        ww_model_row = ctk.CTkFrame(ww_frame, fg_color="transparent")
+        ww_model_row.pack(fill="x", padx=10, pady=(0, 6))
+        ww_model_row.grid_columnconfigure(0, weight=1)
+        from wake_word_mixin import OWW_MODEL_DISPLAY_NAMES
+        self.ww_model_menu = ctk.CTkOptionMenu(
+            ww_model_row,
+            values=OWW_MODEL_DISPLAY_NAMES,
+            variable=self.wake_word_model_var,
+        )
+        self.ww_model_menu.grid(row=0, column=0, sticky="ew", padx=(0, 6))
+        ctk.CTkButton(
+            ww_model_row,
+            text="Neu starten",
+            width=90,
+            command=self.start_wake_word_listener,
+        ).grid(row=0, column=1)
+
+        ctk.CTkLabel(ww_frame, text="Status").pack(anchor="w", padx=10, pady=(4, 2))
+        ctk.CTkLabel(
+            ww_frame,
+            textvariable=self.wake_word_status_var,
+            text_color="#22d3ee",
+        ).pack(anchor="w", padx=10, pady=(0, 10))
+
         tts_frame = ctk.CTkFrame(sidebar)
         tts_frame.pack(fill="x", padx=8, pady=6)
         ctk.CTkLabel(tts_frame, text="TTS", font=(FONT_FAMILY, 14, "bold")).pack(anchor="w", padx=10, pady=(8, 2))
@@ -1429,49 +1484,113 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, ctk.CTk):
                                fill=bar_color, width=1)
 
     def _monitor_callback(self, indata: Any, frames: int, callback_time: Any, status: Any) -> None:
+        # Legacy: not used when unified stream is active
         peak = float(abs(indata).max()) / 32767.0
         self.set_mic_level(peak)
 
     def stop_level_monitor(self) -> None:
+        # Unified stream stays alive – nothing to stop.
+        # Legacy monitor_stream fallback kept for safety.
         if self.monitor_stream is not None:
             self.monitor_stream.stop()
             self.monitor_stream.close()
             self.monitor_stream = None
 
     def start_level_monitor(self) -> None:
+        # With the unified background stream, level monitoring is always on.
+        # Only start the legacy monitor if the bg stream is somehow not running.
+        if self._bg_stream is not None and self._bg_stream.active:
+            return
+        self._start_bg_stream()
+
+    # ------------------------------------------------------------------ #
+    #  Unified permanent audio stream                                      #
+    # ------------------------------------------------------------------ #
+
+    def _bg_audio_callback(self, indata: np.ndarray, frames: int, _time: Any, _status: Any) -> None:
+        """Single callback for ALL audio work: level, wake-word, recording, VAD."""
+        # indata dtype=float32, shape (frames, 1), values –1..1
+        peak = float(np.abs(indata).max())
+        self.set_mic_level(peak)
+
         if self.is_recording:
+            # Write int16 PCM to the open wave file
+            if self.recording_wave is not None:
+                pcm = (indata[:, 0] * 32767.0).astype(np.int16)
+                self.recording_wave.writeframes(pcm.tobytes())
+            # Energy-based VAD
+            self._vad_check_energy(peak)
+        else:
+            # Feed openwakeword (only when not already recording)
+            self._ww_feed_audio(indata[:, 0])
+
+    def _vad_check_energy(self, peak: float) -> None:
+        if not self.vad_enabled_var.get():
+            return
+        elapsed_s = time.perf_counter() - (self.recording_started_at or 0.0)
+        if elapsed_s > 45.0:
+            self.logger.info("VAD: maximale Aufnahmedauer – stoppe")
+            self.after(0, self.stop_recording)
+            return
+        if elapsed_s < 0.6:
             return
 
-        self.stop_level_monitor()
+        _SPEECH = 0.015
+        _SILENCE = 0.010
+        now = time.perf_counter()
+        if peak >= _SPEECH:
+            self.vad_speech_detected = True
+            self.vad_last_speech_time = now
 
+        if not self.vad_speech_detected:
+            return
+        try:
+            silence_timeout = float(self.vad_silence_timeout_var.get().strip())
+        except ValueError:
+            silence_timeout = 1.5
+
+        if peak < _SILENCE and (now - self.vad_last_speech_time) >= silence_timeout:
+            self.logger.info("VAD: Stille – stoppe Aufnahme")
+            self.after(0, self.stop_recording)
+
+    def _start_bg_stream(self) -> None:
+        self._stop_bg_stream()
         selected_label = self.mic_device_var.get().strip()
         if selected_label not in self.mic_devices_map:
             self.set_mic_level(0)
             return
-
+        input_device = self.get_selected_input_device()
         try:
             sample_rate = int(self.sample_rate_var.get().strip())
         except ValueError:
             sample_rate = 16000
-
-        input_device = self.get_selected_input_device()
-
         try:
-            self.monitor_stream = sd.InputStream(
+            self._bg_stream = sd.InputStream(
                 samplerate=sample_rate,
                 channels=1,
-                dtype="int16",
+                dtype="float32",
                 device=input_device,
-                callback=self._monitor_callback,
+                blocksize=1280,   # 80 ms – required by openwakeword
+                callback=self._bg_audio_callback,
             )
-            self.monitor_stream.start()
-        except Exception:
-            self.monitor_stream = None
+            self._bg_stream.start()
+            self.logger.info("Unified audio stream gestartet (%d Hz, device=%s)", sample_rate, input_device)
+        except Exception as exc:
+            self._bg_stream = None
             self.set_mic_level(0)
+            self.logger.warning("Unified stream Fehler: %s", exc)
+
+    def _stop_bg_stream(self) -> None:
+        if self._bg_stream is not None:
+            try:
+                self._bg_stream.stop()
+                self._bg_stream.close()
+            except Exception:
+                pass
+            self._bg_stream = None
 
     def on_mic_selection_changed(self, _selected: str) -> None:
-        if not self.is_recording:
-            self.start_level_monitor()
+        self._start_bg_stream()
 
     def _avatar_button_or_none(self) -> Any | None:
         return self.avatar_btn if hasattr(self, "avatar_btn") else None
@@ -1585,11 +1704,8 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, ctk.CTk):
         self.cancel_current_response()
         self._stop_active_audio_playback()
         self._stop_avatar_viewer()
-        self.stop_level_monitor()
-        if self.recording_stream is not None:
-            self.recording_stream.stop()
-            self.recording_stream.close()
-            self.recording_stream = None
+        self.stop_wake_word_listener()
+        self._stop_bg_stream()
         if self.recording_wave is not None:
             self.recording_wave.close()
             self.recording_wave = None
@@ -1764,24 +1880,32 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, ctk.CTk):
         self.set_mic_level(peak)
         self.recording_wave.writeframes(raw)
 
-        # VAD: buffer incoming audio and process in exact 30ms frames
-        if self.vad_instance is None or not self.vad_enabled_var.get():
+        # Energy-based VAD – no external library required.
+        if not self.vad_enabled_var.get():
             return
 
-        self.vad_frame_buffer += raw
-        while len(self.vad_frame_buffer) >= self.vad_frame_bytes:
-            frame = self.vad_frame_buffer[: self.vad_frame_bytes]
-            self.vad_frame_buffer = self.vad_frame_buffer[self.vad_frame_bytes :]
-            try:
-                is_speech = self.vad_instance.is_speech(frame, 16000)
-            except Exception:
-                continue
+        elapsed_s = time.perf_counter() - (self.recording_started_at or 0.0)
 
-            if is_speech:
-                self.vad_speech_detected = True
-                self.vad_silence_frames = 0
-            else:
-                self.vad_silence_frames += 1
+        # Safety net: hard stop after 45 s
+        if elapsed_s > 45.0:
+            self.logger.info("VAD: maximale Aufnahmedauer – stoppe")
+            self.after(0, self.stop_recording)
+            return
+
+        # Grace period: first 0.6 s are ignored so user has time to start
+        if elapsed_s < 0.6:
+            return
+
+        # RMS energy (robust against int16 overflow by using peak already computed above)
+        rms = peak  # peak = abs(indata).max() / 32767, good enough proxy for energy
+
+        _SPEECH_RMS = 0.015   # above → speaking
+        _SILENCE_RMS = 0.010  # below → silence
+
+        now = time.perf_counter()
+        if rms >= _SPEECH_RMS:
+            self.vad_speech_detected = True
+            self.vad_last_speech_time = now
 
         if not self.vad_speech_detected:
             return
@@ -1791,10 +1915,12 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, ctk.CTk):
         except ValueError:
             silence_timeout = 1.5
 
-        # 30ms per frame → frames_per_second = 1000/30 ≈ 33.3
-        silence_threshold_frames = int(silence_timeout * 1000 / 30)
-        if self.vad_silence_frames >= silence_threshold_frames:
-            self.logger.info("VAD: Stille erkannt nach %.1fs – stoppe Aufnahme", silence_timeout)
+        silence_duration = now - self.vad_last_speech_time
+        if rms < _SILENCE_RMS and silence_duration >= silence_timeout:
+            self.logger.info(
+                "VAD: %.1fs Stille nach Sprache (rms=%.4f) – stoppe",
+                silence_duration, rms,
+            )
             self.after(0, self.stop_recording)
 
     def start_recording(self) -> None:
@@ -1827,50 +1953,23 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, ctk.CTk):
 
         input_device = self.get_selected_input_device()
 
-        self.stop_level_monitor()
+        # Ensure unified stream is running on the correct device (no stop needed).
+        if self._bg_stream is None or not self._bg_stream.active:
+            self._start_bg_stream()
 
-        try:
-            self.recording_stream = sd.InputStream(
-                samplerate=sample_rate,
-                channels=1,
-                dtype="int16",
-                device=input_device,
-                callback=self._audio_callback,
-            )
-            self.recording_stream.start()
-        except Exception as exc:
-            self.recording_stream = None
-            self.recording_wave.close()
-            self.recording_wave = None
-            self.set_status(f"Mikrofon-Start fehlgeschlagen: {exc}")
-            self.start_level_monitor()
-            return
-
-        # Initialise VAD if enabled and sample rate is compatible (webrtcvad: 8/16/32/48 kHz)
-        self.vad_instance = None
-        self.vad_frame_buffer = b""
-        self.vad_silence_frames = 0
+        # Reset energy-based VAD state
         self.vad_speech_detected = False
-        if self.vad_enabled_var.get() and sample_rate in {8000, 16000, 32000, 48000}:
-            # frame size in bytes for 30ms at the given sample rate (16-bit mono)
-            self.vad_frame_bytes = sample_rate * 30 // 1000 * 2
-            try:
-                vad_mod = importlib.import_module("webrtcvad")
-                aggressiveness = int(self.vad_aggressiveness_var.get().strip())
-                self.vad_instance = vad_mod.Vad(aggressiveness)
-                self.logger.info("VAD aktiv (Aggressivität %d, %d Hz)", aggressiveness, sample_rate)
-            except Exception as exc:
-                self.logger.warning("VAD konnte nicht initialisiert werden: %s", exc)
-                self.vad_instance = None
-        elif self.vad_enabled_var.get():
-            self.logger.warning("VAD deaktiviert: Sample-Rate %d Hz nicht kompatibel (nur 8/16/32/48 kHz)", sample_rate)
+        self.vad_last_speech_time = 0.0
+        if self.vad_enabled_var.get():
+            self.logger.info("VAD aktiv (energie-basiert, Timeout %.1fs)",
+                             float(self.vad_silence_timeout_var.get() or 1.5))
 
         self.is_recording = True
         self.recording_started_at = time.perf_counter()
         self._increment_counter("recordings_started")
         self.last_transcript = ""
         self.set_mic_level(0)
-        vad_hint = " | VAD AN" if self.vad_instance is not None else ""
+        vad_hint = " | VAD AN" if self.vad_enabled_var.get() else ""
         self.set_status(f"Mikrofon läuft...{vad_hint} ({self.mic_device_var.get()})")
         self.start_btn.configure(state="disabled")
         self.stop_btn.configure(state="normal")
@@ -1881,16 +1980,13 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, ctk.CTk):
         if not self.is_recording:
             return
 
-        if self.recording_stream is not None:
-            self.recording_stream.stop()
-            self.recording_stream.close()
-            self.recording_stream = None
-
+        # Close the wav file – the unified bg_stream keeps running.
         if self.recording_wave is not None:
             self.recording_wave.close()
             self.recording_wave = None
 
         self.is_recording = False
+        self.recording_stream = None  # nothing to clean up
         self._increment_counter("recordings_finished")
         if self.recording_started_at is not None:
             duration = time.perf_counter() - self.recording_started_at
@@ -1900,7 +1996,7 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, ctk.CTk):
         self.set_mic_level(0)
         self.start_btn.configure(state="normal")
         self.stop_btn.configure(state="disabled")
-        self.start_level_monitor()
+        # bg_stream continues – no start_level_monitor() call needed
 
         if self.auto_pipeline_var.get():
             self.set_status("Aufnahme beendet. Starte Auto-Workflow...")
