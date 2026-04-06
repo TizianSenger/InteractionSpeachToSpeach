@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 import importlib
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -12,6 +13,27 @@ import threading
 import time
 from pathlib import Path
 from typing import Any
+
+_EMOJI_RE = re.compile(
+    "["
+    "\U0001F600-\U0001F64F"  # emoticons
+    "\U0001F300-\U0001F5FF"  # symbols & pictographs
+    "\U0001F680-\U0001F6FF"  # transport & map
+    "\U0001F700-\U0001F77F"  # alchemical
+    "\U0001F780-\U0001F7FF"  # geometric
+    "\U0001F800-\U0001F8FF"  # supplemental arrows
+    "\U0001F900-\U0001F9FF"  # supplemental symbols
+    "\U0001FA00-\U0001FA6F"  # chess & other
+    "\U0001FA70-\U0001FAFF"  # misc
+    "\U00002702-\U000027B0"  # dingbats
+    "\U000024C2-\U0001F251"  # enclosed chars
+    "]+",
+    flags=re.UNICODE,
+)
+
+
+def _strip_emojis(text: str) -> str:
+    return _EMOJI_RE.sub("", text).strip()
 
 import pyttsx3
 
@@ -40,6 +62,9 @@ class TtsMixin:
             return self.pyttsx3_engine
 
     def speak_text(self, text: str) -> None:
+        text = _strip_emojis(text)
+        if not text:
+            return
         self._ensure_avatar_for_lipsync()
         selected_engine = self.tts_engine_var.get().strip().lower()
         if "edge-tts" in selected_engine:

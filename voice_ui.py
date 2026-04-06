@@ -216,7 +216,7 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
         self.reply_max_tokens_var = ctk.StringVar(value="120")
         self.reply_temperature_var = ctk.StringVar(value="0.3")
         self.concise_reply_var = ctk.BooleanVar(value=True)
-        self.favorite_light_scene_var = ctk.StringVar(value="Abendlicht")
+
         self.persona_flirty_var = ctk.DoubleVar(value=35.0)
         self.persona_humor_var = ctk.DoubleVar(value=55.0)
         self.persona_serious_var = ctk.DoubleVar(value=40.0)
@@ -446,7 +446,6 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
                 "temperament": float(self.persona_temperament_var.get()),
             },
             "preferences": {
-                "favorite_light_scene": self.favorite_light_scene_var.get().strip() or "Abendlicht",
                 "mic_device_label": self.mic_device_var.get().strip(),
                 "tts_engine": self.tts_engine_var.get().strip(),
                 "tts_voice": self.tts_voice_var.get().strip(),
@@ -479,10 +478,6 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
             self.persona_dominance_var.set(float(persona.get("dominance", self.persona_dominance_var.get())))
             self.persona_empathy_var.set(float(persona.get("empathy", self.persona_empathy_var.get())))
             self.persona_temperament_var.set(float(persona.get("temperament", self.persona_temperament_var.get())))
-
-            fav_scene = str(preferences.get("favorite_light_scene", "")).strip()
-            if fav_scene:
-                self.favorite_light_scene_var.set(fav_scene)
 
             stored_mic = str(preferences.get("mic_device_label", "")).strip()
             if stored_mic:
@@ -560,14 +555,12 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
         dominance = self._persona_instruction("dominance", float(self.persona_dominance_var.get()))
         empathy = self._persona_instruction("empathy", float(self.persona_empathy_var.get()))
         temperament = self._persona_instruction("temperament", float(self.persona_temperament_var.get()))
-        favorite_scene = self.favorite_light_scene_var.get().strip() or "Abendlicht"
-
         concise_instruction = "Antworte in 1-3 Saetzen." if self.concise_reply_var.get() else "Antworte so detailliert wie noetig."
         return (
             "Du bist ein persoenlicher Sprachassistent auf Deutsch. "
-            "Sei menschlich, charmant und kontextbewusst, aber respektvoll und nicht beleidigend. "
+            "Sei menschlich, charmant und kontextbewusst."
             f"Stil: {flirty}; {humor}; {serious}; {dominance}; {empathy}; {temperament}. "
-            f"Merke als bevorzugte Lichtszene des Users: {favorite_scene}. "
+            "Verwende KEINE Emojis in deinen Antworten. "
             f"{concise_instruction}"
         )
 
@@ -967,10 +960,6 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
         add_persona_slider("Dominanz", self.persona_dominance_var, self.persona_dominance_label_var)
         add_persona_slider("Empathie/Waerme", self.persona_empathy_var, self.persona_empathy_label_var)
         add_persona_slider("Temperament", self.persona_temperament_var, self.persona_temperament_label_var)
-
-        ctk.CTkLabel(persona_frame, text="Lieblingslichtszene").pack(anchor="w", padx=10, pady=(2, 2))
-        self.favorite_light_scene_entry = ctk.CTkEntry(persona_frame, textvariable=self.favorite_light_scene_var)
-        self.favorite_light_scene_entry.pack(fill="x", padx=10, pady=(0, 8))
 
         self.save_profile_btn = ctk.CTkButton(persona_frame, text="Profil speichern", command=self.save_profile)
         self.save_profile_btn.pack(fill="x", padx=10, pady=(0, 10))
