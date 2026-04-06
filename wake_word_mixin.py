@@ -136,5 +136,8 @@ class WakeWordMixin:
         if self.is_recording:
             return
         self.wake_word_status_var.set("Aktiviert!")
+        # Visual flash on the waveform canvas
+        if hasattr(self, "trigger_waveform_flash"):
+            self.trigger_waveform_flash()
         self.start_recording()
         self.after(1500, lambda: self.wake_word_status_var.set("Hoere zu ..."))

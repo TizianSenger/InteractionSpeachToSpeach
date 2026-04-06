@@ -938,3 +938,214 @@
 2026-04-06 21:00:17,983 | INFO | Thread-5 (_run_transcription) | Ollama Antwort fertig (90 Zeichen, 3.47s)
 2026-04-06 21:00:17,983 | DEBUG | Thread-5 (_run_transcription) | History Assistent: Es ist mir eine Freude, Ihnen zu helfen! Wie kann ich Ihnen heute noch behilflich sein? 🌞✨
 2026-04-06 21:00:18,363 | INFO | Thread-5 (_run_transcription) | Status: Antwort fertig. Audio streamt...
+2026-04-06 21:32:32,034 | INFO | MainThread | Voice Studio gestartet
+2026-04-06 21:32:32,506 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-06 21:32:32,506 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-06 21:32:32,629 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-06 21:32:33,177 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-06 21:32:33,188 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-06 21:32:35,316 | INFO | OWW-Loader | Wake-word: >>hey_jarvis<< bereit
+2026-04-06 21:32:49,080 | INFO | Dummy-4 | Wake-word erkannt: >>Hey Jarvis<< score=0.573
+2026-04-06 21:32:49,152 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-06 21:32:49,383 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-06 21:32:49,402 | INFO | MainThread | VAD aktiv (energie-basiert, Timeout 1.5s)
+2026-04-06 21:32:49,402 | INFO | MainThread | Status: Mikrofon läuft... | VAD AN (Standard (Windows))
+2026-04-06 21:32:54,700 | INFO | Dummy-4 | VAD: Stille – stoppe Aufnahme
+2026-04-06 21:32:54,700 | INFO | MainThread | Aufnahmedauer: 5.30s
+2026-04-06 21:32:54,700 | INFO | MainThread | Status: Aufnahme beendet. Starte Auto-Workflow...
+2026-04-06 21:32:54,713 | INFO | Thread-5 (_run_transcription) | Status: Transkribiere Audio...
+2026-04-06 21:32:57,685 | INFO | Thread-5 (_run_transcription) | Transkription fertig (16 Zeichen)
+2026-04-06 21:32:57,685 | INFO | Thread-5 (_run_transcription) | Status: Transkript erkannt. Sende an Ollama...
+2026-04-06 21:32:57,692 | INFO | Thread-5 (_run_transcription) | Ollama Anfrage gestartet (16 Zeichen Input)
+2026-04-06 21:32:57,692 | INFO | Thread-5 (_run_transcription) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-06 21:32:57,705 | DEBUG | Thread-5 (_run_transcription) | History Du: Das ist der Tod.
+2026-04-06 21:33:09,179 | INFO | Thread-5 (_run_transcription) | Status: Ollama antwortet...
+2026-04-06 21:33:15,988 | INFO | Thread-5 (_run_transcription) | Ollama Antwort fertig (223 Zeichen, 18.30s)
+2026-04-06 21:33:15,988 | DEBUG | Thread-5 (_run_transcription) | History Assistent: Ah, du sprichst von etwas so Intensivem! Aber lass uns das Thema wechseln. Wie wäre es mit einem lustigen Witz oder einer interessanten Tats
+2026-04-06 21:33:16,817 | INFO | Thread-5 (_run_transcription) | Status: Antwort fertig. Audio streamt...
+2026-04-06 21:33:37,410 | INFO | Dummy-4 | Wake-word erkannt: >>Hey Jarvis<< score=0.995
+2026-04-06 21:33:37,478 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-06 21:33:37,497 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-06 21:33:37,501 | INFO | MainThread | VAD aktiv (energie-basiert, Timeout 1.5s)
+2026-04-06 21:33:37,501 | INFO | MainThread | Status: Mikrofon läuft... | VAD AN (Standard (Windows))
+2026-04-06 21:33:41,649 | INFO | Dummy-4 | VAD: Stille – stoppe Aufnahme
+2026-04-06 21:33:41,650 | INFO | MainThread | Aufnahmedauer: 4.15s
+2026-04-06 21:33:41,651 | INFO | MainThread | Status: Aufnahme beendet. Starte Auto-Workflow...
+2026-04-06 21:33:41,658 | INFO | Thread-13 (_run_transcription) | Status: Transkribiere Audio...
+2026-04-06 21:33:44,718 | INFO | Thread-13 (_run_transcription) | Transkription fertig (38 Zeichen)
+2026-04-06 21:33:44,718 | INFO | Thread-13 (_run_transcription) | Status: Transkript erkannt. Sende an Ollama...
+2026-04-06 21:33:44,731 | INFO | Thread-13 (_run_transcription) | Ollama Anfrage gestartet (38 Zeichen Input)
+2026-04-06 21:33:44,732 | INFO | Thread-13 (_run_transcription) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-06 21:33:44,745 | DEBUG | Thread-13 (_run_transcription) | History Du: Wie geht es dir so? Alles gut bei dir?
+2026-04-06 21:33:49,271 | INFO | Thread-13 (_run_transcription) | Status: Ollama antwortet...
+2026-04-06 21:33:54,113 | INFO | Thread-13 (_run_transcription) | Ollama Antwort fertig (141 Zeichen, 9.39s)
+2026-04-06 21:33:54,114 | DEBUG | Thread-13 (_run_transcription) | History Assistent: Als KI erlebe ich keine Gefühle, aber ich bin voll funktionsfähig und bereit, dir zu helfen! Wie kann ich dir heute weiter behilflich sein? 
+2026-04-06 21:33:54,131 | INFO | Thread-13 (_run_transcription) | Status: Antwort fertig. Audio streamt...
+2026-04-06 21:37:41,991 | INFO | MainThread | Voice Studio gestartet
+2026-04-06 21:40:50,763 | INFO | MainThread | Voice Studio gestartet
+2026-04-06 21:42:40,829 | INFO | MainThread | Voice Studio gestartet
+2026-04-06 21:42:41,307 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-06 21:42:41,307 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-06 21:42:41,439 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-06 21:42:41,992 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-06 21:42:42,001 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-06 21:42:44,275 | INFO | OWW-Loader | Wake-word: >>hey_jarvis<< bereit
+2026-04-06 21:42:49,529 | INFO | Dummy-4 | Wake-word erkannt: >>Hey Jarvis<< score=0.557
+2026-04-06 21:42:49,595 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-06 21:42:49,857 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-06 21:42:49,857 | INFO | MainThread | VAD aktiv (energie-basiert, Timeout 1.5s)
+2026-04-06 21:42:49,857 | INFO | MainThread | Status: Mikrofon läuft... | VAD AN (Standard (Windows))
+2026-04-06 21:42:53,804 | INFO | Dummy-4 | VAD: Stille – stoppe Aufnahme
+2026-04-06 21:42:53,804 | INFO | MainThread | Aufnahmedauer: 3.94s
+2026-04-06 21:42:53,808 | INFO | MainThread | Status: Aufnahme beendet. Starte Auto-Workflow...
+2026-04-06 21:42:53,808 | INFO | Thread-5 (_run_transcription) | Status: Transkribiere Audio...
+2026-04-06 21:42:56,411 | INFO | Thread-5 (_run_transcription) | Transkription fertig (34 Zeichen)
+2026-04-06 21:42:56,414 | INFO | Thread-5 (_run_transcription) | Status: Transkript erkannt. Sende an Ollama...
+2026-04-06 21:42:56,421 | INFO | Thread-5 (_run_transcription) | Ollama Anfrage gestartet (34 Zeichen Input)
+2026-04-06 21:42:56,421 | INFO | Thread-5 (_run_transcription) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-06 21:42:56,433 | DEBUG | Thread-5 (_run_transcription) | History Du: Geht es dir so? Alles gut bei dir?
+2026-04-06 21:42:57,619 | INFO | Thread-5 (_run_transcription) | Status: Ollama antwortet...
+2026-04-06 21:43:01,245 | INFO | Thread-5 (_run_transcription) | Ollama Antwort fertig (109 Zeichen, 4.82s)
+2026-04-06 21:43:01,245 | DEBUG | Thread-5 (_run_transcription) | History Assistent: Natürlich! Ich bin bereit, dir zu helfen, wann immer du es brauchst. Wie kann ich dich heute unterstützen? 🌙✨
+2026-04-06 21:43:01,247 | INFO | Thread-5 (_run_transcription) | Status: Antwort fertig. Audio streamt...
+2026-04-06 21:43:59,646 | INFO | MainThread | Voice Studio wird beendet
+2026-04-06 21:43:59,647 | INFO | MainThread | Profil gespeichert: C:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\assistant_profile.json
+2026-04-06 21:43:59,648 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-06 21:43:59,662 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-06 21:43:59,694 | INFO | MainThread | Status: Avatar-Viewer gestoppt
+2026-04-06 21:47:15,038 | INFO | MainThread | Voice Studio gestartet
+2026-04-06 21:47:15,530 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-06 21:47:15,530 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-06 21:47:15,696 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-06 21:47:16,237 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-06 21:47:16,237 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-06 21:47:18,202 | INFO | OWW-Loader | Wake-word: >>hey_jarvis<< bereit
+2026-04-06 21:47:35,620 | INFO | Dummy-4 | Wake-word erkannt: >>Hey Jarvis<< score=0.881
+2026-04-06 21:47:35,684 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-06 21:47:35,897 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-06 21:47:35,901 | INFO | MainThread | VAD aktiv (energie-basiert, Timeout 1.5s)
+2026-04-06 21:47:35,901 | INFO | MainThread | Status: Mikrofon läuft... | VAD AN (Standard (Windows))
+2026-04-06 21:47:39,942 | INFO | Dummy-4 | VAD: Stille – stoppe Aufnahme
+2026-04-06 21:47:39,942 | INFO | MainThread | Aufnahmedauer: 4.04s
+2026-04-06 21:47:39,944 | INFO | MainThread | Status: Aufnahme beendet. Starte Auto-Workflow...
+2026-04-06 21:47:39,951 | INFO | Thread-5 (_run_transcription) | Status: Transkribiere Audio...
+2026-04-06 21:47:42,203 | INFO | Thread-5 (_run_transcription) | Transkription fertig (18 Zeichen)
+2026-04-06 21:47:42,208 | INFO | Thread-5 (_run_transcription) | Status: Transkript erkannt. Sende an Ollama...
+2026-04-06 21:47:42,215 | INFO | Thread-5 (_run_transcription) | Ollama Anfrage gestartet (18 Zeichen Input)
+2026-04-06 21:47:42,215 | INFO | Thread-5 (_run_transcription) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-06 21:47:42,227 | DEBUG | Thread-5 (_run_transcription) | History Du: Alles gut bei dir?
+2026-04-06 21:47:42,962 | INFO | Thread-5 (_run_transcription) | Status: Ollama antwortet...
+2026-04-06 21:47:47,343 | INFO | Thread-5 (_run_transcription) | Ollama Antwort fertig (168 Zeichen, 5.13s)
+2026-04-06 21:47:47,343 | DEBUG | Thread-5 (_run_transcription) | History Assistent: Natürlich! Wie kann ich Ihnen heute behilflich sein? Möchten Sie etwas über die Nacht erfahren oder gibt es eine andere Anfrage, bei der ich
+2026-04-06 21:47:47,344 | INFO | Thread-5 (_run_transcription) | Status: Antwort fertig. Audio streamt...
+2026-04-06 21:48:17,361 | INFO | Dummy-4 | Wake-word erkannt: >>Hey Jarvis<< score=0.527
+2026-04-06 21:48:17,426 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-06 21:48:17,443 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-06 21:48:17,447 | INFO | MainThread | VAD aktiv (energie-basiert, Timeout 1.5s)
+2026-04-06 21:48:17,448 | INFO | MainThread | Status: Mikrofon läuft... | VAD AN (Standard (Windows))
+2026-04-06 21:48:23,358 | INFO | Dummy-4 | VAD: Stille – stoppe Aufnahme
+2026-04-06 21:48:23,359 | INFO | MainThread | Aufnahmedauer: 5.91s
+2026-04-06 21:48:23,360 | INFO | MainThread | Status: Aufnahme beendet. Starte Auto-Workflow...
+2026-04-06 21:48:23,367 | INFO | Thread-12 (_run_transcription) | Status: Transkribiere Audio...
+2026-04-06 21:48:26,053 | INFO | Thread-12 (_run_transcription) | Transkription fertig (66 Zeichen)
+2026-04-06 21:48:26,056 | INFO | Thread-12 (_run_transcription) | Status: Transkript erkannt. Sende an Ollama...
+2026-04-06 21:48:26,074 | INFO | Thread-12 (_run_transcription) | Ollama Anfrage gestartet (66 Zeichen Input)
+2026-04-06 21:48:26,075 | INFO | Thread-12 (_run_transcription) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-06 21:48:26,091 | DEBUG | Thread-12 (_run_transcription) | History Du: Alles Gute und guten Tag. Können Sie mir eine Geschichte erzählen?
+2026-04-06 21:48:29,406 | INFO | Thread-12 (_run_transcription) | Status: Ollama antwortet...
+2026-04-06 21:48:42,522 | INFO | Thread-12 (_run_transcription) | Ollama Antwort fertig (510 Zeichen, 16.45s)
+2026-04-06 21:48:42,523 | DEBUG | Thread-12 (_run_transcription) | History Assistent: Natürlich! Stellen Sie sich diese Szene vor: Es ist ein sonniger Tag im Herzen des Waldes. Ein alter, verträumter Baum namens Eldrin steht s
+2026-04-06 21:48:42,524 | INFO | Thread-12 (_run_transcription) | Status: Antwort fertig. Audio streamt...
+2026-04-06 21:52:45,384 | INFO | MainThread | Voice Studio gestartet
+2026-04-06 21:52:45,885 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-06 21:52:45,885 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-06 21:52:46,029 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-06 21:52:46,564 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-06 21:52:46,568 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-06 21:52:48,487 | INFO | OWW-Loader | Wake-word: >>hey_jarvis<< bereit
+2026-04-06 21:52:57,181 | INFO | Dummy-4 | Wake-word erkannt: >>Hey Jarvis<< score=0.562
+2026-04-06 21:52:57,248 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-06 21:52:57,458 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-06 21:52:57,471 | INFO | MainThread | VAD aktiv (energie-basiert, Timeout 1.5s)
+2026-04-06 21:52:57,471 | INFO | MainThread | Status: Mikrofon läuft... | VAD AN (Standard (Windows))
+2026-04-06 21:53:01,658 | INFO | Dummy-4 | VAD: Stille – stoppe Aufnahme
+2026-04-06 21:53:01,658 | INFO | MainThread | Aufnahmedauer: 4.19s
+2026-04-06 21:53:01,658 | INFO | MainThread | Status: Aufnahme beendet. Starte Auto-Workflow...
+2026-04-06 21:53:01,665 | INFO | Thread-5 (_run_transcription) | Status: Transkribiere Audio...
+2026-04-06 21:53:04,264 | INFO | Thread-5 (_run_transcription) | Transkription fertig (44 Zeichen)
+2026-04-06 21:53:04,268 | INFO | Thread-5 (_run_transcription) | Status: Transkript erkannt. Sende an Ollama...
+2026-04-06 21:53:04,287 | INFO | Thread-5 (_run_transcription) | Ollama Anfrage gestartet (44 Zeichen Input)
+2026-04-06 21:53:04,289 | INFO | Thread-5 (_run_transcription) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-06 21:53:04,289 | DEBUG | Thread-5 (_run_transcription) | History Du: Wie geht es dir? Hat es dir einen guten Tag?
+2026-04-06 21:53:05,662 | INFO | Thread-5 (_run_transcription) | Status: Ollama antwortet...
+2026-04-06 21:53:07,571 | INFO | Thread-5 (_run_transcription) | Ollama Antwort fertig (64 Zeichen, 3.29s)
+2026-04-06 21:53:07,571 | DEBUG | Thread-5 (_run_transcription) | History Assistent: Es ist mir gut, danke! Wie kann ich Ihnen heute behilflich sein?
+2026-04-06 21:53:07,571 | INFO | Thread-5 (_run_transcription) | Status: Antwort fertig. Audio streamt...
+2026-04-06 21:53:44,752 | INFO | Dummy-4 | Wake-word erkannt: >>Hey Jarvis<< score=0.598
+2026-04-06 21:53:44,825 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-06 21:53:44,842 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-06 21:53:44,845 | INFO | MainThread | VAD aktiv (energie-basiert, Timeout 1.5s)
+2026-04-06 21:53:44,846 | INFO | MainThread | Status: Mikrofon läuft... | VAD AN (Standard (Windows))
+2026-04-06 21:53:49,551 | INFO | Dummy-4 | VAD: Stille – stoppe Aufnahme
+2026-04-06 21:53:49,552 | INFO | MainThread | Aufnahmedauer: 4.71s
+2026-04-06 21:53:49,554 | INFO | MainThread | Status: Aufnahme beendet. Starte Auto-Workflow...
+2026-04-06 21:53:49,561 | INFO | Thread-11 (_run_transcription) | Status: Transkribiere Audio...
+2026-04-06 21:53:52,064 | INFO | Thread-11 (_run_transcription) | Transkription fertig (46 Zeichen)
+2026-04-06 21:53:52,064 | INFO | Thread-11 (_run_transcription) | Status: Transkript erkannt. Sende an Ollama...
+2026-04-06 21:53:52,075 | INFO | Thread-11 (_run_transcription) | Ollama Anfrage gestartet (46 Zeichen Input)
+2026-04-06 21:53:52,075 | INFO | Thread-11 (_run_transcription) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-06 21:53:52,097 | DEBUG | Thread-11 (_run_transcription) | History Du: Kannst du mir eine kleine Geschichte erzählen?
+2026-04-06 21:53:54,371 | INFO | Thread-11 (_run_transcription) | Status: Ollama antwortet...
+2026-04-06 21:54:07,553 | INFO | Thread-11 (_run_transcription) | Ollama Antwort fertig (526 Zeichen, 15.48s)
+2026-04-06 21:54:07,553 | DEBUG | Thread-11 (_run_transcription) | History Assistent: Sicher! Es war einmal in einem kleinen Dorf am Rande eines Waldes, ein neugieriger Fuchs namens Felix. Er hatte gehört, dass im Wald ein Sch
+2026-04-06 21:54:07,557 | INFO | Thread-11 (_run_transcription) | Status: Antwort fertig. Audio streamt...
+2026-04-06 21:56:15,940 | INFO | MainThread | Voice Studio gestartet
+2026-04-06 21:56:16,462 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-06 21:56:16,462 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-06 21:56:16,577 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-06 21:56:17,126 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-06 21:56:17,126 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-06 21:56:19,524 | INFO | OWW-Loader | Wake-word: >>hey_jarvis<< bereit
+2026-04-06 21:56:25,878 | INFO | Dummy-4 | Wake-word erkannt: >>Hey Jarvis<< score=0.663
+2026-04-06 21:56:25,942 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-06 21:56:26,145 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-06 21:56:26,155 | INFO | MainThread | VAD aktiv (energie-basiert, Timeout 1.5s)
+2026-04-06 21:56:26,155 | INFO | MainThread | Status: Mikrofon läuft... | VAD AN (Standard (Windows))
+2026-04-06 21:56:31,075 | INFO | Dummy-4 | VAD: Stille – stoppe Aufnahme
+2026-04-06 21:56:31,075 | INFO | MainThread | Aufnahmedauer: 4.92s
+2026-04-06 21:56:31,075 | INFO | MainThread | Status: Aufnahme beendet. Starte Auto-Workflow...
+2026-04-06 21:56:31,075 | INFO | Thread-5 (_run_transcription) | Status: Transkribiere Audio...
+2026-04-06 21:56:33,777 | INFO | Thread-5 (_run_transcription) | Transkription fertig (62 Zeichen)
+2026-04-06 21:56:33,777 | INFO | Thread-5 (_run_transcription) | Status: Transkript erkannt. Sende an Ollama...
+2026-04-06 21:56:33,790 | INFO | Thread-5 (_run_transcription) | Ollama Anfrage gestartet (62 Zeichen Input)
+2026-04-06 21:56:33,792 | INFO | Thread-5 (_run_transcription) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-06 21:56:33,815 | DEBUG | Thread-5 (_run_transcription) | History Du: Wie geht es dir heute? Kannst du mir eine Geschichte erzählen?
+2026-04-06 21:56:35,301 | INFO | Thread-5 (_run_transcription) | Status: Ollama antwortet...
+2026-04-06 21:56:43,543 | INFO | Thread-5 (_run_transcription) | Ollama Antwort fertig (319 Zeichen, 9.75s)
+2026-04-06 21:56:43,544 | DEBUG | Thread-5 (_run_transcription) | History Assistent: Es ist mir gut, danke! Stell dir vor... Es war einmal in einer Stadt, wo die Straßen nach Sonnenuntergang leuchteten und jeder Winkel ein Ge
+2026-04-06 21:56:43,544 | INFO | Thread-5 (_run_transcription) | Status: Antwort fertig. Audio streamt...
+2026-04-06 21:57:09,756 | INFO | MainThread | Voice Studio gestartet
+2026-04-06 21:57:10,280 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-06 21:57:10,280 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-06 21:57:10,421 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-06 21:57:10,975 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-06 21:57:10,979 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-06 21:57:13,211 | INFO | OWW-Loader | Wake-word: >>hey_jarvis<< bereit
+2026-04-06 21:57:28,110 | INFO | Dummy-4 | Wake-word erkannt: >>Hey Jarvis<< score=0.982
+2026-04-06 21:57:28,179 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-06 21:57:28,380 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-06 21:57:28,380 | INFO | MainThread | VAD aktiv (energie-basiert, Timeout 1.5s)
+2026-04-06 21:57:28,380 | INFO | MainThread | Status: Mikrofon läuft... | VAD AN (Standard (Windows))
+2026-04-06 21:57:32,510 | INFO | Dummy-4 | VAD: Stille – stoppe Aufnahme
+2026-04-06 21:57:32,510 | INFO | MainThread | Aufnahmedauer: 4.13s
+2026-04-06 21:57:32,510 | INFO | MainThread | Status: Aufnahme beendet. Starte Auto-Workflow...
+2026-04-06 21:57:32,520 | INFO | Thread-5 (_run_transcription) | Status: Transkribiere Audio...
+2026-04-06 21:57:35,109 | INFO | Thread-5 (_run_transcription) | Transkription fertig (45 Zeichen)
+2026-04-06 21:57:35,109 | INFO | Thread-5 (_run_transcription) | Status: Transkript erkannt. Sende an Ollama...
+2026-04-06 21:57:35,123 | INFO | Thread-5 (_run_transcription) | Ollama Anfrage gestartet (45 Zeichen Input)
+2026-04-06 21:57:35,124 | INFO | Thread-5 (_run_transcription) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-06 21:57:35,137 | DEBUG | Thread-5 (_run_transcription) | History Du: Hattest du einen guten Tag? Wie geht das dir?
+2026-04-06 21:57:36,524 | INFO | Thread-5 (_run_transcription) | Status: Ollama antwortet...
+2026-04-06 21:57:39,369 | INFO | Thread-5 (_run_transcription) | Ollama Antwort fertig (84 Zeichen, 4.25s)
+2026-04-06 21:57:39,369 | DEBUG | Thread-5 (_run_transcription) | History Assistent: Schönes Abendlicht! Mir geht es gut, danke der Nachfrage. Und wie läuft dein Tag? 🌙✨
+2026-04-06 21:57:39,399 | INFO | Thread-5 (_run_transcription) | Status: Antwort fertig. Audio streamt...

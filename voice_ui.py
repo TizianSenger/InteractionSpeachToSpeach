@@ -140,6 +140,16 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
         self.stt_loading_job_id: str | None = None
         self.stt_loading_model_name = ""
         self.recording_started_at: float | None = None
+        self.pipeline_phase: str = "idle"   # idle | mic | stt | ollama | tts
+        self._pipeline_anim_job: str | None = None
+        self._pipeline_anim_tick: int = 0
+        self._cursor_active: bool = False
+        self._cursor_job: str | None = None
+        self._cursor_visible: bool = False
+        self._thinking_active: bool = False
+        self._thinking_job: str | None = None
+        self._thinking_tick: int = 0
+        self.thinking_canvas: Any | None = None
         self.log_queue: queue.Queue[str] = queue.Queue()
         self.log_pump_job_id: str | None = None
         self.stats_refresh_job_id: str | None = None
@@ -152,6 +162,8 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
         # Waveform visualiser – ring buffer of amplitude samples drawn in the middle column.
         self.waveform_samples: deque[float] = deque(maxlen=120)
         self.waveform_canvas: Any | None = None
+        self._ww_flash_frames: int = 0   # >0 while wake-word flash is running
+        self._ww_pulse_tick: int = 0     # increments each waveform frame for pulse effect
         self.waveform_animate_job: str | None = None
         self.metric_samples: dict[str, list[float]] = {
             "recording_seconds": [],
@@ -188,7 +200,7 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
         self.ollama_model_var = ctk.StringVar(value="phi4-mini")
         self.ollama_url_var = ctk.StringVar(value="http://localhost:11434")
         self.whisper_language_var = ctk.StringVar(value="Deutsch")
-        self.whisper_speed_var = ctk.StringVar(value="Schnell")
+        self.whisper_speed_var = ctk.StringVar(value="Genau")
         self.mic_device_var = ctk.StringVar(value="")
         self.sample_rate_var = ctk.StringVar(value="16000")
         self.tts_rate_var = ctk.StringVar(value="170")
@@ -583,6 +595,14 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
         ctk.CTkButton(topbar, text="Einstellungen", width=120, command=self.open_settings_popup).grid(
             row=0, column=4, padx=8, pady=8
         )
+
+        # ── Pipeline-Indikator ──────────────────────────────────────────
+        import tkinter as tk
+        self.pipeline_canvas = tk.Canvas(
+            topbar, bg="#1a2236", highlightthickness=0, height=36, width=340
+        )
+        self.pipeline_canvas.grid(row=0, column=5, padx=(16, 8), pady=6, sticky="ew")
+
         ctk.CTkLabel(topbar, textvariable=self.status_var, font=(FONT_FAMILY, 13)).grid(
             row=0, column=6, padx=8, pady=8, sticky="e"
         )
@@ -610,7 +630,6 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
             font=(FONT_FAMILY, 14, "bold"),
         ).grid(row=0, column=0, padx=12, pady=(10, 4), sticky="w")
 
-        import tkinter as tk
         waveform_host = ctk.CTkFrame(middle_col, fg_color="#0d1117")
         waveform_host.grid(row=1, column=0, padx=8, pady=(0, 8), sticky="nsew")
         waveform_host.grid_columnconfigure(0, weight=1)
@@ -705,7 +724,7 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
         chat_tab = tabs.add("Chat")
         chat_tab.grid_columnconfigure(0, weight=1)
         chat_tab.grid_rowconfigure(1, weight=1)
-        chat_tab.grid_rowconfigure(3, weight=1)
+        chat_tab.grid_rowconfigure(4, weight=1)
 
         ctk.CTkLabel(chat_tab, text="Transkript", font=(FONT_FAMILY, 13, "bold")).grid(
             row=0, column=0, padx=10, pady=(10, 4), sticky="w"
@@ -715,10 +734,16 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
         self.transcript_box.insert("1.0", "Du kannst hier auch direkt Text eintippen und dann auf 'Text senden' klicken.")
 
         ctk.CTkLabel(chat_tab, text="Antwort", font=(FONT_FAMILY, 13, "bold")).grid(
-            row=2, column=0, padx=10, pady=(4, 4), sticky="w"
+            row=2, column=0, padx=10, pady=(4, 2), sticky="w"
         )
+        # Thinking indicator (hidden by default, shown while waiting for first token)
+        self.thinking_canvas = tk.Canvas(
+            chat_tab, bg="#0d1117", highlightthickness=0, height=18
+        )
+        self.thinking_canvas.grid(row=3, column=0, padx=10, pady=(0, 2), sticky="ew")
+        self.thinking_canvas.grid_remove()   # hidden until needed
         self.answer_box = ctk.CTkTextbox(chat_tab, wrap="word")
-        self.answer_box.grid(row=3, column=0, padx=10, pady=(0, 10), sticky="nsew")
+        self.answer_box.grid(row=4, column=0, padx=10, pady=(0, 10), sticky="nsew")
 
         history_tab = tabs.add("Verlauf")
         history_tab.grid_rowconfigure(1, weight=1)
@@ -1122,6 +1147,113 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
         self._track_event(f"Status: {message}")
         self.after(0, lambda: self.status_var.set(message))
 
+    # ── Pipeline phase indicator ──────────────────────────────────────────
+
+    # Phases:  idle | mic | stt | ollama | tts
+    _PIPELINE_STEPS: list[tuple[str, str]] = [
+        ("mic",    "Mikrofon"),
+        ("stt",    "STT"),
+        ("ollama", "Ollama"),
+        ("tts",    "Sprechen"),
+    ]
+    _PHASE_COLORS: dict[str, str] = {
+        "idle":   "#334155",
+        "mic":    "#22d3ee",
+        "stt":    "#a78bfa",
+        "ollama": "#f59e0b",
+        "tts":    "#4ade80",
+    }
+
+    def set_pipeline_phase(self, phase: str) -> None:
+        """Switch the pipeline indicator to a new phase (thread-safe)."""
+        if phase == self.pipeline_phase:
+            return
+        self.pipeline_phase = phase
+        # Cancel running animation
+        if self._pipeline_anim_job is not None:
+            try:
+                self.after_cancel(self._pipeline_anim_job)
+            except Exception:
+                pass
+            self._pipeline_anim_job = None
+        self._pipeline_anim_tick = 0
+        self.after(0, self._draw_pipeline)
+        if phase != "idle":
+            self._pipeline_schedule_anim()
+
+    def _pipeline_schedule_anim(self) -> None:
+        self._pipeline_anim_job = self.after(500, self._pipeline_anim_step)
+
+    def _pipeline_anim_step(self) -> None:
+        if self.pipeline_phase == "idle":
+            return
+        self._pipeline_anim_tick += 1
+        self._draw_pipeline()
+        self._pipeline_schedule_anim()
+
+    def _draw_pipeline(self) -> None:
+        cv = getattr(self, "pipeline_canvas", None)
+        if cv is None:
+            return
+        try:
+            cv.delete("all")
+        except Exception:
+            return
+
+        active = self.pipeline_phase
+        steps = self._PIPELINE_STEPS
+        n = len(steps)                # 4
+        w = 340
+        h = 36
+        dot_r = 7
+        text_y = h - 7
+        # x positions for dots: evenly spaced
+        xs = [int(w * (i + 0.5) / n) for i in range(n)]
+        active_color = self._PHASE_COLORS.get(active, "#22d3ee")
+        inactive_col = "#334155"
+        done_col = "#1e3a4a"
+        text_active = "#ffffff"
+        text_done   = "#64748b"
+
+        # Determine which step index is active (-1 = idle)
+        active_idx = next(
+            (i for i, (k, _) in enumerate(steps) if k == active), -1
+        )
+
+        # Draw connector lines between dots
+        for i in range(n - 1):
+            x1, x2 = xs[i], xs[i + 1]
+            y = h // 2 - 4
+            col = done_col if i < active_idx else inactive_col
+            cv.create_line(x1 + dot_r, y, x2 - dot_r, y, fill=col, width=2)
+
+        for i, (key, label) in enumerate(steps):
+            x, y = xs[i], h // 2 - 4
+            if i < active_idx:
+                # completed
+                cv.create_oval(x - dot_r, y - dot_r, x + dot_r, y + dot_r,
+                               fill="#1e3a4a", outline="#22d3ee", width=1)
+                cv.create_text(x, y, text="✓", fill="#22d3ee",
+                               font=("Segoe UI", 8, "bold"))
+                cv.create_text(x, text_y, text=label, fill=text_done,
+                               font=("Segoe UI", 8))
+            elif i == active_idx:
+                # active — pulsing glow
+                pulse = self._pipeline_anim_tick % 2 == 0
+                glow_r = dot_r + (3 if pulse else 1)
+                cv.create_oval(x - glow_r, y - glow_r, x + glow_r, y + glow_r,
+                               fill="", outline=active_color, width=1)
+                cv.create_oval(x - dot_r, y - dot_r, x + dot_r, y + dot_r,
+                               fill=active_color, outline="")
+                cv.create_text(x, text_y, text=label, fill=active_color,
+                               font=("Segoe UI", 8, "bold"))
+            else:
+                # pending
+                cv.create_oval(x - dot_r, y - dot_r, x + dot_r, y + dot_r,
+                               fill=inactive_col, outline="")
+                cv.create_text(x, text_y, text=label, fill="#475569",
+                               font=("Segoe UI", 8))
+
     def set_textbox(self, textbox: ctk.CTkTextbox, content: str) -> None:
         def updater() -> None:
             textbox.delete("1.0", "end")
@@ -1132,10 +1264,149 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
 
     def append_textbox(self, textbox: ctk.CTkTextbox, content: str) -> None:
         def updater() -> None:
+            # Remove cursor before inserting new content so it stays at the end
+            self._remove_cursor(textbox)
             textbox.insert("end", content)
             textbox.see("end")
-
         self.after(0, updater)
+
+    # ── Streaming cursor ──────────────────────────────────────────────
+
+    def _start_cursor(self, textbox: ctk.CTkTextbox) -> None:
+        """Start blinking ▌ cursor at end of textbox."""
+        self._cursor_active = True
+        self._cursor_visible = False
+        self._cancel_cursor_job()
+        # configure the tag once (color matches the ollama phase color)
+        try:
+            textbox._textbox.tag_configure("stream_cursor", foreground="#f59e0b")
+        except Exception:
+            pass
+        self._blink_cursor(textbox)
+
+    def _stop_cursor(self, textbox: ctk.CTkTextbox) -> None:
+        """Stop blinking and remove cursor character."""
+        self._cursor_active = False
+        self._cancel_cursor_job()
+        self.after(0, lambda: self._remove_cursor(textbox))
+
+    def _cancel_cursor_job(self) -> None:
+        if self._cursor_job is not None:
+            try:
+                self.after_cancel(self._cursor_job)
+            except Exception:
+                pass
+            self._cursor_job = None
+
+    def _remove_cursor(self, textbox: ctk.CTkTextbox) -> None:
+        try:
+            widget = textbox._textbox
+            # find and delete all tagged cursor characters
+            ranges = widget.tag_ranges("stream_cursor")
+            for i in range(len(ranges) - 1, -1, -2):
+                widget.delete(str(ranges[i - 1]), str(ranges[i]))
+        except Exception:
+            pass
+
+    def _blink_cursor(self, textbox: ctk.CTkTextbox) -> None:
+        if not self._cursor_active:
+            return
+        try:
+            widget = textbox._textbox
+            self._remove_cursor(textbox)
+            if self._cursor_visible:
+                # insert cursor glyph with tag at end
+                widget.insert("end", "▌", "stream_cursor")
+                widget.see("end")
+            self._cursor_visible = not self._cursor_visible
+        except Exception:
+            pass
+        self._cursor_job = self.after(530, lambda: self._blink_cursor(textbox))
+
+    # ── Ollama "thinking" indicator ──────────────────────────────────────────
+
+    def _start_thinking(self) -> None:
+        """Show animated dots below the Antwort label while waiting for first token."""
+        cv = getattr(self, "thinking_canvas", None)
+        if cv is None:
+            return
+        self._thinking_active = True
+        self._thinking_tick = 0
+        try:
+            cv.grid()          # make visible
+        except Exception:
+            pass
+        self._thinking_step()
+
+    def _stop_thinking(self) -> None:
+        self._thinking_active = False
+        if self._thinking_job is not None:
+            try:
+                self.after_cancel(self._thinking_job)
+            except Exception:
+                pass
+            self._thinking_job = None
+        cv = getattr(self, "thinking_canvas", None)
+        if cv is not None:
+            try:
+                cv.grid_remove()   # hide
+                cv.delete("all")
+            except Exception:
+                pass
+
+    def _thinking_step(self) -> None:
+        if not self._thinking_active:
+            return
+        self._thinking_tick += 1
+        self._draw_thinking()
+        self._thinking_job = self.after(120, self._thinking_step)
+
+    def _draw_thinking(self) -> None:
+        import math
+        cv = getattr(self, "thinking_canvas", None)
+        if cv is None:
+            return
+        try:
+            cv.update_idletasks()
+            w = cv.winfo_width()
+            h = cv.winfo_height()
+        except Exception:
+            return
+        if w < 4 or h < 4:
+            return
+        cv.delete("all")
+
+        # Three dots that light up in a travelling wave
+        n_dots = 3
+        dot_r = 4
+        spacing = 18
+        total = (n_dots - 1) * spacing
+        start_x = w // 2 - total // 2
+        cy = h // 2
+        t = self._thinking_tick
+
+        # label
+        cv.create_text(
+            start_x - 28, cy,
+            text="denkt",
+            fill="#475569",
+            font=("Segoe UI", 8),
+            anchor="e",
+        )
+
+        for i in range(n_dots):
+            # wave phase offset per dot
+            phase = (t - i * 3) % 18
+            brightness = max(0.0, math.sin(phase / 18 * math.pi))
+            r = int(0x0e + (0xf5 - 0x0e) * brightness)
+            g = int(0x74 + (0x9e - 0x74) * brightness)
+            b = int(0x90 + (0x0b - 0x90) * brightness)
+            color = f"#{r:02x}{g:02x}{b:02x}"
+            x = start_x + i * spacing
+            cv.create_oval(
+                x - dot_r, cy - dot_r, x + dot_r, cy + dot_r,
+                fill=color, outline="",
+            )
 
     def _extract_complete_sentences(self, text_buffer: str) -> tuple[list[str], str]:
         completed: list[str] = []
@@ -1178,6 +1449,7 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
 
             if self.current_tts_queue is tts_queue:
                 self.current_tts_queue = None
+            self.after(0, lambda: self.set_pipeline_phase("idle"))
 
         tts_thread = threading.Thread(target=worker, daemon=True)
         tts_thread.start()
@@ -1189,6 +1461,8 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
         self._increment_counter("ollama_cancels")
         self.logger.warning("Aktive Antwort wurde abgebrochen")
         self._track_event("Antwortabbruch angefordert")
+        self._stop_cursor(self.answer_box)
+        self._stop_thinking()
 
         queue_ref = self.current_tts_queue
         if queue_ref is not None:
@@ -1442,6 +1716,10 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
         self._draw_waveform()
         self.waveform_animate_job = self.after(40, self._schedule_waveform_draw)  # ~25 fps
 
+    def trigger_waveform_flash(self) -> None:
+        """Called when wake-word fires: bright flash for ~15 frames (600 ms)."""
+        self._ww_flash_frames = 15
+
     def _draw_waveform(self) -> None:
         canvas = self.waveform_canvas
         if canvas is None:
@@ -1455,6 +1733,49 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
         if w < 4 or h < 4:
             return
 
+        self._ww_pulse_tick += 1
+
+        # Determine visual mode
+        is_recording = self.is_recording
+        ww_listening = (
+            not is_recording
+            and getattr(self, "wake_word_enabled_var", None) is not None
+            and self.wake_word_enabled_var.get()
+            and getattr(self, "_oww_model", None) is not None
+        )
+        flash = self._ww_flash_frames > 0
+        if flash:
+            self._ww_flash_frames -= 1
+
+        # Colour scheme per mode
+        import math
+        if flash:
+            # Bright white-cyan burst, fades over the 15 frames
+            fade = self._ww_flash_frames / 15          # 1.0 → 0.0
+            r = int(0x22 + (0xff - 0x22) * fade)
+            g = int(0xd3 + (0xff - 0xd3) * fade)
+            b = int(0xee + (0xff - 0xee) * fade)
+            bar_color = f"#{r:02x}{g:02x}{b:02x}"
+            glow_color = "#67e8f9"
+            height_boost = 1.0 + 0.6 * fade
+        elif is_recording:
+            bar_color = "#22d3ee"
+            glow_color = "#0e7490"
+            height_boost = 1.0
+        elif ww_listening:
+            # Gentle idle pulse: amplitude 0.08, period ~2 s
+            pulse = 0.92 + 0.08 * math.sin(self._ww_pulse_tick * 0.08)
+            r = int(0x22 * pulse)
+            g = int(0xd3 * pulse)
+            b = int(0xee * pulse)
+            bar_color = f"#{r:02x}{g:02x}{b:02x}"
+            glow_color = "#0a4a5a"
+            height_boost = pulse
+        else:
+            bar_color = "#334155"
+            glow_color = "#1e2a3a"
+            height_boost = 1.0
+
         canvas.delete("all")
 
         # Background grid lines
@@ -1464,21 +1785,30 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
             y = int(h * frac)
             canvas.create_line(0, y, w, y, fill="#151f2b", width=1, dash=(4, 6))
 
+        # Wake-word listening ring (thin outer circle hint)
+        if ww_listening and not is_recording:
+            cx, cy = w // 2, mid_y
+            ring_r = min(cx, mid_y) - 4
+            alpha_pulse = 0.4 + 0.3 * math.sin(self._ww_pulse_tick * 0.08)
+            rr = int(0x22 * alpha_pulse)
+            gg = int(0xd3 * alpha_pulse)
+            bb = int(0xee * alpha_pulse)
+            ring_col = f"#{rr:02x}{gg:02x}{bb:02x}"
+            canvas.create_oval(
+                cx - ring_r, cy - ring_r, cx + ring_r, cy + ring_r,
+                outline=ring_col, width=1,
+            )
+
         samples = list(self.waveform_samples)
         if not samples:
             return
 
         n = len(samples)
         step = w / max(n, 1)
-        is_active = self.is_recording or (
-            self.monitor_stream is not None and self.monitor_stream.active
-        )
-        bar_color = "#22d3ee" if is_active else "#334155"
-        glow_color = "#0e7490" if is_active else "#1e2a3a"
 
         for i, amp in enumerate(samples):
             x = int(i * step)
-            bar_h = max(2, int(amp * (h * 0.85) / 2))
+            bar_h = max(2, int(amp * (h * 0.85) / 2 * height_boost))
             # Glow (wider, dimmer)
             canvas.create_line(x, mid_y - bar_h - 2, x, mid_y + bar_h + 2,
                                fill=glow_color, width=3)
@@ -2024,6 +2354,7 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
         self.set_mic_level(0)
         vad_hint = " | VAD AN" if self.vad_enabled_var.get() else ""
         self.set_status(f"Mikrofon läuft...{vad_hint} ({self.mic_device_var.get()})")
+        self.set_pipeline_phase("mic")
         self.start_btn.configure(state="disabled")
         self.stop_btn.configure(state="normal")
         self.transcribe_btn.configure(state="disabled")
@@ -2058,6 +2389,7 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
             self._start_transcription_worker(auto_send=True)
         else:
             self.set_status("Aufnahme beendet. Bereit zum Verarbeiten.")
+            self.set_pipeline_phase("idle")
             self.transcribe_btn.configure(state="normal")
             self.send_btn.configure(state="disabled")
 
@@ -2127,6 +2459,7 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
                 return
 
             self.set_status("Transkribiere Audio...")
+            self.after(0, lambda: self.set_pipeline_phase("stt"))
             if not ensure_ffmpeg_available():
                 raise FileNotFoundError(
                     "ffmpeg nicht gefunden. Bitte ffmpeg installieren oder Terminal/VS Code neu starten."
@@ -2225,6 +2558,8 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
             self.logger.info("Ollama Anfrage gestartet (%d Zeichen Input)", len(transcript))
 
             self.set_status("Frage Ollama... (erster Lauf kann etwas dauern)")
+            self.after(0, lambda: self.set_pipeline_phase("ollama"))
+            self.after(0, self._start_thinking)
             self.add_history_entry("Du", transcript)
             self.set_textbox(self.answer_box, "")
 
@@ -2291,6 +2626,9 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
                     first_token_received = True
                     first_token_time = time.perf_counter()
                     self.set_status("Ollama antwortet...")
+                    self.after(0, lambda: self.set_pipeline_phase("ollama"))
+                    self.after(0, self._stop_thinking)
+                    self.after(0, lambda: self._start_cursor(self.answer_box))
 
                 if tts_queue is not None:
                     tts_text_buffer += chunk
@@ -2326,6 +2664,8 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
                 cancel_event=self.cancel_ollama_event,
             )
             flush_chunks()
+            # Stream done — remove cursor
+            self.after(0, lambda: self._stop_cursor(self.answer_box))
 
             total_elapsed = time.perf_counter() - request_started
             self._add_metric_sample("ollama_total_seconds", total_elapsed)
@@ -2352,12 +2692,15 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
 
             if tts_queue is not None:
                 self.set_status("Antwort fertig. Audio streamt...")
+                self.after(0, lambda: self.set_pipeline_phase("tts"))
                 return
 
             self.set_status("Fertig")
+            self.after(0, lambda: self.set_pipeline_phase("idle"))
         except Exception as exc:
             if self.cancel_ollama_event.is_set():
                 self.set_status(DEFAULT_ABORTED_STATUS)
+                self.after(0, lambda: self.set_pipeline_phase("idle"))
                 return
             self._log_exception("Ollama", exc)
             self.set_status(f"Fehler: {exc}")
