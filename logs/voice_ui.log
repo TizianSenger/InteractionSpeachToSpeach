@@ -459,3 +459,56 @@
 2026-04-05 00:05:57,112 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
 2026-04-05 00:05:57,229 | INFO | MainThread | Status: Antwort abgebrochen
 2026-04-05 00:05:57,279 | INFO | MainThread | Status: Avatar-Viewer gestoppt
+2026-04-06 19:09:28,125 | INFO | MainThread | Voice Studio gestartet
+2026-04-06 19:09:29,901 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-06 19:09:40,717 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-06 19:09:40,721 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-06 19:10:05,297 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-06 19:10:07,119 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-06 19:10:09,233 | WARNING | MainThread | VAD konnte nicht initialisiert werden: No module named 'webrtcvad'
+2026-04-06 19:10:09,233 | INFO | MainThread | Status: Mikrofon läuft... (Standard (Windows))
+2026-04-06 19:10:13,498 | INFO | MainThread | Aufnahmedauer: 4.26s
+2026-04-06 19:10:13,518 | INFO | MainThread | Status: Aufnahme beendet. Starte Auto-Workflow...
+2026-04-06 19:10:13,544 | INFO | Thread-4 (_run_transcription) | Status: Transkribiere Audio...
+2026-04-06 19:10:17,002 | INFO | Thread-4 (_run_transcription) | Status: Kein Text erkannt
+2026-04-06 19:10:19,298 | INFO | Thread-8 (_run_transcription) | Status: Transkribiere Audio...
+2026-04-06 19:10:21,440 | INFO | Thread-8 (_run_transcription) | Status: Kein Text erkannt
+2026-04-06 19:10:39,714 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-06 19:10:48,151 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-06 19:11:04,146 | INFO | MainThread | Voice Studio wird beendet
+2026-04-06 19:11:04,148 | INFO | MainThread | Profil gespeichert: C:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\assistant_profile.json
+2026-04-06 19:11:04,148 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-06 19:11:04,180 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-06 19:11:04,221 | INFO | MainThread | Status: Avatar-Viewer gestoppt
+2026-04-06 19:13:03,518 | INFO | MainThread | Voice Studio gestartet
+2026-04-06 19:13:04,012 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-06 19:14:15,196 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-06 19:14:15,315 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-06 19:14:17,429 | WARNING | MainThread | VAD konnte nicht initialisiert werden: No module named 'webrtcvad'
+2026-04-06 19:14:17,429 | INFO | MainThread | Status: Mikrofon läuft... (Standard (Windows))
+2026-04-06 19:14:28,585 | INFO | MainThread | Aufnahmedauer: 11.16s
+2026-04-06 19:14:28,607 | INFO | MainThread | Status: Aufnahme beendet. Starte Auto-Workflow...
+2026-04-06 19:14:28,621 | INFO | Thread-2 (_run_transcription) | Status: Transkribiere Audio...
+2026-04-06 19:14:31,295 | INFO | Thread-2 (_run_transcription) | Transkription fertig (41 Zeichen)
+2026-04-06 19:14:31,295 | INFO | Thread-2 (_run_transcription) | Status: Transkript erkannt. Sende an Ollama...
+2026-04-06 19:14:31,305 | INFO | Thread-2 (_run_transcription) | Ollama Anfrage gestartet (41 Zeichen Input)
+2026-04-06 19:14:31,305 | INFO | Thread-2 (_run_transcription) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-06 19:14:31,316 | DEBUG | Thread-2 (_run_transcription) | History Du: Das ist ein Test. Hallo, wie geht es dir?
+2026-04-06 19:14:37,797 | INFO | Thread-7 (_run_ollama_only) | Ollama Anfrage gestartet (41 Zeichen Input)
+2026-04-06 19:14:37,797 | INFO | Thread-7 (_run_ollama_only) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-06 19:14:37,811 | DEBUG | Thread-7 (_run_ollama_only) | History Du: Das ist ein Test. Hallo, wie geht es dir?
+2026-04-06 19:14:44,528 | INFO | Thread-2 (_run_transcription) | Status: Ollama antwortet...
+2026-04-06 19:14:47,151 | INFO | Thread-6 (worker) | Status: Avatar-Viewer gestartet
+2026-04-06 19:14:47,158 | INFO | Thread-6 (worker) | Avatar-Viewer gestartet (Port 18456)
+2026-04-06 19:14:48,618 | INFO | Thread-2 (_run_transcription) | Ollama Antwort fertig (196 Zeichen, 17.31s)
+2026-04-06 19:14:48,618 | DEBUG | Thread-2 (_run_transcription) | History Assistent: Hallo! Ich bin nur eine Software, daher habe ich keine Gefühle, aber ich bin bereit und in bestem Zustand, um Ihnen bei allem zu helfen, was
+2026-04-06 19:14:48,627 | INFO | Thread-2 (_run_transcription) | Status: Antwort fertig. Audio streamt...
+2026-04-06 19:14:49,578 | INFO | Thread-7 (_run_ollama_only) | Status: Ollama antwortet...
+2026-04-06 19:14:53,682 | INFO | Thread-7 (_run_ollama_only) | Ollama Antwort fertig (140 Zeichen, 15.88s)
+2026-04-06 19:14:53,682 | DEBUG | Thread-7 (_run_ollama_only) | History Assistent: Hallo! Ich bin nur eine Software, aber ich fühle mich bereit, dir bei allem zu helfen, was du brauchst. Wie kann ich heute für dich sein? 🌙✨
+2026-04-06 19:14:55,172 | INFO | Thread-7 (_run_ollama_only) | Status: Antwort fertig. Audio streamt...
+2026-04-06 19:15:22,223 | INFO | MainThread | Voice Studio wird beendet
+2026-04-06 19:15:22,224 | INFO | MainThread | Profil gespeichert: C:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\assistant_profile.json
+2026-04-06 19:15:22,224 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-06 19:15:22,242 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-06 19:15:22,276 | INFO | MainThread | Status: Avatar-Viewer gestoppt

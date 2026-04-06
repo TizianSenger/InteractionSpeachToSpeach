@@ -42,10 +42,15 @@ class _Handler(http.server.SimpleHTTPRequestHandler):
             payload = dict(_lipsync_state)
         self._send_json(200, payload)
 
+    _MAX_REQUEST_BODY = 4096  # bytes – prevents memory exhaustion via oversized requests
+
     def _handle_lipsync_post(self) -> None:
         content_length = int(self.headers.get("Content-Length", "0") or "0")
         if content_length <= 0:
             self._send_json(400, {"ok": False, "error": "missing_body"})
+            return
+        if content_length > self._MAX_REQUEST_BODY:
+            self._send_json(413, {"ok": False, "error": "request_too_large"})
             return
 
         try:

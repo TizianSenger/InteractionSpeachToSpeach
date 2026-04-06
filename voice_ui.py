@@ -24,52 +24,9 @@ import requests
 import sounddevice as sd
 
 from avatar_bridge import AvatarBridge
-
-FONT_FAMILY = "Segoe UI"
-NO_MIC_DEVICES_LABEL = "Keine Geräte gefunden"
-WINDOWS_DEFAULT_MIC_LABEL = "Standard (Windows)"
-NO_PIPER_MODELS_LABEL = "Keine Piper-Stimmen gefunden"
-OLLAMA_MODEL_OPTIONS = ["phi4-mini", "dolphin-mistral"]
-PYTTSX3_VOICE_OPTIONS = ["Deutsch (weiblich) - Lokal", "Deutsch (männlich) - Lokal"]
-EDGE_VOICE_OPTIONS: dict[str, str] = {
-    "Deutsch (weiblich) - Katja": "de-DE-KatjaNeural",
-    "Deutsch (männlich) - Conrad": "de-DE-ConradNeural",
-    "Deutsch (männlich, tief) - Killian": "de-DE-KillianNeural",
-    "Deutsch (weiblich) - Amala": "de-DE-AmalaNeural",
-    "Deutsch (männlich) - Florian": "de-DE-FlorianMultilingualNeural",
-}
-EMOTION_PRESETS: dict[str, tuple[str, str]] = {
-    "neutral": ("+0%", "+0Hz"),
-    "freundlich": ("+8%", "+10Hz"),
-    "fröhlich": ("+15%", "+30Hz"),
-    "ruhig": ("-10%", "-10Hz"),
-    "ernst": ("-5%", "-20Hz"),
-}
-WHISPER_LANGUAGE_OPTIONS: dict[str, str] = {
-    "Auto": "",
-    "Deutsch": "de",
-    "Englisch": "en",
-}
-WHISPER_SPEED_OPTIONS = ["Schnell", "Genau"]
-WHISPER_MODEL_OPTIONS = ["small", "medium"]
-TTS_STREAM_MIN_CHARS = 120
-TTS_STREAM_MAX_SENTENCES = 2
-DEFAULT_ABORTED_STATUS = "Antwort abgebrochen"
-OLLAMA_VOICE_SYSTEM_PROMPT = (
-    "Du bist ein Sprachassistent. Antworte kurz, klar und direkt auf Deutsch. "
-    "Standard: 1-3 Saetze, keine langen Ausfuehrungen."
-)
-OLLAMA_TOOL_ROUTER_PROMPT = (
-    "Du bist ein Tool-Router. Entscheide nur, ob ein Licht-Tool ausgefuehrt werden soll. "
-    "Antworte NUR als JSON ohne Markdown. Format: "
-    '{"tool":"none|light_on|light_off","confidence":0.0,"reason":"kurz"}. '
-    "Nutze light_on nur bei klarer Absicht Licht einzuschalten, light_off nur bei klarer Absicht Licht auszuschalten. "
-    "Wenn unklar oder kein Lichtbezug, nutze none."
-)
-MODEL_GLOB_PATTERN = "*.onnx"
-LOG_DIR_NAME = "logs"
-LOG_FILE_NAME = "voice_ui.log"
-PROFILE_FILE_NAME = "assistant_profile.json"
+from constants import *
+from ollama_mixin import OllamaMixin
+from tts_mixin import TtsMixin
 
 _FFMPEG_CHECKED = False
 _FFMPEG_AVAILABLE = False
@@ -109,18 +66,6 @@ def ensure_ffmpeg_available() -> bool:
     return _FFMPEG_AVAILABLE
 
 
-def safe_remove_file(path: str, retries: int = 6, delay_seconds: float = 0.15) -> None:
-    for _ in range(retries):
-        try:
-            if os.path.exists(path):
-                os.remove(path)
-            return
-        except PermissionError:
-            time.sleep(delay_seconds)
-        except OSError:
-            time.sleep(delay_seconds)
-
-
 class UILogQueueHandler(logging.Handler):
     def __init__(self, target_queue: queue.Queue[str]) -> None:
         super().__init__()
@@ -134,7 +79,7 @@ class UILogQueueHandler(logging.Handler):
             pass
 
 
-class VoiceAssistantUI(ctk.CTk):
+class VoiceAssistantUI(OllamaMixin, TtsMixin, ctk.CTk):
     def __init__(self) -> None:
         super().__init__()
         ctk.set_appearance_mode("dark")
@@ -148,6 +93,12 @@ class VoiceAssistantUI(ctk.CTk):
         self.recording_wave: wave.Wave_write | None = None
         self.recording_path: str | None = None
         self.is_recording = False
+        # VAD runtime state (reset at each recording start)
+        self.vad_instance: Any | None = None
+        self.vad_frame_buffer: bytes = b""
+        self.vad_silence_frames: int = 0
+        self.vad_speech_detected: bool = False
+        self.vad_frame_bytes: int = 960  # 30ms @ 16 kHz, 16-bit mono
         self.last_transcript: str = ""
         self.whisper_model_cache: dict[str, Any] = {}
         self.whisper_module: Any | None = None
@@ -194,6 +145,13 @@ class VoiceAssistantUI(ctk.CTk):
         self.max_ui_log_lines = 1500
         self.debug_log_history: deque[str] = deque(maxlen=2500)
         self.event_history: deque[str] = deque(maxlen=400)
+        # Stores {"role": "user"|"assistant", "content": str} for multi-turn context.
+        # Capped at 20 turns (40 messages) to keep prompt size manageable.
+        self.conversation_history: deque[dict[str, str]] = deque(maxlen=40)
+        # Waveform visualiser – ring buffer of amplitude samples drawn in the middle column.
+        self.waveform_samples: deque[float] = deque(maxlen=120)
+        self.waveform_canvas: Any | None = None
+        self.waveform_animate_job: str | None = None
         self.metric_samples: dict[str, list[float]] = {
             "recording_seconds": [],
             "transcription_seconds": [],
@@ -258,6 +216,9 @@ class VoiceAssistantUI(ctk.CTk):
         self.persona_dominance_label_var = ctk.StringVar(value="35")
         self.persona_empathy_label_var = ctk.StringVar(value="70")
         self.persona_temperament_label_var = ctk.StringVar(value="30")
+        self.vad_enabled_var = ctk.BooleanVar(value=True)
+        self.vad_aggressiveness_var = ctk.StringVar(value="2")
+        self.vad_silence_timeout_var = ctk.StringVar(value="1.5")
 
         self._load_profile()
         self.on_appearance_mode_changed(self.appearance_mode_var.get())
@@ -473,7 +434,7 @@ class VoiceAssistantUI(ctk.CTk):
     def save_profile(self, notify: bool = True) -> None:
         profile_path = self._profile_path()
         payload = self._collect_profile_data()
-        profile_path.write_text(json.dumps(payload, ensure_ascii=True, indent=2), encoding="utf-8")
+        profile_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
         self.logger.info("Profil gespeichert: %s", profile_path)
         if notify:
             self.set_status("Profil gespeichert")
@@ -630,14 +591,26 @@ class VoiceAssistantUI(ctk.CTk):
 
         middle_col = ctk.CTkFrame(body)
         middle_col.grid(row=0, column=1, padx=6, pady=0, sticky="nsew")
-        middle_col.grid_rowconfigure(0, weight=1)
+        middle_col.grid_rowconfigure(1, weight=1)
         middle_col.grid_columnconfigure(0, weight=1)
         ctk.CTkLabel(
             middle_col,
-            text="Mitte (frei)",
-            font=(FONT_FAMILY, 16, "bold"),
-            text_color="gray70",
-        ).grid(row=0, column=0, padx=12, pady=12, sticky="n")
+            text="Waveform",
+            font=(FONT_FAMILY, 14, "bold"),
+        ).grid(row=0, column=0, padx=12, pady=(10, 4), sticky="w")
+
+        import tkinter as tk
+        waveform_host = ctk.CTkFrame(middle_col, fg_color="#0d1117")
+        waveform_host.grid(row=1, column=0, padx=8, pady=(0, 8), sticky="nsew")
+        waveform_host.grid_columnconfigure(0, weight=1)
+        waveform_host.grid_rowconfigure(0, weight=1)
+        self.waveform_canvas = tk.Canvas(
+            waveform_host,
+            bg="#0d1117",
+            highlightthickness=0,
+        )
+        self.waveform_canvas.grid(row=0, column=0, sticky="nsew")
+        self._schedule_waveform_draw()
 
         right_col = ctk.CTkFrame(body)
         right_col.grid(row=0, column=2, padx=(6, 0), pady=0, sticky="nsew")
@@ -987,7 +960,22 @@ class VoiceAssistantUI(ctk.CTk):
         self.mic_level_bar.pack(fill="x", padx=10, pady=(2, 4))
         self.mic_level_bar.set(0)
         self.mic_level_label = ctk.CTkLabel(audio_frame, textvariable=self.mic_level_text_var)
-        self.mic_level_label.pack(anchor="w", padx=10, pady=(0, 10))
+        self.mic_level_label.pack(anchor="w", padx=10, pady=(0, 6))
+
+        # VAD controls
+        self.vad_switch = ctk.CTkSwitch(audio_frame, text="Auto-Stop (VAD)", variable=self.vad_enabled_var)
+        self.vad_switch.pack(anchor="w", padx=10, pady=(4, 4))
+        vad_row = ctk.CTkFrame(audio_frame, fg_color="transparent")
+        vad_row.pack(fill="x", padx=10, pady=(0, 2))
+        vad_row.grid_columnconfigure(1, weight=1)
+        ctk.CTkLabel(vad_row, text="Aggressivität (0–3)").grid(row=0, column=0, sticky="w", padx=(0, 8))
+        self.vad_aggressiveness_menu = ctk.CTkOptionMenu(
+            vad_row, values=["0", "1", "2", "3"], variable=self.vad_aggressiveness_var, width=70
+        )
+        self.vad_aggressiveness_menu.grid(row=0, column=1, sticky="w")
+        ctk.CTkLabel(audio_frame, text="Stille-Timeout (Sek.)").pack(anchor="w", padx=10, pady=(4, 2))
+        self.vad_silence_entry = ctk.CTkEntry(audio_frame, textvariable=self.vad_silence_timeout_var)
+        self.vad_silence_entry.pack(fill="x", padx=10, pady=(0, 10))
 
         tts_frame = ctk.CTkFrame(sidebar)
         tts_frame.pack(fill="x", padx=8, pady=6)
@@ -1185,15 +1173,13 @@ class VoiceAssistantUI(ctk.CTk):
         except Exception:
             pass
 
-    def _get_pyttsx3_engine(self) -> Any:
-        with self.pyttsx3_engine_lock:
-            if self.pyttsx3_engine is None:
-                self.pyttsx3_engine = pyttsx3.init()
-            return self.pyttsx3_engine
-
     def add_history_entry(self, role: str, content: str) -> None:
         timestamp = datetime.now().strftime("%H:%M:%S")
         self.logger.debug("History %s: %s", role, content[:140])
+
+        # Keep conversation_history in sync for multi-turn Ollama context.
+        ollama_role = "user" if role.lower() in {"du", "user"} else "assistant"
+        self.conversation_history.append({"role": ollama_role, "content": content})
 
         def updater() -> None:
             self.history_box.insert("end", f"[{timestamp}] {role}:\n{content}\n\n")
@@ -1202,6 +1188,7 @@ class VoiceAssistantUI(ctk.CTk):
         self.after(0, updater)
 
     def clear_history(self) -> None:
+        self.conversation_history.clear()
         self.history_box.delete("1.0", "end")
         self._track_event("Verlauf geloescht")
 
@@ -1297,69 +1284,6 @@ class VoiceAssistantUI(ctk.CTk):
             return "off"
         return None
 
-    def _extract_json_object(self, text: str) -> dict[str, Any] | None:
-        candidate = text.strip()
-        if not candidate:
-            return None
-
-        try:
-            parsed = json.loads(candidate)
-            if isinstance(parsed, dict):
-                return parsed
-        except json.JSONDecodeError:
-            pass
-
-        start = candidate.find("{")
-        end = candidate.rfind("}")
-        if start == -1 or end == -1 or end <= start:
-            return None
-
-        try:
-            parsed = json.loads(candidate[start : end + 1])
-            if isinstance(parsed, dict):
-                return parsed
-        except json.JSONDecodeError:
-            return None
-        return None
-
-    def _decide_tool_action_with_ollama(self, user_text: str) -> str:
-        model_name, ollama_url = self.check_ollama()
-        payload = {
-            "model": model_name,
-            "messages": [
-                {"role": "system", "content": OLLAMA_TOOL_ROUTER_PROMPT},
-                {"role": "user", "content": user_text},
-            ],
-            "stream": False,
-            "keep_alive": "30m",
-            "options": {
-                "num_predict": 120,
-                "temperature": 0.0,
-                "top_p": 0.9,
-            },
-        }
-
-        response = self.http_session.post(
-            f"{ollama_url.rstrip('/')}/api/chat",
-            json=payload,
-            timeout=(10, 60),
-        )
-        response.raise_for_status()
-        data = response.json()
-        content = str(data.get("message", {}).get("content", "")).strip()
-        decision = self._extract_json_object(content)
-        if decision is None:
-            self.logger.warning("Tool-Router gab kein gueltiges JSON zurueck: %s", content[:200])
-            return "none"
-
-        tool = str(decision.get("tool", "none")).strip().lower()
-        if tool in {"light_on", "light_off", "none"}:
-            self.logger.info("Tool-Router Entscheidung: %s", tool)
-            return tool
-
-        self.logger.warning("Unbekanntes Tool vom Router: %s", tool)
-        return "none"
-
     def refresh_piper_model_options(self) -> None:
         project_root = Path(__file__).resolve().parent
         candidate_dirs = [
@@ -1448,12 +1372,61 @@ class VoiceAssistantUI(ctk.CTk):
 
     def set_mic_level(self, level: float) -> None:
         clamped = max(0.0, min(1.0, level))
+        self.waveform_samples.append(clamped)
 
         def updater() -> None:
             self.mic_level_bar.set(clamped)
             self.mic_level_text_var.set(f"Pegel: {int(clamped * 100)}%")
 
         self.after(0, updater)
+
+    def _schedule_waveform_draw(self) -> None:
+        self._draw_waveform()
+        self.waveform_animate_job = self.after(40, self._schedule_waveform_draw)  # ~25 fps
+
+    def _draw_waveform(self) -> None:
+        canvas = self.waveform_canvas
+        if canvas is None:
+            return
+        try:
+            canvas.update_idletasks()
+            w = canvas.winfo_width()
+            h = canvas.winfo_height()
+        except Exception:
+            return
+        if w < 4 or h < 4:
+            return
+
+        canvas.delete("all")
+
+        # Background grid lines
+        mid_y = h // 2
+        canvas.create_line(0, mid_y, w, mid_y, fill="#1e2a3a", width=1)
+        for frac in (0.25, 0.75):
+            y = int(h * frac)
+            canvas.create_line(0, y, w, y, fill="#151f2b", width=1, dash=(4, 6))
+
+        samples = list(self.waveform_samples)
+        if not samples:
+            return
+
+        n = len(samples)
+        step = w / max(n, 1)
+        is_active = self.is_recording or (
+            self.monitor_stream is not None and self.monitor_stream.active
+        )
+        bar_color = "#22d3ee" if is_active else "#334155"
+        glow_color = "#0e7490" if is_active else "#1e2a3a"
+
+        for i, amp in enumerate(samples):
+            x = int(i * step)
+            bar_h = max(2, int(amp * (h * 0.85) / 2))
+            # Glow (wider, dimmer)
+            canvas.create_line(x, mid_y - bar_h - 2, x, mid_y + bar_h + 2,
+                               fill=glow_color, width=3)
+            # Main bar
+            canvas.create_line(x, mid_y - bar_h, x, mid_y + bar_h,
+                               fill=bar_color, width=1)
 
     def _monitor_callback(self, indata: Any, frames: int, callback_time: Any, status: Any) -> None:
         peak = float(abs(indata).max()) / 32767.0
@@ -1786,9 +1759,43 @@ class VoiceAssistantUI(ctk.CTk):
         if self.recording_wave is None:
             return
 
+        raw = indata.copy().tobytes()
         peak = float(abs(indata).max()) / 32767.0
         self.set_mic_level(peak)
-        self.recording_wave.writeframes(indata.copy().tobytes())
+        self.recording_wave.writeframes(raw)
+
+        # VAD: buffer incoming audio and process in exact 30ms frames
+        if self.vad_instance is None or not self.vad_enabled_var.get():
+            return
+
+        self.vad_frame_buffer += raw
+        while len(self.vad_frame_buffer) >= self.vad_frame_bytes:
+            frame = self.vad_frame_buffer[: self.vad_frame_bytes]
+            self.vad_frame_buffer = self.vad_frame_buffer[self.vad_frame_bytes :]
+            try:
+                is_speech = self.vad_instance.is_speech(frame, 16000)
+            except Exception:
+                continue
+
+            if is_speech:
+                self.vad_speech_detected = True
+                self.vad_silence_frames = 0
+            else:
+                self.vad_silence_frames += 1
+
+        if not self.vad_speech_detected:
+            return
+
+        try:
+            silence_timeout = float(self.vad_silence_timeout_var.get().strip())
+        except ValueError:
+            silence_timeout = 1.5
+
+        # 30ms per frame → frames_per_second = 1000/30 ≈ 33.3
+        silence_threshold_frames = int(silence_timeout * 1000 / 30)
+        if self.vad_silence_frames >= silence_threshold_frames:
+            self.logger.info("VAD: Stille erkannt nach %.1fs – stoppe Aufnahme", silence_timeout)
+            self.after(0, self.stop_recording)
 
     def start_recording(self) -> None:
         if self.is_recording:
@@ -1839,12 +1846,32 @@ class VoiceAssistantUI(ctk.CTk):
             self.start_level_monitor()
             return
 
+        # Initialise VAD if enabled and sample rate is compatible (webrtcvad: 8/16/32/48 kHz)
+        self.vad_instance = None
+        self.vad_frame_buffer = b""
+        self.vad_silence_frames = 0
+        self.vad_speech_detected = False
+        if self.vad_enabled_var.get() and sample_rate in {8000, 16000, 32000, 48000}:
+            # frame size in bytes for 30ms at the given sample rate (16-bit mono)
+            self.vad_frame_bytes = sample_rate * 30 // 1000 * 2
+            try:
+                vad_mod = importlib.import_module("webrtcvad")
+                aggressiveness = int(self.vad_aggressiveness_var.get().strip())
+                self.vad_instance = vad_mod.Vad(aggressiveness)
+                self.logger.info("VAD aktiv (Aggressivität %d, %d Hz)", aggressiveness, sample_rate)
+            except Exception as exc:
+                self.logger.warning("VAD konnte nicht initialisiert werden: %s", exc)
+                self.vad_instance = None
+        elif self.vad_enabled_var.get():
+            self.logger.warning("VAD deaktiviert: Sample-Rate %d Hz nicht kompatibel (nur 8/16/32/48 kHz)", sample_rate)
+
         self.is_recording = True
         self.recording_started_at = time.perf_counter()
         self._increment_counter("recordings_started")
         self.last_transcript = ""
         self.set_mic_level(0)
-        self.set_status(f"Mikrofon läuft... ({self.mic_device_var.get()})")
+        vad_hint = " | VAD AN" if self.vad_instance is not None else ""
+        self.set_status(f"Mikrofon läuft...{vad_hint} ({self.mic_device_var.get()})")
         self.start_btn.configure(state="disabled")
         self.stop_btn.configure(state="normal")
         self.transcribe_btn.configure(state="disabled")
@@ -1923,420 +1950,6 @@ class VoiceAssistantUI(ctk.CTk):
                 self.whisper_model_cache[model_name] = self.whisper_module.load_model(resolved_model_name)
 
         return self.whisper_model_cache[model_name]
-
-    def check_ollama(self, force_refresh: bool = False) -> tuple[str, str]:
-        model_name = self.ollama_model_var.get().strip() or "phi4-mini"
-        ollama_url = self.ollama_url_var.get().strip() or "http://localhost:11434"
-        cache_key = f"{ollama_url.rstrip('/')}::{model_name}"
-        now = time.time()
-
-        if not force_refresh and self.ollama_check_cache.get("cache_key") == cache_key:
-            checked_at = float(self.ollama_check_cache.get("checked_at", 0.0))
-            if (now - checked_at) <= self.ollama_cache_ttl_seconds:
-                return model_name, ollama_url
-
-        try:
-            tags_resp = self.http_session.get(f"{ollama_url.rstrip('/')}/api/tags", timeout=5)
-            tags_resp.raise_for_status()
-        except requests.RequestException as exc:
-            raise RuntimeError(
-                "Ollama nicht erreichbar. Starte Ollama (App oder 'ollama serve') und versuche es erneut."
-            ) from exc
-
-        try:
-            tags_data = tags_resp.json()
-            available_models = {
-                item.get("name", "")
-                for item in tags_data.get("models", [])
-                if isinstance(item, dict)
-            }
-            has_model = any(name == model_name or name.startswith(f"{model_name}:") for name in available_models)
-            if not has_model:
-                raise RuntimeError(
-                    f"Modell '{model_name}' nicht gefunden. Bitte zuerst: ollama pull {model_name}"
-                )
-        except ValueError as exc:
-            raise RuntimeError("Ungültige Antwort von Ollama /api/tags") from exc
-
-        self.ollama_check_cache.update(
-            {
-                "cache_key": cache_key,
-                "checked_at": now,
-                "model_name": model_name,
-                "ollama_url": ollama_url,
-            }
-        )
-
-        return model_name, ollama_url
-
-    def _get_reply_max_tokens(self) -> int:
-        try:
-            value = int(self.reply_max_tokens_var.get().strip())
-        except ValueError:
-            value = 120
-        return max(32, min(1024, value))
-
-    def _get_reply_temperature(self) -> float:
-        try:
-            value = float(self.reply_temperature_var.get().strip())
-        except ValueError:
-            value = 0.3
-        return max(0.0, min(1.2, value))
-
-    def _build_chat_messages(self, user_text: str) -> list[dict[str, str]]:
-        system_prompt = self._build_persona_system_prompt()
-        if self.concise_reply_var.get():
-            system_prompt = f"{system_prompt} {OLLAMA_VOICE_SYSTEM_PROMPT}"
-        return [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_text},
-        ]
-
-    def ask_ollama(
-        self,
-        user_text: str,
-        on_chunk: Callable[[str], None] | None = None,
-        cancel_event: threading.Event | None = None,
-    ) -> str:
-        model_name, ollama_url = self.check_ollama()
-
-        payload = {
-            "model": model_name,
-            "messages": self._build_chat_messages(user_text),
-            "stream": True,
-            "keep_alive": "30m",
-            "options": {
-                "num_predict": self._get_reply_max_tokens(),
-                "temperature": self._get_reply_temperature(),
-                "top_p": 0.9,
-                "repeat_penalty": 1.05,
-            },
-        }
-
-        answer_parts: list[str] = []
-        try:
-            with self.http_session.post(
-                f"{ollama_url.rstrip('/')}/api/chat",
-                json=payload,
-                stream=True,
-                timeout=(10, 300),
-            ) as response:
-                with self.active_ollama_response_lock:
-                    self.active_ollama_response = response
-
-                response.raise_for_status()
-                for raw_line in response.iter_lines(decode_unicode=True):
-                    if cancel_event is not None and cancel_event.is_set():
-                        break
-
-                    if not raw_line:
-                        continue
-
-                    try:
-                        data = json.loads(raw_line)
-                    except json.JSONDecodeError:
-                        continue
-
-                    message = data.get("message", {})
-                    chunk = str(message.get("content", ""))
-                    if chunk:
-                        answer_parts.append(chunk)
-                        if on_chunk is not None:
-                            on_chunk(chunk)
-
-                    if bool(data.get("done", False)):
-                        break
-        except Exception as exc:
-            # When a streaming response is force-closed during cancel, urllib can raise
-            # transport errors like "NoneType has no attribute read"; treat these as a normal abort.
-            if cancel_event is not None and cancel_event.is_set():
-                return "".join(answer_parts).strip()
-            raise exc
-        finally:
-            with self.active_ollama_response_lock:
-                self.active_ollama_response = None
-
-        return "".join(answer_parts).strip()
-
-    def test_ollama(self) -> None:
-        self.test_btn.configure(state="disabled")
-        worker = threading.Thread(target=self._run_ollama_test, daemon=True)
-        worker.start()
-
-    def _run_ollama_test(self) -> None:
-        try:
-            self.set_status("Prüfe Ollama...")
-            model_name, _ = self.check_ollama()
-            self.set_status(f"Ollama OK. Modell erreichbar: {model_name}")
-        except Exception as exc:
-            self.set_status(f"Ollama Test fehlgeschlagen: {exc}")
-        finally:
-            self.after(0, lambda: self.test_btn.configure(state="normal"))
-
-    def speak_text(self, text: str) -> None:
-        self._ensure_avatar_for_lipsync()
-        selected_engine = self.tts_engine_var.get().strip().lower()
-        if "edge-tts" in selected_engine:
-            self.speak_text_edge_tts(text)
-            return
-
-        if "piper" in selected_engine:
-            self.speak_text_piper(text)
-            return
-
-        self.speak_text_pyttsx3(text)
-
-    def _speak_text_background(self, text: str, done_status: str = "Fertig") -> None:
-        def worker() -> None:
-            try:
-                if self.cancel_tts_event.is_set():
-                    return
-
-                self.set_status("Antwort wird vorgelesen...")
-                self.logger.info("TTS gestartet (%d Zeichen)", len(text))
-
-                try:
-                    self.speak_text(text)
-                except Exception as first_exc:
-                    # Fallback to local engine when network/engine specific TTS fails.
-                    self.logger.warning("Primaere TTS fehlgeschlagen, fallback pyttsx3: %s", first_exc)
-                    self.speak_text_pyttsx3(text)
-
-                self.logger.info("TTS abgeschlossen")
-            except Exception as exc:
-                self._log_exception("TTS Hintergrund", exc)
-            finally:
-                if not self.cancel_tts_event.is_set():
-                    self.set_status(done_status)
-
-        tts_worker = threading.Thread(target=worker, daemon=True)
-        tts_worker.start()
-
-    def _resolve_piper_config_path(self, model_path: Path, configured_config_path: str) -> Path | None:
-        if configured_config_path:
-            config_path = Path(configured_config_path).expanduser()
-            if not config_path.is_absolute():
-                config_path = (Path(__file__).resolve().parent / config_path).resolve()
-            return config_path if config_path.exists() else None
-
-        model_str = str(model_path)
-        candidates = [
-            Path(f"{model_str}.json"),
-            Path(model_str.replace(".onnx", ".onnx.json")),
-            model_path.with_suffix(".json"),
-        ]
-        for candidate in candidates:
-            if candidate.exists():
-                return candidate
-        return None
-
-    def _resolve_piper_model_path(self, configured_model_path: str) -> Path | None:
-        project_root = Path(__file__).resolve().parent
-        normalized_input = configured_model_path.strip()
-
-        if normalized_input:
-            candidate = Path(normalized_input).expanduser()
-            if not candidate.is_absolute():
-                candidate = (project_root / candidate).resolve()
-
-            if candidate.is_file() and candidate.suffix.lower() == ".onnx":
-                return candidate
-
-            if candidate.is_dir():
-                found = sorted(candidate.rglob(MODEL_GLOB_PATTERN))
-                if found:
-                    return found[0]
-
-        fallback_dirs = [project_root / "piperVoices", project_root / "models"]
-        for fallback_dir in fallback_dirs:
-            if fallback_dir.exists():
-                found = sorted(fallback_dir.rglob(MODEL_GLOB_PATTERN))
-                if found:
-                    return found[0]
-
-        return None
-
-    def speak_text_piper(self, text: str) -> None:
-        try:
-            pygame_module = importlib.import_module("pygame")
-        except ModuleNotFoundError as exc:
-            raise RuntimeError(
-                "pygame fehlt im aktiven Python. Bitte im gleichen Interpreter installieren: pip install pygame"
-            ) from exc
-
-        piper_executable = shutil.which("piper")
-        python_cmd: list[str] | None = None
-
-        try:
-            importlib.import_module("piper")
-            python_cmd = [sys.executable, "-m", "piper"]
-        except ModuleNotFoundError:
-            python_cmd = None
-
-        if piper_executable is None and python_cmd is None:
-            raise RuntimeError(
-                "Piper nicht gefunden. Installiere piper-tts im gleichen Python wie die App oder waehle einen Interpreter, in dem piper verfuegbar ist."
-            )
-
-        configured_model_input = self.piper_model_path_var.get().strip()
-        model_path = self._resolve_piper_model_path(configured_model_input)
-        if model_path is None:
-            raise RuntimeError(
-                "Piper Modell nicht gefunden. Bitte gueltigen .onnx Pfad eintragen oder eine .onnx Datei in piperVoices/models ablegen."
-            )
-
-        if str(model_path) != configured_model_input:
-            self.after(0, lambda: self.piper_model_path_var.set(str(model_path)))
-
-        config_path = self._resolve_piper_config_path(model_path, self.piper_config_path_var.get().strip())
-        if config_path is None:
-            raise RuntimeError(
-                "Piper Config fehlt. Neben der .onnx wird meist eine .onnx.json benoetigt. "
-                f"Modell: {model_path}"
-            )
-
-        try:
-            tts_rate = int(self.tts_rate_var.get().strip())
-        except ValueError:
-            tts_rate = 170
-
-        safe_rate = max(80, min(300, tts_rate))
-        length_scale = max(0.7, min(1.6, 170.0 / float(safe_rate)))
-
-        fd, temp_path = tempfile.mkstemp(suffix=".wav")
-        os.close(fd)
-
-        cmd = [
-            *(python_cmd if python_cmd is not None else [piper_executable]),
-            "--model",
-            str(model_path),
-            "--output_file",
-            temp_path,
-            "--length_scale",
-            f"{length_scale:.3f}",
-        ]
-        if config_path is not None:
-            cmd.extend(["--config", str(config_path)])
-
-        try:
-            completed = subprocess.run(
-                cmd,
-                input=text,
-                capture_output=True,
-                text=True,
-                check=False,
-            )
-            if completed.returncode != 0:
-                error_output = (completed.stderr or completed.stdout or "").strip()
-                raise RuntimeError(
-                    f"Piper fehlgeschlagen: {error_output or 'Unbekannter Fehler'} | Modell: {model_path} | Config: {config_path}"
-                )
-
-            if not pygame_module.mixer.get_init():
-                pygame_module.mixer.init()
-            pygame_module.mixer.music.load(temp_path)
-            pygame_module.mixer.music.play()
-            started_at = time.perf_counter()
-            while pygame_module.mixer.music.get_busy():
-                if self.cancel_tts_event.is_set():
-                    pygame_module.mixer.music.stop()
-                    break
-                elapsed = time.perf_counter() - started_at
-                self._post_avatar_lipsync(True, self._estimate_lipsync_energy(text, elapsed))
-                time.sleep(0.05)
-            pygame_module.mixer.music.stop()
-            try:
-                pygame_module.mixer.music.unload()
-            except Exception:
-                pass
-            self._reset_avatar_lipsync()
-        finally:
-            safe_remove_file(temp_path)
-
-    def speak_text_pyttsx3(self, text: str) -> None:
-        if self.cancel_tts_event.is_set():
-            return
-
-        try:
-            tts_rate = int(self.tts_rate_var.get().strip())
-        except ValueError:
-            tts_rate = 170
-
-        engine = self._get_pyttsx3_engine()
-        engine.setProperty("rate", tts_rate)
-
-        selected_voice = self.tts_voice_var.get().strip().lower()
-        voices = engine.getProperty("voices")
-        want_female = "weiblich" in selected_voice
-        want_male = "männlich" in selected_voice
-
-        chosen_voice_id = None
-        for voice in voices:
-            voice_desc = f"{voice.id} {voice.name}".lower()
-            if want_female and any(token in voice_desc for token in ["female", "weib", "zira", "heda"]):
-                chosen_voice_id = voice.id
-                break
-            if want_male and any(token in voice_desc for token in ["male", "männ", "david", "mark"]):
-                chosen_voice_id = voice.id
-                break
-
-        if chosen_voice_id:
-            engine.setProperty("voice", chosen_voice_id)
-
-        stop_lipsync_event, lipsync_thread = self._start_avatar_lipsync_background(text)
-        engine.stop()
-        try:
-            engine.say(text)
-            engine.runAndWait()
-        finally:
-            stop_lipsync_event.set()
-            if lipsync_thread is not None:
-                lipsync_thread.join(timeout=0.3)
-            self._reset_avatar_lipsync()
-
-    def speak_text_edge_tts(self, text: str) -> None:
-        try:
-            edge_tts_module = importlib.import_module("edge_tts")
-            pygame_module = importlib.import_module("pygame")
-        except ModuleNotFoundError as exc:
-            raise RuntimeError(
-                "edge-tts/pygame fehlen im aktiven Python. Bitte im gleichen Interpreter installieren: pip install edge-tts pygame"
-            ) from exc
-
-        voice_label = self.tts_voice_var.get().strip()
-        voice = EDGE_VOICE_OPTIONS.get(voice_label, "de-DE-KatjaNeural")
-        emotion = self.tts_emotion_var.get().strip().lower()
-        rate, pitch = EMOTION_PRESETS.get(emotion, EMOTION_PRESETS["neutral"])
-
-        async def synthesize(target_file: str) -> None:
-            communicate = edge_tts_module.Communicate(text=text, voice=voice, rate=rate, pitch=pitch)
-            await communicate.save(target_file)
-
-        fd, temp_path = tempfile.mkstemp(suffix=".mp3")
-        os.close(fd)
-
-        try:
-            asyncio.run(synthesize(temp_path))
-            if not pygame_module.mixer.get_init():
-                pygame_module.mixer.init()
-            pygame_module.mixer.music.load(temp_path)
-            pygame_module.mixer.music.play()
-            started_at = time.perf_counter()
-            while pygame_module.mixer.music.get_busy():
-                if self.cancel_tts_event.is_set():
-                    pygame_module.mixer.music.stop()
-                    break
-                elapsed = time.perf_counter() - started_at
-                self._post_avatar_lipsync(True, self._estimate_lipsync_energy(text, elapsed))
-                time.sleep(0.05)
-            pygame_module.mixer.music.stop()
-            try:
-                pygame_module.mixer.music.unload()
-            except Exception:
-                pass
-            self._reset_avatar_lipsync()
-        finally:
-            safe_remove_file(temp_path)
 
     def transcribe_recording(self) -> None:
         if self.is_recording:
@@ -2466,15 +2079,16 @@ class VoiceAssistantUI(ctk.CTk):
             self.add_history_entry("Du", transcript)
             self.set_textbox(self.answer_box, "")
 
-            tool_action = self._decide_tool_action_with_ollama(transcript)
-
-            # Fallback for malformed router output: keep prototype responsive.
-            if tool_action == "none":
-                local_fallback = self._parse_light_command(transcript)
-                if local_fallback == "on":
-                    tool_action = "light_on"
-                elif local_fallback == "off":
-                    tool_action = "light_off"
+            # Fast pre-filter: only call the LLM router when light keywords are present.
+            # This avoids an extra 1-3s round-trip for every normal conversation turn.
+            local_hint = self._parse_light_command(transcript)
+            if local_hint is not None:
+                tool_action = self._decide_tool_action_with_ollama(transcript)
+                # If the LLM router is unsure, trust the regex hint as fallback.
+                if tool_action == "none":
+                    tool_action = "light_on" if local_hint == "on" else "light_off"
+            else:
+                tool_action = "none"
 
             if tool_action in {"light_on", "light_off"}:
                 self.after(0, self.open_light_test_popup)
