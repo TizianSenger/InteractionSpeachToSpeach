@@ -85,7 +85,10 @@ class WakeWordMixin:
         audio_int16 = (audio_float32 * 32767.0).astype(np.int16)
         try:
             predictions = model.predict(audio_int16)
-        except Exception:
+        except Exception as exc:
+            self._oww_err_count = getattr(self, "_oww_err_count", 0) + 1
+            if self._oww_err_count % 200 == 1:
+                self.logger.warning("OWW predict fehlgeschlagen (#%d): %s", self._oww_err_count, exc)
             return
 
         score = max(predictions.values(), default=0.0)

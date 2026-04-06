@@ -94,8 +94,10 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
         self.monitor_stream: sd.InputStream | None = None     # kept for compat. checks
         self._bg_stream: sd.InputStream | None = None         # unified permanent stream
         self.recording_wave: wave.Wave_write | None = None
+        self._recording_wave_lock = threading.Lock()
         self.recording_path: str | None = None
         self.is_recording = False
+        self._closing: bool = False
         # VAD runtime state (reset at each recording start)
         self.vad_speech_detected: bool = False
         self.vad_last_speech_time: float = 0.0
@@ -571,7 +573,7 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
 
         topbar = ctk.CTkFrame(self)
         topbar.grid(row=0, column=0, padx=12, pady=(10, 6), sticky="ew")
-        topbar.grid_columnconfigure(6, weight=1)
+        topbar.grid_columnconfigure(5, weight=1)
 
         ctk.CTkLabel(topbar, text="Voice Studio", font=(FONT_FAMILY, 20, "bold")).grid(
             row=0, column=0, padx=(10, 12), pady=8, sticky="w"
@@ -589,16 +591,12 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
             row=0, column=4, padx=8, pady=8
         )
 
-        # ── Pipeline-Indikator ──────────────────────────────────────────
+        # ── Pipeline-Indikator (rechts, streckt sich) ──────────────────
         import tkinter as tk
         self.pipeline_canvas = tk.Canvas(
             topbar, bg="#1a2236", highlightthickness=0, height=36, width=340
         )
-        self.pipeline_canvas.grid(row=0, column=5, padx=(16, 8), pady=6, sticky="ew")
-
-        ctk.CTkLabel(topbar, textvariable=self.status_var, font=(FONT_FAMILY, 13)).grid(
-            row=0, column=6, padx=8, pady=8, sticky="e"
-        )
+        self.pipeline_canvas.grid(row=0, column=5, padx=(16, 8), pady=6, sticky="e")
 
         body = ctk.CTkFrame(self)
         body.grid(row=1, column=0, padx=12, pady=(0, 12), sticky="nsew")
@@ -1430,8 +1428,9 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
                     elapsed = time.perf_counter() - started
                     self._increment_counter("tts_chunks")
                     self._add_metric_sample("tts_chunk_seconds", elapsed)
-                except Exception:
+                except Exception as exc:
                     # Ignore per-chunk TTS failures so the rest of the response can continue.
+                    self.logger.warning("TTS-Chunk fehlgeschlagen: %s", exc)
                     self._increment_counter("errors")
                 finally:
                     tts_queue.task_done()
@@ -1837,9 +1836,10 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
 
         if self.is_recording:
             # Write int16 PCM to the open wave file
-            if self.recording_wave is not None:
-                pcm = (indata[:, 0] * 32767.0).astype(np.int16)
-                self.recording_wave.writeframes(pcm.tobytes())
+            with self._recording_wave_lock:
+                if self.recording_wave is not None:
+                    pcm = (indata[:, 0] * 32767.0).astype(np.int16)
+                    self.recording_wave.writeframes(pcm.tobytes())
             # Energy-based VAD
             self._vad_check_energy(peak)
         else:
@@ -2073,14 +2073,16 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
                 pass
             self.stats_refresh_job_id = None
 
+        self._closing = True
         self.cancel_current_response()
         self._stop_active_audio_playback()
         self._stop_avatar_viewer()
         self.stop_wake_word_listener()
         self._stop_bg_stream()
-        if self.recording_wave is not None:
-            self.recording_wave.close()
-            self.recording_wave = None
+        with self._recording_wave_lock:
+            if self.recording_wave is not None:
+                self.recording_wave.close()
+                self.recording_wave = None
         self.http_session.close()
         self.destroy()
 
@@ -2094,9 +2096,9 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
             ensure_ffmpeg_available()
             self.load_whisper_model(self.whisper_model_var.get().strip() or "small", announce=False)
             self.check_ollama(force_refresh=True)
-        except Exception:
+        except Exception as exc:
             # Warmup should never block or break normal interaction.
-            pass
+            self.logger.warning("Hintergrundstart fehlgeschlagen: %s", exc)
 
     def _set_stt_progress(self, value: float, label: str | None = None) -> None:
         clamped = max(0.0, min(1.0, value))
@@ -2307,6 +2309,11 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
             self.set_status("Ungültige Sample Rate")
             return
 
+        if self.recording_path is not None:
+            try:
+                Path(self.recording_path).unlink(missing_ok=True)
+            except OSError:
+                pass
         temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".wav")
         temp_file.close()
         self.recording_path = temp_file.name
@@ -2694,11 +2701,18 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
             self._log_exception("Ollama", exc)
             self.set_status(f"Fehler: {exc}")
         finally:
-            self.after(0, lambda: self.cancel_btn.configure(state="disabled"))
-            if manage_buttons:
-                self.after(0, lambda: self.send_btn.configure(state="normal"))
-                self.after(0, lambda: self.transcribe_btn.configure(state="normal"))
-                self.after(0, lambda: self.text_send_btn.configure(state="normal"))
+            # Ensure TTS worker is always terminated even on exception.
+            if tts_queue is not None and self.current_tts_queue is tts_queue:
+                try:
+                    tts_queue.put_nowait(None)
+                except Exception:
+                    pass
+            if not self._closing:
+                self.after(0, lambda: self.cancel_btn.configure(state="disabled"))
+                if manage_buttons:
+                    self.after(0, lambda: self.send_btn.configure(state="normal"))
+                    self.after(0, lambda: self.transcribe_btn.configure(state="normal"))
+                    self.after(0, lambda: self.text_send_btn.configure(state="normal"))
 
 
 def main() -> None:
