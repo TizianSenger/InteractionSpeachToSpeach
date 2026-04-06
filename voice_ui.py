@@ -120,13 +120,14 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
         self.pyttsx3_engine: Any | None = None
         self.pyttsx3_engine_lock = threading.Lock()
         self.avatar_lipsync_var = ctk.BooleanVar(value=True)
-        self.column_visible: dict[str, bool] = {"left": True, "middle": True, "right": True}
+        self.column_visible: dict[str, bool] = {"left": False, "middle": True, "right": True}
         self.column_frames: dict[str, ctk.CTkFrame] = {}
         self.body_frame: ctk.CTkFrame | None = None
         self.column_weights: dict[str, int] = {"left": 5, "middle": 2, "right": 5}
         self.settings_popup: ctk.CTkToplevel | None = None
         self.viewer_host_frame: ctk.CTkFrame | None = None
         self.embedded_viewer_hwnd: int | None = None
+        self._viewer_titlebar_h: int = 33  # Chromium-rendered title bar height (pixels)
         self.light_popup: ctk.CTkToplevel | None = None
         self.light_state_label: ctk.CTkLabel | None = None
         self.light_indicator: ctk.CTkFrame | None = None
@@ -240,6 +241,8 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
         self._schedule_log_pump()
         self._schedule_stats_refresh()
         self.protocol("WM_DELETE_WINDOW", self.on_close)
+        # Auto-start avatar after UI is fully rendered
+        self.after(500, self._start_avatar_viewer)
 
     def _setup_logger(self) -> logging.Logger:
         logger = logging.getLogger("voice_studio_ui")
@@ -1615,16 +1618,61 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
         host_hwnd = host.winfo_id()
 
         user32 = ctypes.windll.user32
+
+        # Measure Chromium title-bar height BEFORE touching any styles.
+        # ClientToScreen(0,0) gives the top of the client area in screen coords;
+        # GetWindowRect gives the top of the window frame.  The difference is the
+        # non-client top (= title bar height when WS_CAPTION is still present).
+        _pt = ctypes.wintypes.POINT(0, 0)
+        _win_rect = ctypes.wintypes.RECT()
+        user32.ClientToScreen(hwnd, ctypes.byref(_pt))
+        user32.GetWindowRect(hwnd, ctypes.byref(_win_rect))
+        _nc_top = _pt.y - _win_rect.top
+        if _nc_top >= 4:
+            self._viewer_titlebar_h = _nc_top
+        else:
+            # Chromium uses DwmExtendFrameIntoClientArea so the OS non-client area
+            # is effectively 0; the title bar is drawn in the client area at a height
+            # matching the standard caption metrics.
+            self._viewer_titlebar_h = (
+                user32.GetSystemMetrics(4)   # SM_CYCAPTION
+                + user32.GetSystemMetrics(33)  # SM_CYFRAME
+                + user32.GetSystemMetrics(92)  # SM_CXPADDEDBORDER
+            ) or 33
+
         GWL_STYLE = -16
+        GWL_EXSTYLE = -20
         WS_CHILD = 0x40000000
         WS_VISIBLE = 0x10000000
         WS_CAPTION = 0x00C00000
         WS_THICKFRAME = 0x00040000
+        WS_SYSMENU = 0x00080000
+        WS_MINIMIZEBOX = 0x00020000
+        WS_MAXIMIZEBOX = 0x00010000
+        WS_EX_APPWINDOW = 0x00040000
+        WS_EX_TOOLWINDOW = 0x00000080
 
         style = user32.GetWindowLongW(hwnd, GWL_STYLE)
-        style = (style | WS_CHILD | WS_VISIBLE) & ~(WS_CAPTION | WS_THICKFRAME)
+        style = (style | WS_CHILD | WS_VISIBLE) & ~(
+            WS_CAPTION | WS_THICKFRAME | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX
+        )
         user32.SetWindowLongW(hwnd, GWL_STYLE, style)
+
+        # Remove app-window appearance; use tool-window so it doesn't show in taskbar
+        ex_style = user32.GetWindowLongW(hwnd, GWL_EXSTYLE)
+        ex_style = (ex_style | WS_EX_TOOLWINDOW) & ~WS_EX_APPWINDOW
+        user32.SetWindowLongW(hwnd, GWL_EXSTYLE, ex_style)
+
         user32.SetParent(hwnd, host_hwnd)
+
+        # Flush the style change so the frame actually disappears
+        SWP_NOMOVE = 0x0002
+        SWP_NOSIZE = 0x0001
+        SWP_NOZORDER = 0x0004
+        SWP_FRAMECHANGED = 0x0020
+        user32.SetWindowPos(hwnd, 0, 0, 0, 0, 0,
+                            SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED)
+
         self.embedded_viewer_hwnd = hwnd
         self._resize_docked_viewer()
 
@@ -1637,7 +1685,12 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
         user32 = ctypes.windll.user32
         width = max(1, host.winfo_width())
         height = max(1, host.winfo_height())
-        user32.MoveWindow(hwnd, 0, 0, width, height, True)
+        # Offset the window upward by the title-bar height so that Chromium's
+        # client-drawn title bar is pushed above the host frame's clip boundary
+        # and becomes invisible.  The extra height compensates so content fills
+        # the full host area.
+        titlebar_h = getattr(self, "_viewer_titlebar_h", 33)
+        user32.MoveWindow(hwnd, 0, -titlebar_h, width, height + titlebar_h, True)
 
     def _start_avatar_viewer(self) -> bool:
         return self.avatar_bridge.start(
