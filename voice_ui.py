@@ -243,6 +243,8 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
         self._ww_whisper_model: Any | None = None
 
         self._load_profile()
+        # Remember the theme that was active at startup for restart-guard
+        self._active_appearance_mode = self.appearance_mode_var.get().strip().capitalize() or "Dark"
         self.on_appearance_mode_changed(self.appearance_mode_var.get())
 
         self._build_layout()
@@ -451,7 +453,36 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
                 "mic_device_label": self.mic_device_var.get().strip(),
                 "tts_engine": self.tts_engine_var.get().strip(),
                 "tts_voice": self.tts_voice_var.get().strip(),
+                "tts_emotion": self.tts_emotion_var.get().strip(),
+                "tts_rate": self.tts_rate_var.get().strip(),
+                "piper_model_path": self.piper_model_path_var.get().strip(),
+                "piper_config_path": self.piper_config_path_var.get().strip(),
                 "appearance_mode": self.appearance_mode_var.get().strip(),
+            },
+            "stt": {
+                "whisper_model": self.whisper_model_var.get().strip(),
+                "whisper_language": self.whisper_language_var.get().strip(),
+                "whisper_speed": self.whisper_speed_var.get().strip(),
+            },
+            "model": {
+                "ollama_model": self.ollama_model_var.get().strip(),
+                "ollama_url": self.ollama_url_var.get().strip(),
+                "concise_reply": bool(self.concise_reply_var.get()),
+                "reply_max_tokens": self.reply_max_tokens_var.get().strip(),
+                "reply_temperature": self.reply_temperature_var.get().strip(),
+            },
+            "workflow": {
+                "auto_speak": bool(self.auto_speak_var.get()),
+                "auto_pipeline": bool(self.auto_pipeline_var.get()),
+                "avatar_lipsync": bool(self.avatar_lipsync_var.get()),
+            },
+            "audio": {
+                "sample_rate": self.sample_rate_var.get().strip(),
+                "vad_enabled": bool(self.vad_enabled_var.get()),
+                "vad_aggressiveness": self.vad_aggressiveness_var.get().strip(),
+                "vad_silence_timeout": self.vad_silence_timeout_var.get().strip(),
+                "wake_word_enabled": bool(self.wake_word_enabled_var.get()),
+                "wake_word_model": self.wake_word_model_var.get().strip(),
             },
         }
 
@@ -471,9 +502,16 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
 
         try:
             data = json.loads(profile_path.read_text(encoding="utf-8"))
-            persona = data.get("persona", {}) if isinstance(data, dict) else {}
-            preferences = data.get("preferences", {}) if isinstance(data, dict) else {}
+            if not isinstance(data, dict):
+                data = {}
+            persona = data.get("persona", {})
+            preferences = data.get("preferences", {})
+            stt = data.get("stt", {})
+            model = data.get("model", {})
+            workflow = data.get("workflow", {})
+            audio = data.get("audio", {})
 
+            # Persona
             self.persona_flirty_var.set(float(persona.get("flirty", self.persona_flirty_var.get())))
             self.persona_humor_var.set(float(persona.get("humor", self.persona_humor_var.get())))
             self.persona_serious_var.set(float(persona.get("serious", self.persona_serious_var.get())))
@@ -481,21 +519,50 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
             self.persona_empathy_var.set(float(persona.get("empathy", self.persona_empathy_var.get())))
             self.persona_temperament_var.set(float(persona.get("temperament", self.persona_temperament_var.get())))
 
-            stored_mic = str(preferences.get("mic_device_label", "")).strip()
-            if stored_mic:
-                self.mic_device_var.set(stored_mic)
+            # Preferences (TTS / Mikrofon / Darstellung)
+            def _str(d: dict, key: str, fallback: str) -> str:
+                v = str(d.get(key, "")).strip()
+                return v if v else fallback
 
-            stored_engine = str(preferences.get("tts_engine", "")).strip()
-            if stored_engine:
-                self.tts_engine_var.set(stored_engine)
+            self.mic_device_var.set(_str(preferences, "mic_device_label", self.mic_device_var.get()))
+            self.tts_engine_var.set(_str(preferences, "tts_engine", self.tts_engine_var.get()))
+            self.tts_voice_var.set(_str(preferences, "tts_voice", self.tts_voice_var.get()))
+            self.tts_emotion_var.set(_str(preferences, "tts_emotion", self.tts_emotion_var.get()))
+            self.tts_rate_var.set(_str(preferences, "tts_rate", self.tts_rate_var.get()))
+            self.piper_model_path_var.set(_str(preferences, "piper_model_path", self.piper_model_path_var.get()))
+            self.piper_config_path_var.set(_str(preferences, "piper_config_path", self.piper_config_path_var.get()))
+            self.appearance_mode_var.set(_str(preferences, "appearance_mode", self.appearance_mode_var.get()))
 
-            stored_voice = str(preferences.get("tts_voice", "")).strip()
-            if stored_voice:
-                self.tts_voice_var.set(stored_voice)
+            # STT
+            self.whisper_model_var.set(_str(stt, "whisper_model", self.whisper_model_var.get()))
+            self.whisper_language_var.set(_str(stt, "whisper_language", self.whisper_language_var.get()))
+            self.whisper_speed_var.set(_str(stt, "whisper_speed", self.whisper_speed_var.get()))
 
-            stored_appearance_mode = str(preferences.get("appearance_mode", "")).strip()
-            if stored_appearance_mode:
-                self.appearance_mode_var.set(stored_appearance_mode)
+            # Modell
+            self.ollama_model_var.set(_str(model, "ollama_model", self.ollama_model_var.get()))
+            self.ollama_url_var.set(_str(model, "ollama_url", self.ollama_url_var.get()))
+            if "concise_reply" in model:
+                self.concise_reply_var.set(bool(model["concise_reply"]))
+            self.reply_max_tokens_var.set(_str(model, "reply_max_tokens", self.reply_max_tokens_var.get()))
+            self.reply_temperature_var.set(_str(model, "reply_temperature", self.reply_temperature_var.get()))
+
+            # Workflow
+            if "auto_speak" in workflow:
+                self.auto_speak_var.set(bool(workflow["auto_speak"]))
+            if "auto_pipeline" in workflow:
+                self.auto_pipeline_var.set(bool(workflow["auto_pipeline"]))
+            if "avatar_lipsync" in workflow:
+                self.avatar_lipsync_var.set(bool(workflow["avatar_lipsync"]))
+
+            # Audio
+            self.sample_rate_var.set(_str(audio, "sample_rate", self.sample_rate_var.get()))
+            if "vad_enabled" in audio:
+                self.vad_enabled_var.set(bool(audio["vad_enabled"]))
+            self.vad_aggressiveness_var.set(_str(audio, "vad_aggressiveness", self.vad_aggressiveness_var.get()))
+            self.vad_silence_timeout_var.set(_str(audio, "vad_silence_timeout", self.vad_silence_timeout_var.get()))
+            if "wake_word_enabled" in audio:
+                self.wake_word_enabled_var.set(bool(audio["wake_word_enabled"]))
+            self.wake_word_model_var.set(_str(audio, "wake_word_model", self.wake_word_model_var.get()))
         except Exception as exc:
             self.logger.warning("Profil konnte nicht geladen werden: %s", exc)
 
@@ -505,8 +572,28 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
         normalized = selected_mode.strip().capitalize() if selected_mode else "Dark"
         if normalized not in {"Dark", "Light", "System"}:
             normalized = "Dark"
-        ctk.set_appearance_mode(normalized)
+
         self.appearance_mode_var.set(normalized)
+        ctk.set_appearance_mode(normalized)
+
+        # Only restart when the user changed the theme after startup
+        active = getattr(self, "_active_appearance_mode", None)
+        if active is not None and normalized != active:
+            try:
+                self.save_profile(notify=False)
+            except Exception:
+                pass
+            self.after(80, self._restart_process)
+
+    def _restart_process(self) -> None:
+        try:
+            self._closing = True
+            self._stop_bg_stream()
+            self.stop_wake_word_listener()
+        except Exception:
+            pass
+        subprocess.Popen([sys.executable] + sys.argv)
+        self.destroy()
 
     def _persona_instruction(self, key: str, value: float) -> str:
         if key == "flirty":
@@ -811,281 +898,329 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
     def _build_settings_popup(self) -> None:
         popup = ctk.CTkToplevel(self)
         popup.title("Einstellungen")
-        popup.geometry("460x760")
+        popup.geometry("660x820")
+        popup.minsize(560, 600)
         popup.withdraw()
         popup.protocol("WM_DELETE_WINDOW", popup.withdraw)
         self.settings_popup = popup
 
-        sidebar = ctk.CTkScrollableFrame(popup, label_text="Einstellungen")
-        sidebar.pack(fill="both", expand=True, padx=8, pady=8)
+        # ── Titelzeile ────────────────────────────────────────────────────
+        header = ctk.CTkFrame(popup, fg_color="transparent")
+        header.pack(fill="x", padx=20, pady=(18, 4))
+        ctk.CTkLabel(
+            header, text="⚙  Einstellungen",
+            font=(FONT_FAMILY, 22, "bold"),
+        ).pack(anchor="w")
+        ctk.CTkLabel(
+            header,
+            text="Konfiguriere Voice Studio nach deinen Wünschen.",
+            text_color="gray60",
+            font=(FONT_FAMILY, 12),
+        ).pack(anchor="w", pady=(2, 0))
 
-        workflow_frame = ctk.CTkFrame(sidebar)
-        workflow_frame.pack(fill="x", padx=8, pady=(8, 6))
-        ctk.CTkLabel(workflow_frame, text="Workflow", font=(FONT_FAMILY, 14, "bold")).pack(anchor="w", padx=10, pady=(8, 6))
+        # ── Tab-Leiste ────────────────────────────────────────────────────
+        tabs = ctk.CTkTabview(popup, corner_radius=10, border_width=0)
+        tabs.pack(fill="both", expand=True, padx=12, pady=(8, 12))
 
-        appearance_frame = ctk.CTkFrame(sidebar)
-        appearance_frame.pack(fill="x", padx=8, pady=(0, 6))
-        ctk.CTkLabel(appearance_frame, text="Darstellung", font=(FONT_FAMILY, 14, "bold")).pack(
-            anchor="w", padx=10, pady=(8, 2)
-        )
-        ctk.CTkLabel(appearance_frame, text="Theme Modus").pack(anchor="w", padx=10, pady=(4, 2))
+        for tab_name in ("Workflow", "STT", "Modell", "Persona", "Audio", "TTS"):
+            tabs.add(tab_name)
+
+        # Helper: section header + separator line
+        def section(parent: ctk.CTkScrollableFrame, title: str) -> None:
+            ctk.CTkLabel(
+                parent, text=title.upper(),
+                font=(FONT_FAMILY, 10, "bold"),
+                text_color="#64748b",
+                anchor="w",
+            ).pack(fill="x", padx=14, pady=(16, 0))
+            ctk.CTkFrame(parent, height=1, fg_color="#334155").pack(
+                fill="x", padx=14, pady=(3, 8)
+            )
+
+        # Helper: label + widget pair
+        def lbl(parent: ctk.CTkScrollableFrame, text: str) -> None:
+            ctk.CTkLabel(parent, text=text, anchor="w", font=(FONT_FAMILY, 13)).pack(
+                fill="x", padx=14, pady=(0, 2)
+            )
+
+        # ── Tab: Workflow ─────────────────────────────────────────────────
+        wf = ctk.CTkScrollableFrame(tabs.tab("Workflow"), fg_color="transparent")
+        wf.pack(fill="both", expand=True)
+
+        section(wf, "Darstellung")
+        lbl(wf, "Theme-Modus")
         self.appearance_mode_menu = ctk.CTkOptionMenu(
-            appearance_frame,
-            values=["Dark", "Light", "System"],
+            wf, values=["Dark", "Light", "System"],
             variable=self.appearance_mode_var,
             command=self.on_appearance_mode_changed,
         )
-        self.appearance_mode_menu.pack(fill="x", padx=10, pady=(0, 10))
+        self.appearance_mode_menu.pack(fill="x", padx=14, pady=(0, 6))
 
-        self.test_btn = ctk.CTkButton(workflow_frame, text="Ollama Test", command=self.test_ollama)
-        self.test_btn.pack(fill="x", padx=10, pady=(0, 6))
-
-        self.light_test_btn = ctk.CTkButton(
-            workflow_frame,
-            text="Licht Test",
-            command=self.open_light_test_popup,
-            fg_color="#a16207",
-            hover_color="#854d0e",
+        section(wf, "Automatisierung")
+        self.speak_switch = ctk.CTkSwitch(
+            wf, text="Antwort automatisch vorlesen",
+            variable=self.auto_speak_var,
         )
-        self.light_test_btn.pack(fill="x", padx=10, pady=(0, 6))
-
-        self.speak_switch = ctk.CTkSwitch(workflow_frame, text="Antwort vorlesen", variable=self.auto_speak_var)
-        self.speak_switch.pack(anchor="w", padx=10, pady=(0, 6))
-
+        self.speak_switch.pack(anchor="w", padx=14, pady=(0, 8))
         self.auto_pipeline_switch = ctk.CTkSwitch(
-            workflow_frame,
-            text="Auto-Workflow",
+            wf, text="Auto-Workflow  (Aufnahme → STT → Ollama)",
             variable=self.auto_pipeline_var,
         )
-        self.auto_pipeline_switch.pack(anchor="w", padx=10, pady=(0, 6))
-
+        self.auto_pipeline_switch.pack(anchor="w", padx=14, pady=(0, 8))
         self.avatar_lipsync_switch = ctk.CTkSwitch(
-            workflow_frame,
-            text="LipSync",
+            wf, text="LipSync (Avatar-Lippenbewegung)",
             variable=self.avatar_lipsync_var,
         )
-        self.avatar_lipsync_switch.pack(anchor="w", padx=10, pady=(0, 10))
+        self.avatar_lipsync_switch.pack(anchor="w", padx=14, pady=(0, 10))
 
-        stt_frame = ctk.CTkFrame(sidebar)
-        stt_frame.pack(fill="x", padx=8, pady=(8, 6))
-        ctk.CTkLabel(stt_frame, text="STT", font=(FONT_FAMILY, 14, "bold")).pack(anchor="w", padx=10, pady=(8, 2))
+        section(wf, "Tests & Diagnose")
+        self.test_btn = ctk.CTkButton(
+            wf, text="  Ollama-Verbindung testen",
+            command=self.test_ollama,
+            height=38, anchor="w",
+        )
+        self.test_btn.pack(fill="x", padx=14, pady=(0, 8))
+        self.light_test_btn = ctk.CTkButton(
+            wf, text="  Licht-Controller testen",
+            command=self.open_light_test_popup,
+            fg_color="#a16207", hover_color="#854d0e",
+            height=38, anchor="w",
+        )
+        self.light_test_btn.pack(fill="x", padx=14, pady=(0, 10))
 
-        ctk.CTkLabel(stt_frame, text="Whisper Modell").pack(anchor="w", padx=10, pady=(4, 2))
+        # ── Tab: STT ──────────────────────────────────────────────────────
+        stt = ctk.CTkScrollableFrame(tabs.tab("STT"), fg_color="transparent")
+        stt.pack(fill="both", expand=True)
+
+        section(stt, "Whisper-Modell")
+        lbl(stt, "Modell")
         self.whisper_menu = ctk.CTkOptionMenu(
-            stt_frame,
-            values=WHISPER_MODEL_OPTIONS,
+            stt, values=WHISPER_MODEL_OPTIONS,
             variable=self.whisper_model_var,
             command=self.on_whisper_model_changed,
         )
-        self.whisper_menu.pack(fill="x", padx=10, pady=(0, 8))
-
-        ctk.CTkLabel(stt_frame, text="Sprache").pack(anchor="w", padx=10, pady=(4, 2))
+        self.whisper_menu.pack(fill="x", padx=14, pady=(0, 8))
+        lbl(stt, "Erkennungssprache")
         self.whisper_language_menu = ctk.CTkOptionMenu(
-            stt_frame,
-            values=list(WHISPER_LANGUAGE_OPTIONS.keys()),
+            stt, values=list(WHISPER_LANGUAGE_OPTIONS.keys()),
             variable=self.whisper_language_var,
         )
-        self.whisper_language_menu.pack(fill="x", padx=10, pady=(0, 8))
-
-        ctk.CTkLabel(stt_frame, text="Modus").pack(anchor="w", padx=10, pady=(4, 2))
+        self.whisper_language_menu.pack(fill="x", padx=14, pady=(0, 8))
+        lbl(stt, "Geschwindigkeitsmodus")
         self.whisper_speed_menu = ctk.CTkOptionMenu(
-            stt_frame,
-            values=WHISPER_SPEED_OPTIONS,
+            stt, values=WHISPER_SPEED_OPTIONS,
             variable=self.whisper_speed_var,
         )
-        self.whisper_speed_menu.pack(fill="x", padx=10, pady=(0, 10))
+        self.whisper_speed_menu.pack(fill="x", padx=14, pady=(0, 10))
 
-        self.stt_progress_bar = ctk.CTkProgressBar(stt_frame)
-        self.stt_progress_bar.pack(fill="x", padx=10, pady=(0, 4))
+        section(stt, "Ladefortschritt")
+        self.stt_progress_bar = ctk.CTkProgressBar(stt, height=14)
+        self.stt_progress_bar.pack(fill="x", padx=14, pady=(0, 6))
         self.stt_progress_bar.set(0)
-        self.stt_progress_label = ctk.CTkLabel(stt_frame, textvariable=self.stt_progress_var, text_color="gray70")
-        self.stt_progress_label.pack(anchor="w", padx=10, pady=(0, 10))
+        self.stt_progress_label = ctk.CTkLabel(
+            stt, textvariable=self.stt_progress_var,
+            text_color="gray60", anchor="w",
+        )
+        self.stt_progress_label.pack(fill="x", padx=14, pady=(0, 10))
 
-        model_frame = ctk.CTkFrame(sidebar)
-        model_frame.pack(fill="x", padx=8, pady=6)
-        ctk.CTkLabel(model_frame, text="Modell", font=(FONT_FAMILY, 14, "bold")).pack(anchor="w", padx=10, pady=(8, 2))
+        # ── Tab: Modell ───────────────────────────────────────────────────
+        mdl = ctk.CTkScrollableFrame(tabs.tab("Modell"), fg_color="transparent")
+        mdl.pack(fill="both", expand=True)
 
-        ctk.CTkLabel(model_frame, text="Ollama Modell").pack(anchor="w", padx=10, pady=(4, 2))
+        section(mdl, "Ollama")
+        lbl(mdl, "Modell")
         self.ollama_model_menu = ctk.CTkOptionMenu(
-            model_frame,
-            values=OLLAMA_MODEL_OPTIONS,
+            mdl, values=OLLAMA_MODEL_OPTIONS,
             variable=self.ollama_model_var,
         )
-        self.ollama_model_menu.pack(fill="x", padx=10, pady=(0, 8))
+        self.ollama_model_menu.pack(fill="x", padx=14, pady=(0, 8))
+        lbl(mdl, "API-URL")
+        self.ollama_url_entry = ctk.CTkEntry(mdl, textvariable=self.ollama_url_var, height=36)
+        self.ollama_url_entry.pack(fill="x", padx=14, pady=(0, 10))
 
-        ctk.CTkLabel(model_frame, text="Ollama URL").pack(anchor="w", padx=10, pady=(4, 2))
-        self.ollama_url_entry = ctk.CTkEntry(model_frame, textvariable=self.ollama_url_var)
-        self.ollama_url_entry.pack(fill="x", padx=10, pady=(0, 10))
-
+        section(mdl, "Generierungs-Parameter")
         self.concise_reply_switch = ctk.CTkSwitch(
-            model_frame,
-            text="Kurze Voice-Antworten",
+            mdl, text="Kurze Voice-Antworten bevorzugen",
             variable=self.concise_reply_var,
         )
-        self.concise_reply_switch.pack(anchor="w", padx=10, pady=(0, 8))
+        self.concise_reply_switch.pack(anchor="w", padx=14, pady=(0, 10))
+        lbl(mdl, "Max Tokens  (num_predict)")
+        self.reply_max_tokens_entry = ctk.CTkEntry(mdl, textvariable=self.reply_max_tokens_var, height=36)
+        self.reply_max_tokens_entry.pack(fill="x", padx=14, pady=(0, 8))
+        lbl(mdl, "Temperatur")
+        self.reply_temperature_entry = ctk.CTkEntry(mdl, textvariable=self.reply_temperature_var, height=36)
+        self.reply_temperature_entry.pack(fill="x", padx=14, pady=(0, 10))
 
-        ctk.CTkLabel(model_frame, text="Max Tokens (num_predict)").pack(anchor="w", padx=10, pady=(2, 2))
-        self.reply_max_tokens_entry = ctk.CTkEntry(model_frame, textvariable=self.reply_max_tokens_var)
-        self.reply_max_tokens_entry.pack(fill="x", padx=10, pady=(0, 8))
+        # ── Tab: Persona ──────────────────────────────────────────────────
+        per = ctk.CTkScrollableFrame(tabs.tab("Persona"), fg_color="transparent")
+        per.pack(fill="both", expand=True)
 
-        ctk.CTkLabel(model_frame, text="Temperatur").pack(anchor="w", padx=10, pady=(2, 2))
-        self.reply_temperature_entry = ctk.CTkEntry(model_frame, textvariable=self.reply_temperature_var)
-        self.reply_temperature_entry.pack(fill="x", padx=10, pady=(0, 10))
-
-        persona_frame = ctk.CTkFrame(sidebar)
-        persona_frame.pack(fill="x", padx=8, pady=6)
-        ctk.CTkLabel(persona_frame, text="Persona", font=(FONT_FAMILY, 14, "bold")).pack(anchor="w", padx=10, pady=(8, 2))
+        section(per, "Persönlichkeit der KI")
+        ctk.CTkLabel(
+            per,
+            text="Schieberegler bestimmen den Charakter der Assistenz-Antworten.",
+            text_color="gray60", wraplength=560, justify="left", anchor="w",
+            font=(FONT_FAMILY, 12),
+        ).pack(fill="x", padx=14, pady=(0, 10))
 
         def add_persona_slider(label: str, variable: ctk.DoubleVar, label_var: ctk.StringVar) -> None:
-            row = ctk.CTkFrame(persona_frame, fg_color="transparent")
-            row.pack(fill="x", padx=10, pady=(3, 2))
+            row = ctk.CTkFrame(per, fg_color="transparent")
+            row.pack(fill="x", padx=14, pady=(6, 0))
             row.grid_columnconfigure(0, weight=1)
-            ctk.CTkLabel(row, text=label).grid(row=0, column=0, sticky="w")
-            ctk.CTkLabel(row, textvariable=label_var, width=34, anchor="e").grid(row=0, column=1, sticky="e")
-            slider = ctk.CTkSlider(
-                persona_frame,
-                from_=0,
-                to=100,
-                number_of_steps=100,
+            ctk.CTkLabel(row, text=label, anchor="w", font=(FONT_FAMILY, 13)).grid(
+                row=0, column=0, sticky="w"
+            )
+            ctk.CTkLabel(row, textvariable=label_var, width=42, anchor="e", font=(FONT_FAMILY, 13, "bold")).grid(
+                row=0, column=1, sticky="e"
+            )
+            ctk.CTkSlider(
+                per, from_=0, to=100, number_of_steps=100,
                 variable=variable,
                 command=self._on_persona_slider_changed,
-            )
-            slider.pack(fill="x", padx=10, pady=(0, 6))
+            ).pack(fill="x", padx=14, pady=(4, 2))
 
         add_persona_slider("Flirty", self.persona_flirty_var, self.persona_flirty_label_var)
-        add_persona_slider("Humor/Sarkasmus", self.persona_humor_var, self.persona_humor_label_var)
+        add_persona_slider("Humor / Sarkasmus", self.persona_humor_var, self.persona_humor_label_var)
         add_persona_slider("Ernsthaftigkeit", self.persona_serious_var, self.persona_serious_label_var)
         add_persona_slider("Dominanz", self.persona_dominance_var, self.persona_dominance_label_var)
-        add_persona_slider("Empathie/Waerme", self.persona_empathy_var, self.persona_empathy_label_var)
+        add_persona_slider("Empathie / Wärme", self.persona_empathy_var, self.persona_empathy_label_var)
         add_persona_slider("Temperament", self.persona_temperament_var, self.persona_temperament_label_var)
 
-        self.save_profile_btn = ctk.CTkButton(persona_frame, text="Profil speichern", command=self.save_profile)
-        self.save_profile_btn.pack(fill="x", padx=10, pady=(0, 10))
+        self.save_profile_btn = ctk.CTkButton(
+            per, text="  Profil speichern",
+            command=self.save_profile,
+            fg_color="#1d4ed8", hover_color="#1e40af",
+            height=40, anchor="w",
+        )
+        self.save_profile_btn.pack(fill="x", padx=14, pady=(16, 10))
         self._refresh_persona_labels()
 
-        audio_frame = ctk.CTkFrame(sidebar)
-        audio_frame.pack(fill="x", padx=8, pady=6)
-        ctk.CTkLabel(audio_frame, text="Audio", font=(FONT_FAMILY, 14, "bold")).pack(anchor="w", padx=10, pady=(8, 2))
-        ctk.CTkLabel(audio_frame, text="Mikrofon").pack(anchor="w", padx=10, pady=(4, 2))
+        # ── Tab: Audio ────────────────────────────────────────────────────
+        aud = ctk.CTkScrollableFrame(tabs.tab("Audio"), fg_color="transparent")
+        aud.pack(fill="both", expand=True)
+
+        section(aud, "Mikrofon")
+        lbl(aud, "Gerät")
         self.mic_menu = ctk.CTkOptionMenu(
-            audio_frame,
-            values=[NO_MIC_DEVICES_LABEL],
+            aud, values=[NO_MIC_DEVICES_LABEL],
             variable=self.mic_device_var,
             command=self.on_mic_selection_changed,
         )
-        self.mic_menu.pack(fill="x", padx=10, pady=(0, 6))
-        self.refresh_mic_btn = ctk.CTkButton(audio_frame, text="Geräte aktualisieren", command=self.refresh_input_devices)
-        self.refresh_mic_btn.pack(fill="x", padx=10, pady=(0, 6))
-        ctk.CTkLabel(audio_frame, text="Sample Rate").pack(anchor="w", padx=10, pady=(2, 2))
-        self.sample_rate_entry = ctk.CTkEntry(audio_frame, textvariable=self.sample_rate_var)
-        self.sample_rate_entry.pack(fill="x", padx=10, pady=(0, 8))
-        self.mic_level_bar = ctk.CTkProgressBar(audio_frame)
-        self.mic_level_bar.pack(fill="x", padx=10, pady=(2, 4))
+        self.mic_menu.pack(fill="x", padx=14, pady=(0, 6))
+        self.refresh_mic_btn = ctk.CTkButton(
+            aud, text="Geräteliste aktualisieren",
+            command=self.refresh_input_devices, height=36,
+        )
+        self.refresh_mic_btn.pack(fill="x", padx=14, pady=(0, 8))
+        lbl(aud, "Sample Rate (Hz)")
+        self.sample_rate_entry = ctk.CTkEntry(aud, textvariable=self.sample_rate_var, height=36)
+        self.sample_rate_entry.pack(fill="x", padx=14, pady=(0, 8))
+        self.mic_level_bar = ctk.CTkProgressBar(aud, height=14)
+        self.mic_level_bar.pack(fill="x", padx=14, pady=(2, 4))
         self.mic_level_bar.set(0)
-        self.mic_level_label = ctk.CTkLabel(audio_frame, textvariable=self.mic_level_text_var)
-        self.mic_level_label.pack(anchor="w", padx=10, pady=(0, 6))
+        self.mic_level_label = ctk.CTkLabel(
+            aud, textvariable=self.mic_level_text_var,
+            text_color="gray60", anchor="w",
+        )
+        self.mic_level_label.pack(fill="x", padx=14, pady=(0, 6))
 
-        # VAD controls
-        self.vad_switch = ctk.CTkSwitch(audio_frame, text="Auto-Stop (VAD)", variable=self.vad_enabled_var)
-        self.vad_switch.pack(anchor="w", padx=10, pady=(4, 4))
-        vad_row = ctk.CTkFrame(audio_frame, fg_color="transparent")
-        vad_row.pack(fill="x", padx=10, pady=(0, 2))
+        section(aud, "VAD – Automatischer Stopp")
+        self.vad_switch = ctk.CTkSwitch(
+            aud, text="Auto-Stop aktivieren  (energiebasiert)",
+            variable=self.vad_enabled_var,
+        )
+        self.vad_switch.pack(anchor="w", padx=14, pady=(0, 10))
+        vad_row = ctk.CTkFrame(aud, fg_color="transparent")
+        vad_row.pack(fill="x", padx=14, pady=(0, 4))
         vad_row.grid_columnconfigure(1, weight=1)
-        ctk.CTkLabel(vad_row, text="Aggressivität (0–3)").grid(row=0, column=0, sticky="w", padx=(0, 8))
+        ctk.CTkLabel(vad_row, text="Aggressivität  (0–3)", font=(FONT_FAMILY, 13)).grid(
+            row=0, column=0, sticky="w", padx=(0, 12)
+        )
         self.vad_aggressiveness_menu = ctk.CTkOptionMenu(
-            vad_row, values=["0", "1", "2", "3"], variable=self.vad_aggressiveness_var, width=70
+            vad_row, values=["0", "1", "2", "3"],
+            variable=self.vad_aggressiveness_var, width=90,
         )
         self.vad_aggressiveness_menu.grid(row=0, column=1, sticky="w")
-        ctk.CTkLabel(audio_frame, text="Stille-Timeout (Sek.)").pack(anchor="w", padx=10, pady=(4, 2))
-        self.vad_silence_entry = ctk.CTkEntry(audio_frame, textvariable=self.vad_silence_timeout_var)
-        self.vad_silence_entry.pack(fill="x", padx=10, pady=(0, 10))
+        lbl(aud, "Stille-Timeout (Sekunden)")
+        self.vad_silence_entry = ctk.CTkEntry(aud, textvariable=self.vad_silence_timeout_var, height=36)
+        self.vad_silence_entry.pack(fill="x", padx=14, pady=(0, 10))
 
-        # ── Wake-Word ──────────────────────────────────────────────────────
-        ww_frame = ctk.CTkFrame(sidebar)
-        ww_frame.pack(fill="x", padx=8, pady=6)
-        ctk.CTkLabel(ww_frame, text="Wake-Word", font=(FONT_FAMILY, 14, "bold")).pack(
-            anchor="w", padx=10, pady=(8, 2)
-        )
+        section(aud, "Wake-Word")
         ctk.CTkLabel(
-            ww_frame,
-            text="Sprich das Wort und das Mikrofon startet automatisch.",
-            text_color="gray70",
-            wraplength=380,
-            justify="left",
-        ).pack(anchor="w", padx=10, pady=(0, 6))
-
+            aud,
+            text="Sprich das Aktivierungswort – das Mikrofon startet automatisch.",
+            text_color="gray60", wraplength=560, justify="left", anchor="w",
+            font=(FONT_FAMILY, 12),
+        ).pack(fill="x", padx=14, pady=(0, 8))
         self.ww_switch = ctk.CTkSwitch(
-            ww_frame,
-            text="Wake-Word aktivieren",
+            aud, text="Wake-Word aktivieren",
             variable=self.wake_word_enabled_var,
             command=self.on_wake_word_toggle,
         )
-        self.ww_switch.pack(anchor="w", padx=10, pady=(0, 6))
-
-        ctk.CTkLabel(ww_frame, text="Wake-Word Aktivierungswort").pack(anchor="w", padx=10, pady=(4, 2))
-        ww_model_row = ctk.CTkFrame(ww_frame, fg_color="transparent")
-        ww_model_row.pack(fill="x", padx=10, pady=(0, 6))
+        self.ww_switch.pack(anchor="w", padx=14, pady=(0, 8))
+        lbl(aud, "Aktivierungswort")
+        ww_model_row = ctk.CTkFrame(aud, fg_color="transparent")
+        ww_model_row.pack(fill="x", padx=14, pady=(0, 6))
         ww_model_row.grid_columnconfigure(0, weight=1)
         from wake_word_mixin import OWW_MODEL_DISPLAY_NAMES
         self.ww_model_menu = ctk.CTkOptionMenu(
-            ww_model_row,
-            values=OWW_MODEL_DISPLAY_NAMES,
+            ww_model_row, values=OWW_MODEL_DISPLAY_NAMES,
             variable=self.wake_word_model_var,
         )
-        self.ww_model_menu.grid(row=0, column=0, sticky="ew", padx=(0, 6))
+        self.ww_model_menu.grid(row=0, column=0, sticky="ew", padx=(0, 8))
         ctk.CTkButton(
-            ww_model_row,
-            text="Neu starten",
-            width=90,
+            ww_model_row, text="Neu starten", width=110,
             command=self.start_wake_word_listener,
         ).grid(row=0, column=1)
-
-        ctk.CTkLabel(ww_frame, text="Status").pack(anchor="w", padx=10, pady=(4, 2))
+        lbl(aud, "Status")
         ctk.CTkLabel(
-            ww_frame,
-            textvariable=self.wake_word_status_var,
-            text_color="#22d3ee",
-        ).pack(anchor="w", padx=10, pady=(0, 10))
+            aud, textvariable=self.wake_word_status_var,
+            text_color="#22d3ee", anchor="w",
+        ).pack(fill="x", padx=14, pady=(0, 10))
 
-        tts_frame = ctk.CTkFrame(sidebar)
-        tts_frame.pack(fill="x", padx=8, pady=6)
-        ctk.CTkLabel(tts_frame, text="TTS", font=(FONT_FAMILY, 14, "bold")).pack(anchor="w", padx=10, pady=(8, 2))
-        ctk.CTkLabel(tts_frame, text="TTS Engine").pack(anchor="w", padx=10, pady=(4, 2))
+        # ── Tab: TTS ──────────────────────────────────────────────────────
+        tts = ctk.CTkScrollableFrame(tabs.tab("TTS"), fg_color="transparent")
+        tts.pack(fill="both", expand=True)
+
+        section(tts, "Engine & Stimme")
+        lbl(tts, "TTS-Engine")
         tts_engines = ["edge-tts (natürlich)", "piper (lokal, natürlich)", "pyttsx3 (lokal)"]
         self.tts_engine_menu = ctk.CTkOptionMenu(
-            tts_frame,
-            values=tts_engines,
+            tts, values=tts_engines,
             variable=self.tts_engine_var,
             command=self.on_tts_engine_changed,
         )
-        self.tts_engine_menu.pack(fill="x", padx=10, pady=(0, 8))
-        ctk.CTkLabel(tts_frame, text="Stimme").pack(anchor="w", padx=10, pady=(4, 2))
+        self.tts_engine_menu.pack(fill="x", padx=14, pady=(0, 8))
+        lbl(tts, "Stimme")
         self.tts_voice_menu = ctk.CTkOptionMenu(
-            tts_frame,
-            values=list(EDGE_VOICE_OPTIONS.keys()),
+            tts, values=list(EDGE_VOICE_OPTIONS.keys()),
             variable=self.tts_voice_var,
             command=self.on_tts_voice_changed,
         )
-        self.tts_voice_menu.pack(fill="x", padx=10, pady=(0, 8))
-        ctk.CTkLabel(tts_frame, text="Emotion").pack(anchor="w", padx=10, pady=(4, 2))
+        self.tts_voice_menu.pack(fill="x", padx=14, pady=(0, 8))
+        lbl(tts, "Emotion")
         self.tts_emotion_menu = ctk.CTkOptionMenu(
-            tts_frame,
-            values=list(EMOTION_PRESETS.keys()),
+            tts, values=list(EMOTION_PRESETS.keys()),
             variable=self.tts_emotion_var,
         )
-        self.tts_emotion_menu.pack(fill="x", padx=10, pady=(0, 8))
-        ctk.CTkLabel(tts_frame, text="TTS Rate").pack(anchor="w", padx=10, pady=(2, 2))
-        self.tts_rate_entry = ctk.CTkEntry(tts_frame, textvariable=self.tts_rate_var)
-        self.tts_rate_entry.pack(fill="x", padx=10, pady=(0, 8))
-        ctk.CTkLabel(tts_frame, text="Piper Modell (.onnx)").pack(anchor="w", padx=10, pady=(2, 2))
-        self.piper_model_entry = ctk.CTkEntry(tts_frame, textvariable=self.piper_model_path_var)
-        self.piper_model_entry.pack(fill="x", padx=10, pady=(0, 8))
-        ctk.CTkLabel(tts_frame, text="Piper Config (.json, optional)").pack(anchor="w", padx=10, pady=(2, 2))
-        self.piper_config_entry = ctk.CTkEntry(tts_frame, textvariable=self.piper_config_path_var)
-        self.piper_config_entry.pack(fill="x", padx=10, pady=(0, 4))
-        ctk.CTkLabel(tts_frame, text="Hinweis: Piper braucht eine lokale .onnx Stimme", text_color="gray70").pack(
-            anchor="w", padx=10, pady=(0, 10)
-        )
+        self.tts_emotion_menu.pack(fill="x", padx=14, pady=(0, 8))
+        lbl(tts, "Sprechgeschwindigkeit (Rate)")
+        self.tts_rate_entry = ctk.CTkEntry(tts, textvariable=self.tts_rate_var, height=36)
+        self.tts_rate_entry.pack(fill="x", padx=14, pady=(0, 10))
+
+        section(tts, "Piper – Lokale Stimme")
+        lbl(tts, "Modell-Pfad  (.onnx)")
+        self.piper_model_entry = ctk.CTkEntry(tts, textvariable=self.piper_model_path_var, height=36)
+        self.piper_model_entry.pack(fill="x", padx=14, pady=(0, 8))
+        lbl(tts, "Config-Pfad  (.json, optional)")
+        self.piper_config_entry = ctk.CTkEntry(tts, textvariable=self.piper_config_path_var, height=36)
+        self.piper_config_entry.pack(fill="x", padx=14, pady=(0, 6))
+        ctk.CTkLabel(
+            tts,
+            text="Tipp: Lade eine .onnx-Stimmdatei herunter und trage den Pfad ein.",
+            text_color="gray60", wraplength=560, justify="left", anchor="w",
+            font=(FONT_FAMILY, 12),
+        ).pack(fill="x", padx=14, pady=(0, 10))
 
     def open_settings_popup(self) -> None:
         if self.settings_popup is None:

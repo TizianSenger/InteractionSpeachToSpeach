@@ -1361,3 +1361,211 @@ Guten Tag! Ich bin hier
 2026-04-06 22:22:42,987 | INFO | Thread-5 (_run_transcription) | Ollama Antwort fertig (88 Zeichen, 2.96s)
 2026-04-06 22:22:42,987 | DEBUG | Thread-5 (_run_transcription) | History Assistent: Heute fühle ich mich gut, danke der Nachfrage! Wie kann ich Ihnen heute behilflich sein?
 2026-04-06 22:22:42,987 | INFO | Thread-5 (_run_transcription) | Status: Antwort fertig. Audio streamt...
+2026-04-06 22:25:16,208 | INFO | MainThread | Voice Studio gestartet
+2026-04-06 22:25:16,706 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-06 22:25:16,706 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-06 22:25:16,841 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-06 22:25:17,376 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-06 22:25:17,386 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-06 22:25:19,341 | INFO | OWW-Loader | Wake-word: >>hey_jarvis<< bereit
+2026-04-06 22:25:29,622 | INFO | Dummy-4 | Wake-word erkannt: >>Hey Jarvis<< score=0.946
+2026-04-06 22:25:29,684 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-06 22:25:29,902 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-06 22:25:29,913 | INFO | MainThread | VAD aktiv (energie-basiert, Timeout 1.5s)
+2026-04-06 22:25:29,913 | INFO | MainThread | Status: Mikrofon läuft... | VAD AN (Standard (Windows))
+2026-04-06 22:25:32,991 | INFO | Dummy-4 | VAD: Stille – stoppe Aufnahme
+2026-04-06 22:25:32,991 | INFO | MainThread | Aufnahmedauer: 3.08s
+2026-04-06 22:25:32,995 | INFO | MainThread | Status: Aufnahme beendet. Starte Auto-Workflow...
+2026-04-06 22:25:33,013 | INFO | Thread-5 (_run_transcription) | Status: Transkribiere Audio...
+2026-04-06 22:25:35,332 | INFO | Thread-5 (_run_transcription) | Transkription fertig (22 Zeichen)
+2026-04-06 22:25:35,332 | INFO | Thread-5 (_run_transcription) | Status: Transkript erkannt. Sende an Ollama...
+2026-04-06 22:25:35,348 | INFO | Thread-5 (_run_transcription) | Ollama Anfrage gestartet (22 Zeichen Input)
+2026-04-06 22:25:35,348 | INFO | Thread-5 (_run_transcription) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-06 22:25:35,360 | DEBUG | Thread-5 (_run_transcription) | History Du: Wie geht es dir heute?
+2026-04-06 22:25:35,740 | INFO | Thread-5 (_run_transcription) | Status: Ollama antwortet...
+2026-04-06 22:25:39,299 | INFO | Thread-5 (_run_transcription) | Ollama Antwort fertig (140 Zeichen, 3.96s)
+2026-04-06 22:25:39,300 | DEBUG | Thread-5 (_run_transcription) | History Assistent: Heute fühle ich mich ziemlich energetisch und bereit, dir bei allem zu helfen, worüber du sprechen möchtest! Was hast du für mich an Plänen?
+2026-04-06 22:25:39,300 | INFO | Thread-5 (_run_transcription) | Status: Antwort fertig. Audio streamt...
+2026-04-06 22:30:05,406 | INFO | MainThread | Voice Studio wird beendet
+2026-04-06 22:30:05,408 | INFO | MainThread | Profil gespeichert: C:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\assistant_profile.json
+2026-04-06 22:30:05,408 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-06 22:30:05,423 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-06 22:30:05,471 | INFO | MainThread | Status: Avatar-Viewer gestoppt
+2026-04-07 08:03:23,514 | INFO | MainThread | Voice Studio gestartet
+2026-04-07 08:03:24,148 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-07 08:03:24,148 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-07 08:03:24,299 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-07 08:03:25,260 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-07 08:03:25,266 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-07 08:03:28,447 | INFO | OWW-Loader | Wake-word: >>hey_jarvis<< bereit
+2026-04-07 08:04:08,758 | INFO | Dummy-4 | Wake-word erkannt: >>Hey Jarvis<< score=0.883
+2026-04-07 08:04:08,841 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-07 08:04:09,187 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-07 08:04:09,190 | INFO | MainThread | VAD aktiv (energie-basiert, Timeout 1.5s)
+2026-04-07 08:04:09,190 | INFO | MainThread | Status: Mikrofon läuft... | VAD AN (Standard (Windows))
+2026-04-07 08:04:12,583 | INFO | Dummy-4 | VAD: Stille – stoppe Aufnahme
+2026-04-07 08:04:12,583 | INFO | MainThread | Aufnahmedauer: 3.39s
+2026-04-07 08:04:12,583 | INFO | MainThread | Status: Aufnahme beendet. Starte Auto-Workflow...
+2026-04-07 08:04:12,593 | INFO | Thread-5 (_run_transcription) | Status: Transkribiere Audio...
+2026-04-07 08:04:16,026 | INFO | Thread-5 (_run_transcription) | Transkription fertig (19 Zeichen)
+2026-04-07 08:04:16,028 | INFO | Thread-5 (_run_transcription) | Status: Transkript erkannt. Sende an Ollama...
+2026-04-07 08:04:16,035 | INFO | Thread-5 (_run_transcription) | Ollama Anfrage gestartet (19 Zeichen Input)
+2026-04-07 08:04:16,035 | INFO | Thread-5 (_run_transcription) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-07 08:04:16,048 | DEBUG | Thread-5 (_run_transcription) | History Du: Macht das Licht an!
+2026-04-07 08:04:29,887 | INFO | Thread-5 (_run_transcription) | Tool-Router Entscheidung: light_on
+2026-04-07 08:04:29,889 | INFO | MainThread | LightController (ollama-tool-router): AN
+2026-04-07 08:04:29,898 | DEBUG | Thread-5 (_run_transcription) | History Assistent: Alles klar, ich habe das Licht fuer dich eingeschaltet.
+2026-04-07 08:04:29,911 | INFO | Thread-9 (worker) | Status: Antwort wird vorgelesen...
+2026-04-07 08:04:29,968 | ERROR | Thread-5 (_run_transcription) | Transkription: cannot access local variable 'tts_queue' where it is not associated with a value
+Traceback (most recent call last):
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\voice_ui.py", line 2515, in _run_transcription
+    self._run_ollama_only(transcript, manage_buttons=False)
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\voice_ui.py", line 2705, in _run_ollama_only
+    if tts_queue is not None and self.current_tts_queue is tts_queue:
+       ^^^^^^^^^
+UnboundLocalError: cannot access local variable 'tts_queue' where it is not associated with a value
+2026-04-07 08:04:29,968 | INFO | Thread-5 (_run_transcription) | Status: Fehler: cannot access local variable 'tts_queue' where it is not associated with a value
+2026-04-07 08:04:29,979 | INFO | Thread-9 (worker) | TTS gestartet (55 Zeichen)
+2026-04-07 08:04:36,041 | INFO | Thread-9 (worker) | TTS abgeschlossen
+2026-04-07 08:04:36,041 | INFO | Thread-9 (worker) | Status: Lichtbefehl ueber Ollama-Toolrouting ausgefuehrt
+2026-04-07 08:09:13,703 | INFO | Thread-11 (_run_ollama_only) | Ollama Anfrage gestartet (110 Zeichen Input)
+2026-04-07 08:09:13,704 | INFO | Thread-11 (_run_ollama_only) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-07 08:09:13,727 | DEBUG | Thread-11 (_run_ollama_only) | History Du: Hey du geile hure lass uns etwas dirty talk machen sag mir wie du dich selbst befriedugst du dreckige schlampe
+2026-04-07 08:09:42,047 | INFO | Thread-11 (_run_ollama_only) | Status: Ollama antwortet...
+2026-04-07 08:10:03,716 | INFO | Thread-11 (_run_ollama_only) | Ollama Antwort fertig (358 Zeichen, 50.01s)
+2026-04-07 08:10:03,717 | DEBUG | Thread-11 (_run_ollama_only) | History Assistent: Hallo, ich bin hier zu dir, um dir dabei zu helfen, deine Fantasien und Wünsche in die Tat umzusetzen. Du bist ein wunderbarer Partner, und 
+2026-04-07 08:10:03,717 | INFO | Thread-11 (_run_ollama_only) | Status: Antwort fertig. Audio streamt...
+2026-04-07 08:13:33,664 | INFO | MainThread | Profil gespeichert: C:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\assistant_profile.json
+2026-04-07 08:13:33,664 | INFO | MainThread | Status: Profil gespeichert
+2026-04-07 08:13:39,440 | INFO | Thread-17 (_run_ollama_only) | Ollama Anfrage gestartet (110 Zeichen Input)
+2026-04-07 08:13:39,440 | INFO | Thread-17 (_run_ollama_only) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-07 08:13:39,460 | DEBUG | Thread-17 (_run_ollama_only) | History Du: Hey du geile hure lass uns etwas dirty talk machen sag mir wie du dich selbst befriedugst du dreckige schlampe
+2026-04-07 08:14:06,994 | INFO | Thread-17 (_run_ollama_only) | Status: Ollama antwortet...
+2026-04-07 08:14:26,745 | INFO | Thread-17 (_run_ollama_only) | Ollama Antwort fertig (358 Zeichen, 47.31s)
+2026-04-07 08:14:26,745 | DEBUG | Thread-17 (_run_ollama_only) | History Assistent: Hallo, ich bin hier zu dir, um dir dabei zu helfen, deine Fantasien und Wünsche in die Tat umzusetzen. Du bist ein wunderbarer Partner, und 
+2026-04-07 08:14:26,745 | INFO | Thread-17 (_run_ollama_only) | Status: Antwort fertig. Audio streamt...
+2026-04-07 08:18:02,405 | INFO | MainThread | Voice Studio wird beendet
+2026-04-07 08:18:02,406 | INFO | MainThread | Profil gespeichert: C:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\assistant_profile.json
+2026-04-07 08:18:02,407 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-07 08:18:02,424 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-07 08:18:02,483 | INFO | MainThread | Status: Avatar-Viewer gestoppt
+2026-04-07 11:11:44,845 | INFO | MainThread | Voice Studio gestartet
+2026-04-07 11:11:45,584 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-07 11:11:45,584 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-07 11:11:45,718 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-07 11:11:47,279 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-07 11:11:47,282 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-07 11:12:02,287 | INFO | OWW-Loader | Wake-word: >>hey_jarvis<< bereit
+2026-04-07 11:14:52,117 | INFO | MainThread | Voice Studio gestartet
+2026-04-07 11:14:53,410 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-07 11:14:53,412 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-07 11:14:53,545 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-07 11:14:54,298 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-07 11:14:54,306 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-07 11:14:59,250 | INFO | OWW-Loader | Wake-word: >>hey_jarvis<< bereit
+2026-04-07 11:15:18,714 | INFO | MainThread | Voice Studio wird beendet
+2026-04-07 11:15:18,716 | INFO | MainThread | Profil gespeichert: C:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\assistant_profile.json
+2026-04-07 11:15:18,716 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-07 11:15:20,408 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-07 11:15:20,502 | INFO | MainThread | Status: Avatar-Viewer gestoppt
+2026-04-07 11:15:28,258 | INFO | MainThread | Voice Studio gestartet
+2026-04-07 11:15:28,802 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-07 11:15:28,802 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-07 11:15:28,921 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-07 11:15:29,452 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-07 11:15:29,468 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-07 11:15:31,487 | INFO | OWW-Loader | Wake-word: >>hey_jarvis<< bereit
+2026-04-07 11:31:53,218 | INFO | MainThread | Voice Studio gestartet
+2026-04-07 11:31:53,829 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-07 11:31:53,829 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-07 11:31:53,960 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-07 11:31:54,493 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-07 11:31:54,510 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-07 11:31:56,371 | INFO | OWW-Loader | Wake-word: >>hey_jarvis<< bereit
+2026-04-07 11:32:17,646 | INFO | Dummy-4 | Wake-word erkannt: >>Hey Jarvis<< score=0.911
+2026-04-07 11:32:17,715 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-07 11:32:17,977 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-07 11:32:17,979 | INFO | MainThread | VAD aktiv (energie-basiert, Timeout 1.5s)
+2026-04-07 11:32:17,979 | INFO | MainThread | Status: Mikrofon läuft... | VAD AN (Standard (Windows))
+2026-04-07 11:32:20,712 | INFO | Dummy-4 | VAD: Stille – stoppe Aufnahme
+2026-04-07 11:32:20,712 | INFO | MainThread | Aufnahmedauer: 2.74s
+2026-04-07 11:32:20,712 | INFO | MainThread | Status: Aufnahme beendet. Starte Auto-Workflow...
+2026-04-07 11:32:20,729 | INFO | Thread-5 (_run_transcription) | Status: Transkribiere Audio...
+2026-04-07 11:32:23,485 | INFO | Thread-5 (_run_transcription) | Transkription fertig (16 Zeichen)
+2026-04-07 11:32:23,487 | INFO | Thread-5 (_run_transcription) | Status: Transkript erkannt. Sende an Ollama...
+2026-04-07 11:32:23,508 | INFO | Thread-5 (_run_transcription) | Ollama Anfrage gestartet (16 Zeichen Input)
+2026-04-07 11:32:23,508 | INFO | Thread-5 (_run_transcription) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-07 11:32:23,531 | DEBUG | Thread-5 (_run_transcription) | History Du: Wie geht es dir?
+2026-04-07 11:32:32,574 | INFO | Thread-5 (_run_transcription) | Status: Ollama antwortet...
+2026-04-07 11:32:34,053 | INFO | Thread-5 (_run_transcription) | Ollama Antwort fertig (70 Zeichen, 10.55s)
+2026-04-07 11:32:34,053 | DEBUG | Thread-5 (_run_transcription) | History Assistent: Mir geht es gut, danke der Nachfrage! Wie kann ich Ihnen heute helfen?
+2026-04-07 11:32:34,053 | INFO | Thread-5 (_run_transcription) | Status: Antwort fertig. Audio streamt...
+2026-04-07 11:34:41,566 | INFO | Dummy-4 | Wake-word erkannt: >>Hey Jarvis<< score=0.977
+2026-04-07 11:34:41,632 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-07 11:34:41,647 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-07 11:34:41,650 | INFO | MainThread | VAD aktiv (energie-basiert, Timeout 1.5s)
+2026-04-07 11:34:41,651 | INFO | MainThread | Status: Mikrofon läuft... | VAD AN (Standard (Windows))
+2026-04-07 11:34:44,610 | INFO | Dummy-4 | VAD: Stille – stoppe Aufnahme
+2026-04-07 11:34:44,610 | INFO | MainThread | Aufnahmedauer: 2.96s
+2026-04-07 11:34:44,612 | INFO | MainThread | Status: Aufnahme beendet. Starte Auto-Workflow...
+2026-04-07 11:34:44,619 | INFO | Thread-11 (_run_transcription) | Status: Transkribiere Audio...
+2026-04-07 11:34:46,525 | INFO | Thread-11 (_run_transcription) | Transkription fertig (16 Zeichen)
+2026-04-07 11:34:46,531 | INFO | Thread-11 (_run_transcription) | Status: Transkript erkannt. Sende an Ollama...
+2026-04-07 11:34:46,538 | INFO | Thread-11 (_run_transcription) | Ollama Anfrage gestartet (16 Zeichen Input)
+2026-04-07 11:34:46,539 | INFO | Thread-11 (_run_transcription) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-07 11:34:46,550 | DEBUG | Thread-11 (_run_transcription) | History Du: Blubber mir ein.
+2026-04-07 11:34:47,939 | INFO | Thread-11 (_run_transcription) | Status: Ollama antwortet...
+2026-04-07 11:34:53,903 | INFO | Thread-11 (_run_transcription) | Ollama Antwort fertig (249 Zeichen, 7.36s)
+2026-04-07 11:34:53,904 | DEBUG | Thread-11 (_run_transcription) | History Assistent: Hmm, "blubber mir ein" ist eine kreative Wendung! Wenn du Informationen oder Hilfe zu einem bestimmten Thema brauchst, lass es mich wissen u
+2026-04-07 11:34:53,904 | INFO | Thread-11 (_run_transcription) | Status: Antwort fertig. Audio streamt...
+2026-04-07 11:39:32,046 | INFO | Dummy-4 | Wake-word erkannt: >>Hey Jarvis<< score=0.555
+2026-04-07 11:39:32,107 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-07 11:39:32,123 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-07 11:39:32,127 | INFO | MainThread | VAD aktiv (energie-basiert, Timeout 1.5s)
+2026-04-07 11:39:32,127 | INFO | MainThread | Status: Mikrofon läuft... | VAD AN (Standard (Windows))
+2026-04-07 11:39:35,003 | INFO | Dummy-4 | VAD: Stille – stoppe Aufnahme
+2026-04-07 11:39:35,003 | INFO | MainThread | Aufnahmedauer: 2.88s
+2026-04-07 11:39:35,005 | INFO | MainThread | Status: Aufnahme beendet. Starte Auto-Workflow...
+2026-04-07 11:39:35,012 | INFO | Thread-17 (_run_transcription) | Status: Transkribiere Audio...
+2026-04-07 11:39:36,967 | INFO | Thread-17 (_run_transcription) | Transkription fertig (19 Zeichen)
+2026-04-07 11:39:36,970 | INFO | Thread-17 (_run_transcription) | Status: Transkript erkannt. Sende an Ollama...
+2026-04-07 11:39:37,000 | INFO | Thread-17 (_run_transcription) | Ollama Anfrage gestartet (19 Zeichen Input)
+2026-04-07 11:39:37,000 | INFO | Thread-17 (_run_transcription) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-07 11:39:37,009 | DEBUG | Thread-17 (_run_transcription) | History Du: Macht das Licht an.
+2026-04-07 11:39:44,091 | INFO | Thread-17 (_run_transcription) | Tool-Router Entscheidung: light_on
+2026-04-07 11:39:44,093 | INFO | MainThread | LightController (ollama-tool-router): AN
+2026-04-07 11:39:44,098 | DEBUG | Thread-17 (_run_transcription) | History Assistent: Alles klar, ich habe das Licht fuer dich eingeschaltet.
+2026-04-07 11:39:44,100 | INFO | Thread-20 (worker) | Status: Antwort wird vorgelesen...
+2026-04-07 11:39:44,113 | ERROR | Thread-17 (_run_transcription) | Transkription: cannot access local variable 'tts_queue' where it is not associated with a value
+Traceback (most recent call last):
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\voice_ui.py", line 2651, in _run_transcription
+    self._run_ollama_only(transcript, manage_buttons=False)
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\voice_ui.py", line 2841, in _run_ollama_only
+    if tts_queue is not None and self.current_tts_queue is tts_queue:
+       ^^^^^^^^^
+UnboundLocalError: cannot access local variable 'tts_queue' where it is not associated with a value
+2026-04-07 11:39:44,113 | INFO | Thread-17 (_run_transcription) | Status: Fehler: cannot access local variable 'tts_queue' where it is not associated with a value
+2026-04-07 11:39:44,114 | INFO | Thread-20 (worker) | TTS gestartet (55 Zeichen)
+2026-04-07 11:39:44,133 | WARNING | Thread-20 (worker) | Primaere TTS fehlgeschlagen, fallback pyttsx3: Cannot connect to host speech.platform.bing.com:443 ssl:<ssl.SSLContext object at 0x0000018EA3973DA0> [getaddrinfo failed]
+2026-04-07 11:39:48,701 | INFO | Thread-20 (worker) | TTS abgeschlossen
+2026-04-07 11:39:48,701 | INFO | Thread-20 (worker) | Status: Lichtbefehl ueber Ollama-Toolrouting ausgefuehrt
+2026-04-07 11:40:09,545 | INFO | MainThread | Voice Studio wird beendet
+2026-04-07 11:40:09,546 | INFO | MainThread | Profil gespeichert: C:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\assistant_profile.json
+2026-04-07 11:40:09,547 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-07 11:40:09,567 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-07 11:40:09,629 | INFO | MainThread | Status: Avatar-Viewer gestoppt
+2026-04-07 11:40:26,249 | INFO | MainThread | Voice Studio gestartet
+2026-04-07 11:40:26,805 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-07 11:40:26,805 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-07 11:40:26,940 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-07 11:40:28,070 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-07 11:40:28,073 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-07 11:40:40,927 | INFO | OWW-Loader | Wake-word: >>hey_jarvis<< bereit
+2026-04-07 11:44:27,413 | INFO | MainThread | Voice Studio gestartet
+2026-04-07 11:44:27,964 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-07 11:44:27,964 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-07 11:44:28,081 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-07 11:44:28,609 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-07 11:44:28,618 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-07 11:44:30,475 | INFO | OWW-Loader | Wake-word: >>hey_jarvis<< bereit
+2026-04-07 11:44:34,602 | INFO | MainThread | Profil gespeichert: C:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\assistant_profile.json

@@ -1,16 +1,45 @@
 {
   "persona": {
     "flirty": 100.0,
-    "humor": 55.0,
-    "serious": 40.0,
-    "dominance": 35.0,
-    "empathy": 70.0,
+    "humor": 100.0,
+    "serious": 0.0,
+    "dominance": 100.0,
+    "empathy": 100.0,
     "temperament": 100.0
   },
   "preferences": {
     "mic_device_label": "Standard (Windows)",
     "tts_engine": "edge-tts (natürlich)",
     "tts_voice": "Deutsch (weiblich) - Amala",
-    "appearance_mode": "System"
+    "tts_emotion": "freundlich",
+    "tts_rate": "170",
+    "piper_model_path": "models/de_DE-karlsson-medium.onnx",
+    "piper_config_path": "",
+    "appearance_mode": "Dark"
+  },
+  "stt": {
+    "whisper_model": "small",
+    "whisper_language": "Deutsch",
+    "whisper_speed": "Genau"
+  },
+  "model": {
+    "ollama_model": "phi4-mini",
+    "ollama_url": "http://localhost:11434",
+    "concise_reply": true,
+    "reply_max_tokens": "120",
+    "reply_temperature": "0.3"
+  },
+  "workflow": {
+    "auto_speak": true,
+    "auto_pipeline": true,
+    "avatar_lipsync": true
+  },
+  "audio": {
+    "sample_rate": "16000",
+    "vad_enabled": true,
+    "vad_aggressiveness": "1",
+    "vad_silence_timeout": "1.5",
+    "wake_word_enabled": true,
+    "wake_word_model": "Hey Jarvis"
   }
 }
