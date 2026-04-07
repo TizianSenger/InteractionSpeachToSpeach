@@ -86,6 +86,8 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
         super().__init__()
         ctk.set_appearance_mode("dark")
         ctk.set_default_color_theme("blue")
+        self.withdraw()               # Hauptfenster ausblenden
+        self.attributes("-alpha", 0.0)  # zusätzlich komplett transparent – kein kurzes Aufblitzen
 
         self.title("Voice Assistant")
         self.geometry("1160x760")
@@ -98,6 +100,12 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
         self.recording_path: str | None = None
         self.is_recording = False
         self._closing: bool = False
+        # Splash screen state
+        self._splash: Any = None
+        self._splash_canvas: Any = None
+        self._splash_angle: int = 0
+        self._splash_spinner_job: Any = None
+        self._splash_status_var: Any = None
         # VAD runtime state (reset at each recording start)
         self.vad_speech_detected: bool = False
         self.vad_last_speech_time: float = 0.0
@@ -254,12 +262,12 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
         self.refresh_input_devices()
         self._start_bg_stream()
         self.start_wake_word_listener()  # no-op if wake_word_enabled_var is False
+        self._show_splash()              # Splash einblenden bevor Warmup startet
         self._start_background_warmup()
         self._schedule_log_pump()
         self._schedule_stats_refresh()
         self.protocol("WM_DELETE_WINDOW", self.on_close)
-        # Auto-start avatar after UI is fully rendered
-        self.after(500, self._start_avatar_viewer)
+        # Avatar wird erst nach dem Splash-Schließen gestartet (nicht mehr hier)
 
     def _setup_logger(self) -> logging.Logger:
         logger = logging.getLogger("voice_studio_ui")
@@ -2368,6 +2376,13 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
                 pass
             self.stats_refresh_job_id = None
 
+        # Splash aufräumen falls noch offen (z.B. App während Ladevorgang geschlossen)
+        if self._splash is not None:
+            try:
+                self._splash.destroy()
+            except Exception:
+                pass
+            self._splash = None
         self._closing = True
         self.cancel_current_response()
         self._stop_active_audio_playback()
@@ -2389,11 +2404,102 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
         # Warm up expensive dependencies once so first interaction feels immediate.
         try:
             ensure_ffmpeg_available()
+            self.after(0, lambda: self._set_splash_status("Lade Spracherkennungsmodell..."))
             self.load_whisper_model(self.whisper_model_var.get().strip() or "small", announce=False)
+            self.after(0, lambda: self._set_splash_status("Verbinde mit Ollama..."))
             self.check_ollama(force_refresh=True)
+            self.after(0, lambda: self._set_splash_status("Bereit."))
         except Exception as exc:
             # Warmup should never block or break normal interaction.
             self.logger.warning("Hintergrundstart fehlgeschlagen: %s", exc)
+        finally:
+            self.after(300, self._close_splash)  # kurzes Delay damit "Bereit." sichtbar ist
+
+    def _show_splash(self) -> None:
+        import tkinter as tk
+        splash = tk.Toplevel(self)
+        splash.overrideredirect(True)
+        sw = splash.winfo_screenwidth()
+        sh = splash.winfo_screenheight()
+        w, h = 460, 290
+        x = (sw - w) // 2
+        y = (sh - h) // 2
+        splash.geometry(f"{w}x{h}+{x}+{y}")
+        splash.configure(bg="#0d1117")
+        splash.attributes("-topmost", True)
+
+        # Rahmen
+        border = tk.Frame(splash, bg="#1e293b", bd=0)
+        border.place(x=1, y=1, width=w - 2, height=h - 2)
+
+        tk.Label(
+            border, text="Voice Studio", bg="#1e293b", fg="#e2e8f0",
+            font=("Segoe UI", 32, "bold"),
+        ).place(relx=0.5, y=72, anchor="center")
+
+        tk.Label(
+            border, text="Sprachassistent wird geladen", bg="#1e293b", fg="#64748b",
+            font=("Segoe UI", 12),
+        ).place(relx=0.5, y=114, anchor="center")
+
+        canvas = tk.Canvas(border, width=52, height=52, bg="#1e293b", highlightthickness=0)
+        canvas.place(relx=0.5, y=185, anchor="center")
+
+        self._splash_status_var = tk.StringVar(value="Initialisiere...")
+        tk.Label(
+            border, textvariable=self._splash_status_var, bg="#1e293b",
+            fg="#475569", font=("Segoe UI", 10),
+        ).place(relx=0.5, y=248, anchor="center")
+
+        self._splash = splash
+        self._splash_canvas = canvas
+        self._splash_angle = 0
+        self._animate_splash_spinner()
+
+    def _set_splash_status(self, text: str) -> None:
+        if self._splash_status_var is not None:
+            try:
+                self._splash_status_var.set(text)
+            except Exception:
+                pass
+
+    def _animate_splash_spinner(self) -> None:
+        if self._splash is None:
+            return
+        canvas = self._splash_canvas
+        if canvas is None:
+            return
+        try:
+            canvas.delete("all")
+            canvas.create_arc(
+                4, 4, 48, 48,
+                start=self._splash_angle, extent=270,
+                outline="#22d3ee", style="arc", width=3,
+            )
+            self._splash_angle = (self._splash_angle + 10) % 360
+            self._splash_spinner_job = self.after(33, self._animate_splash_spinner)
+        except Exception:
+            pass
+
+    def _close_splash(self) -> None:
+        if self._splash_spinner_job is not None:
+            try:
+                self.after_cancel(self._splash_spinner_job)
+            except Exception:
+                pass
+            self._splash_spinner_job = None
+        if self._splash is not None:
+            try:
+                self._splash.destroy()
+            except Exception:
+                pass
+            self._splash = None
+        if not self._closing:
+            self.attributes("-alpha", 1.0)  # Transparenz aufheben bevor Fenster erscheint
+            self.deiconify()
+            self.state("zoomed")
+            # Avatar erst nach dem Hauptfenster starten, damit Docking korrekt funktioniert
+            self.after(500, self._start_avatar_viewer)
 
     def _set_stt_progress(self, value: float, label: str | None = None) -> None:
         clamped = max(0.0, min(1.0, value))

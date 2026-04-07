@@ -2063,3 +2063,67 @@ UnboundLocalError: cannot access local variable 'tts_queue' where it is not asso
 2026-04-07 15:10:19,655 | INFO | MainThread | Status: Avatar-Viewer gestartet
 2026-04-07 15:10:19,663 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
 2026-04-07 15:10:23,096 | INFO | OWW-Loader | Wake-word: >>hey_jarvis<< bereit
+2026-04-07 15:24:09,502 | INFO | MainThread | Voice Studio gestartet
+2026-04-07 15:24:10,245 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-07 15:24:10,245 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-07 15:24:10,394 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-07 15:24:10,946 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-07 15:24:10,956 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-07 15:24:13,991 | INFO | OWW-Loader | Wake-word: >>hey_jarvis<< bereit
+2026-04-07 15:24:25,949 | INFO | MainThread | Status: Avatar-Viewer gestoppt
+2026-04-07 15:24:25,956 | INFO | MainThread | Status: Avatar-Viewer startet mit: PinkBunny.vrm
+2026-04-07 15:24:26,298 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-07 15:24:26,313 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-07 15:24:39,950 | INFO | MainThread | Voice Studio wird beendet
+2026-04-07 15:24:39,954 | INFO | MainThread | Profil gespeichert: C:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\assistant_profile.json
+2026-04-07 15:24:39,954 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-07 15:24:40,576 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-07 15:24:40,605 | INFO | MainThread | Status: Avatar-Viewer gestoppt
+2026-04-07 15:27:40,477 | INFO | MainThread | Voice Studio gestartet
+2026-04-07 15:27:41,186 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-07 15:27:41,186 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-07 15:27:41,311 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-07 15:27:41,857 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-07 15:27:41,862 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-07 15:27:44,556 | INFO | OWW-Loader | Wake-word: >>hey_jarvis<< bereit
+2026-04-07 15:27:58,282 | INFO | MainThread | Status: Avatar-Viewer gestoppt
+2026-04-07 15:27:58,288 | INFO | MainThread | Status: Avatar-Viewer startet mit: PinkBunny.vrm
+2026-04-07 15:27:58,600 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-07 15:27:58,618 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-07 15:28:08,944 | INFO | MainThread | Voice Studio wird beendet
+2026-04-07 15:28:08,947 | INFO | MainThread | Profil gespeichert: C:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\assistant_profile.json
+2026-04-07 15:28:08,947 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-07 15:28:09,491 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-07 15:28:09,534 | INFO | MainThread | Status: Avatar-Viewer gestoppt
+2026-04-07 15:28:15,133 | INFO | MainThread | Voice Studio gestartet
+2026-04-07 15:28:15,944 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-07 15:28:15,944 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-07 15:28:16,086 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-07 15:28:16,630 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-07 15:28:16,630 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-07 15:28:19,347 | INFO | OWW-Loader | Wake-word: >>hey_jarvis<< bereit
+2026-04-07 15:30:57,504 | INFO | MainThread | Voice Studio gestartet
+2026-04-07 15:30:58,432 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-07 15:30:58,432 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-07 15:30:58,552 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-07 15:31:00,615 | INFO | OWW-Loader | Wake-word: >>hey_jarvis<< bereit
+2026-04-07 15:31:04,445 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-07 15:31:04,446 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-07 15:31:28,354 | INFO | Dummy-4 | Wake-word erkannt: >>Hey Jarvis<< score=0.925
+2026-04-07 15:31:28,514 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-07 15:31:29,030 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-07 15:31:29,040 | INFO | MainThread | VAD aktiv (energie-basiert, Timeout 1.5s)
+2026-04-07 15:31:29,041 | INFO | MainThread | Status: Mikrofon läuft... | VAD AN (Standard (Windows))
+2026-04-07 15:31:31,992 | INFO | Dummy-4 | VAD: Stille – stoppe Aufnahme
+2026-04-07 15:31:31,992 | INFO | MainThread | Aufnahmedauer: 2.95s
+2026-04-07 15:31:31,997 | INFO | MainThread | Status: Aufnahme beendet. Starte Auto-Workflow...
+2026-04-07 15:31:32,011 | INFO | Thread-6 (_run_transcription) | Status: Transkribiere Audio...
+2026-04-07 15:31:38,865 | INFO | Thread-6 (_run_transcription) | Transkription fertig (18 Zeichen)
+2026-04-07 15:31:38,868 | INFO | Thread-6 (_run_transcription) | Status: Transkript erkannt. Sende an Ollama...
+2026-04-07 15:31:38,887 | INFO | Thread-6 (_run_transcription) | Ollama Anfrage gestartet (18 Zeichen Input)
+2026-04-07 15:31:38,889 | INFO | Thread-6 (_run_transcription) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-07 15:31:38,935 | DEBUG | Thread-6 (_run_transcription) | History Du: Das ist dein Test.
+2026-04-07 15:31:53,643 | INFO | Thread-6 (_run_transcription) | Status: Ollama antwortet...
+2026-04-07 15:31:59,569 | INFO | Thread-6 (_run_transcription) | Ollama Antwort fertig (112 Zeichen, 20.68s)
+2026-04-07 15:31:59,570 | DEBUG | Thread-6 (_run_transcription) | History Assistent: Natürlich! Ich bin bereit für deinen Test. Mach weiter, ich werde versuchen, dir zu helfen. Was hast du im Sinn?
+2026-04-07 15:31:59,571 | INFO | Thread-6 (_run_transcription) | Status: Antwort fertig. Audio streamt...
