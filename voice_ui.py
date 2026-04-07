@@ -234,7 +234,7 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
         self.persona_temperament_label_var = ctk.StringVar(value="30")
         self.vad_enabled_var = ctk.BooleanVar(value=True)
         self.vad_aggressiveness_var = ctk.StringVar(value="1")
-        self.vad_silence_timeout_var = ctk.StringVar(value="1.5")
+        self.vad_silence_timeout_var = ctk.StringVar(value="0.8")
         # Wake-word listener state
         self.wake_word_enabled_var = ctk.BooleanVar(value=True)
         self.wake_word_model_var = ctk.StringVar(value="Hey Jarvis")
@@ -2287,6 +2287,8 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
 
         self.embedded_viewer_hwnd = hwnd
         self._resize_docked_viewer()
+        # SetParent() kann den maximierten Zustand des Hauptfensters zurücksetzen – wiederherstellen.
+        self.after(50, lambda: self.state("zoomed"))
 
     def _resize_docked_viewer(self) -> None:
         hwnd = self.embedded_viewer_hwnd
@@ -2874,7 +2876,7 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
 
             if self.whisper_backend == "faster-whisper":
                 transcribe_options: dict[str, Any] = {
-                    "beam_size": 1 if speed_mode == "Schnell" else 5,
+                    "beam_size": 1 if speed_mode == "Schnell" else 3,
                     "condition_on_previous_text": False if speed_mode == "Schnell" else True,
                     "vad_filter": True,
                 }
@@ -3008,6 +3010,7 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
             tts_text_buffer = ""
             tts_phrase_buffer = ""
             tts_phrase_count = 0
+            tts_first_emitted = False  # erste Phrase sofort senden, unabhängig von der Mindestlänge
 
             if self.auto_speak_var.get():
                 tts_queue, _ = self._start_streaming_tts_worker()
@@ -3025,6 +3028,7 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
                 nonlocal tts_text_buffer
                 nonlocal tts_phrase_buffer
                 nonlocal tts_phrase_count
+                nonlocal tts_first_emitted
 
                 if self.cancel_ollama_event.is_set():
                     return
@@ -3053,12 +3057,14 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
                         tts_phrase_count += 1
 
                         should_emit_phrase = (
-                            len(tts_phrase_buffer) >= TTS_STREAM_MIN_CHARS
+                            not tts_first_emitted  # erste Phrase immer sofort
+                            or len(tts_phrase_buffer) >= TTS_STREAM_MIN_CHARS
                             or tts_phrase_count >= TTS_STREAM_MAX_SENTENCES
                             or normalized_sentence.endswith("\n")
                         )
                         if should_emit_phrase:
                             tts_queue.put(tts_phrase_buffer)
+                            tts_first_emitted = True
                             tts_phrase_buffer = ""
                             tts_phrase_count = 0
 

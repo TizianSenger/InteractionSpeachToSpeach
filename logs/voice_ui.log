@@ -1986,3 +1986,80 @@ UnboundLocalError: cannot access local variable 'tts_queue' where it is not asso
 2026-04-07 14:54:28,384 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
 2026-04-07 14:54:28,979 | INFO | MainThread | Status: Avatar-Viewer gestartet
 2026-04-07 14:54:28,994 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-07 14:54:32,637 | INFO | OWW-Loader | Wake-word: >>hey_jarvis<< bereit
+2026-04-07 14:54:41,440 | INFO | Thread-4 (_run_ollama_only) | Ollama Anfrage gestartet (17 Zeichen Input)
+2026-04-07 14:54:41,440 | INFO | Thread-4 (_run_ollama_only) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-07 14:54:41,479 | DEBUG | Thread-4 (_run_ollama_only) | History Du: mach mal licht an
+2026-04-07 14:54:47,017 | INFO | Thread-4 (_run_ollama_only) | Tool-Router Entscheidung: light_on
+2026-04-07 14:54:47,018 | INFO | MainThread | LightController (ollama-tool-router): AN
+2026-04-07 14:54:47,030 | DEBUG | Thread-4 (_run_ollama_only) | History Assistent: Alles klar, ich habe das Licht fuer dich eingeschaltet.
+2026-04-07 14:54:47,030 | INFO | Thread-5 (worker) | Status: Antwort wird vorgelesen...
+2026-04-07 14:54:47,078 | INFO | Thread-5 (worker) | TTS gestartet (55 Zeichen)
+2026-04-07 14:54:53,391 | INFO | Thread-5 (worker) | TTS abgeschlossen
+2026-04-07 14:54:53,391 | INFO | Thread-5 (worker) | Status: Lichtbefehl ueber Ollama-Toolrouting ausgefuehrt
+2026-04-07 14:54:58,780 | INFO | Thread-7 (_run_ollama_only) | Ollama Anfrage gestartet (18 Zeichen Input)
+2026-04-07 14:54:58,780 | INFO | Thread-7 (_run_ollama_only) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-07 14:54:58,808 | DEBUG | Thread-7 (_run_ollama_only) | History Du: mach mal lciht aus
+2026-04-07 14:55:15,312 | INFO | Thread-7 (_run_ollama_only) | Status: Ollama antwortet...
+2026-04-07 14:55:21,469 | INFO | Thread-7 (_run_ollama_only) | Ollama Antwort fertig (121 Zeichen, 22.69s)
+2026-04-07 14:55:21,470 | DEBUG | Thread-7 (_run_ollama_only) | History Assistent: Tut mir leid, was soll ich machen? Das Licht scheint bereits eingeschaltet zu sein. Möchtest du etwas anderes einstellen?
+2026-04-07 14:55:21,473 | INFO | Thread-7 (_run_ollama_only) | Status: Antwort fertig. Audio streamt...
+2026-04-07 14:55:40,489 | INFO | Thread-11 (_run_ollama_only) | Ollama Anfrage gestartet (31 Zeichen Input)
+2026-04-07 14:55:40,489 | INFO | Thread-11 (_run_ollama_only) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-07 14:55:40,534 | DEBUG | Thread-11 (_run_ollama_only) | History Du: du sollst das licht ausschalten
+2026-04-07 14:55:58,381 | INFO | Thread-11 (_run_ollama_only) | Tool-Router Entscheidung: light_off
+2026-04-07 14:55:58,401 | INFO | MainThread | LightController (ollama-tool-router): AUS
+2026-04-07 14:55:58,417 | DEBUG | Thread-11 (_run_ollama_only) | History Assistent: Alles klar, ich habe das Licht fuer dich ausgeschaltet.
+2026-04-07 14:55:58,467 | INFO | Thread-12 (worker) | Status: Antwort wird vorgelesen...
+2026-04-07 14:55:58,496 | INFO | Thread-12 (worker) | TTS gestartet (55 Zeichen)
+2026-04-07 14:56:03,287 | INFO | Thread-12 (worker) | TTS abgeschlossen
+2026-04-07 14:56:03,288 | INFO | Thread-12 (worker) | Status: Lichtbefehl ueber Ollama-Toolrouting ausgefuehrt
+2026-04-07 15:05:29,486 | INFO | MainThread | Voice Studio gestartet
+2026-04-07 15:05:30,366 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-07 15:05:30,366 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-07 15:05:30,503 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-07 15:05:31,036 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-07 15:05:31,048 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-07 15:05:34,029 | INFO | OWW-Loader | Wake-word: >>hey_jarvis<< bereit
+2026-04-07 15:06:54,517 | INFO | MainThread | Voice Studio gestartet
+2026-04-07 15:06:55,591 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-07 15:06:55,591 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-07 15:06:55,721 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-07 15:06:56,336 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-07 15:06:56,339 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-07 15:06:59,709 | INFO | OWW-Loader | Wake-word: >>hey_jarvis<< bereit
+2026-04-07 15:08:12,263 | INFO | Thread-4 (_run_ollama_only) | Ollama Anfrage gestartet (34 Zeichen Input)
+2026-04-07 15:08:12,263 | INFO | Thread-4 (_run_ollama_only) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-07 15:08:12,297 | DEBUG | Thread-4 (_run_ollama_only) | History Du: kannst du das licht anmachen ?????
+2026-04-07 15:08:19,474 | INFO | Thread-4 (_run_ollama_only) | Tool-Router Entscheidung: light_on
+2026-04-07 15:08:19,483 | INFO | MainThread | LightController (ollama-tool-router): AN
+2026-04-07 15:08:19,494 | DEBUG | Thread-4 (_run_ollama_only) | History Assistent: Alles klar, ich habe das Licht fuer dich eingeschaltet.
+2026-04-07 15:08:19,538 | INFO | Thread-6 (worker) | Status: Antwort wird vorgelesen...
+2026-04-07 15:08:19,547 | INFO | Thread-6 (worker) | TTS gestartet (55 Zeichen)
+2026-04-07 15:08:26,203 | INFO | Thread-6 (worker) | TTS abgeschlossen
+2026-04-07 15:08:26,204 | INFO | Thread-6 (worker) | Status: Lichtbefehl ueber Ollama-Toolrouting ausgefuehrt
+2026-04-07 15:08:27,510 | INFO | MainThread | LightController (popup): AUS
+2026-04-07 15:08:45,022 | INFO | Thread-9 (_run_ollama_only) | Ollama Anfrage gestartet (31 Zeichen Input)
+2026-04-07 15:08:45,024 | INFO | Thread-9 (_run_ollama_only) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-07 15:08:45,058 | DEBUG | Thread-9 (_run_ollama_only) | History Du: kannst du das Licht ausschalten
+2026-04-07 15:08:50,997 | INFO | Thread-9 (_run_ollama_only) | Tool-Router Entscheidung: light_off
+2026-04-07 15:08:51,040 | INFO | MainThread | LightController (ollama-tool-router): AUS
+2026-04-07 15:08:51,054 | DEBUG | Thread-9 (_run_ollama_only) | History Assistent: Alles klar, ich habe das Licht fuer dich ausgeschaltet.
+2026-04-07 15:08:51,087 | INFO | Thread-11 (worker) | Status: Antwort wird vorgelesen...
+2026-04-07 15:08:51,124 | INFO | Thread-11 (worker) | TTS gestartet (55 Zeichen)
+2026-04-07 15:08:55,843 | INFO | Thread-11 (worker) | TTS abgeschlossen
+2026-04-07 15:08:55,843 | INFO | Thread-11 (worker) | Status: Lichtbefehl ueber Ollama-Toolrouting ausgefuehrt
+2026-04-07 15:09:15,630 | INFO | MainThread | Voice Studio gestartet
+2026-04-07 15:09:16,641 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-07 15:09:16,641 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-07 15:09:16,790 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-07 15:09:17,408 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-07 15:09:17,417 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-07 15:09:20,987 | INFO | OWW-Loader | Wake-word: >>hey_jarvis<< bereit
+2026-04-07 15:10:18,149 | INFO | MainThread | Voice Studio gestartet
+2026-04-07 15:10:18,959 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-07 15:10:18,959 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-07 15:10:19,075 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-07 15:10:19,655 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-07 15:10:19,663 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-07 15:10:23,096 | INFO | OWW-Loader | Wake-word: >>hey_jarvis<< bereit

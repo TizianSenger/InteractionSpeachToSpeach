@@ -161,7 +161,7 @@ class AvatarBridge:
             self.http_session.post(
                 f"http://127.0.0.1:{self.http_port}/api/lipsync",
                 json={"active": bool(active), "energy": max(0.0, min(1.0, float(energy)))},
-                timeout=(0.5, 0.5),
+                timeout=(0.08, 0.08),
             )
         except Exception:
             pass
@@ -182,14 +182,19 @@ class AvatarBridge:
         """Notify the viewer of the current pipeline phase for animation switching."""
         if self.http_port is None or not self.is_running():
             return
-        try:
-            self.http_session.post(
-                f"http://127.0.0.1:{self.http_port}/api/phase",
-                json={"phase": phase},
-                timeout=(0.3, 0.3),
-            )
-        except Exception:
-            pass
+        port = self.http_port
+
+        def _fire() -> None:
+            try:
+                self.http_session.post(
+                    f"http://127.0.0.1:{port}/api/phase",
+                    json={"phase": phase},
+                    timeout=(0.2, 0.2),
+                )
+            except Exception:
+                pass
+
+        threading.Thread(target=_fire, daemon=True).start()
 
     @staticmethod
     def estimate_lipsync_energy(text: str, elapsed_seconds: float) -> float:
