@@ -1640,3 +1640,22 @@ UnboundLocalError: cannot access local variable 'tts_queue' where it is not asso
 2026-04-07 12:05:52,965 | INFO | Thread-5 (_run_transcription) | Ollama Antwort fertig (0 Zeichen, 8.88s)
 2026-04-07 12:05:52,965 | INFO | Thread-5 (_run_transcription) | Status: Antwort abgebrochen
 2026-04-07 12:05:56,765 | INFO | MainThread | Profil gespeichert: C:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\assistant_profile.json
+2026-04-07 12:05:57,660 | INFO | MainThread | Voice Studio gestartet
+2026-04-07 12:05:58,397 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-07 12:05:58,397 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-07 12:05:58,519 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-07 12:05:59,089 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-07 12:05:59,094 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-07 12:06:01,362 | INFO | OWW-Loader | Wake-word: >>hey_jarvis<< bereit
+2026-04-07 12:15:12,810 | INFO | MainThread | Voice Studio gestartet
+2026-04-07 12:15:13,394 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-07 12:15:13,395 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-07 12:15:13,513 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-07 12:15:14,047 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-07 12:15:14,047 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-07 12:15:16,049 | INFO | OWW-Loader | Wake-word: >>hey_jarvis<< bereit
+2026-04-07 12:17:49,111 | INFO | MainThread | Status: 5 Modell(e) geladen: dolphin-mistral, phi4-mini, qwen2.5-coder, qwen3.5 …
+2026-04-07 12:17:53,865 | INFO | MainThread | Status: 5 Modell(e) geladen: dolphin-mistral, phi4-mini, qwen2.5-coder, qwen3.5 …
+2026-04-07 12:17:54,433 | INFO | MainThread | Status: 5 Modell(e) geladen: dolphin-mistral, phi4-mini, qwen2.5-coder, qwen3.5 …
+2026-04-07 12:17:54,607 | INFO | MainThread | Status: 5 Modell(e) geladen: dolphin-mistral, phi4-mini, qwen2.5-coder, qwen3.5 …
+2026-04-07 12:17:54,753 | INFO | MainThread | Status: 5 Modell(e) geladen: dolphin-mistral, phi4-mini, qwen2.5-coder, qwen3.5 …

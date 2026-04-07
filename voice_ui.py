@@ -1033,7 +1033,12 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
             mdl, values=OLLAMA_MODEL_OPTIONS,
             variable=self.ollama_model_var,
         )
-        self.ollama_model_menu.pack(fill="x", padx=14, pady=(0, 8))
+        self.ollama_model_menu.pack(fill="x", padx=14, pady=(0, 6))
+        self.refresh_ollama_btn = ctk.CTkButton(
+            mdl, text="Modelle von Ollama laden",
+            command=self.refresh_ollama_models, height=36,
+        )
+        self.refresh_ollama_btn.pack(fill="x", padx=14, pady=(0, 8))
         lbl(mdl, "API-URL")
         self.ollama_url_entry = ctk.CTkEntry(mdl, textvariable=self.ollama_url_var, height=36)
         self.ollama_url_entry.pack(fill="x", padx=14, pady=(0, 10))
@@ -2441,6 +2446,60 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
         if device == -1:
             return None
         return device
+
+    def refresh_ollama_models(self) -> None:
+        btn = getattr(self, "refresh_ollama_btn", None)
+        if btn is not None:
+            btn.configure(state="disabled", text="Lädt...")
+
+        def _fetch() -> None:
+            try:
+                ollama_url = self.ollama_url_var.get().strip() or "http://localhost:11434"
+                resp = self.http_session.get(
+                    f"{ollama_url.rstrip('/')}/api/tags", timeout=6
+                )
+                resp.raise_for_status()
+                data = resp.json()
+                names: list[str] = [
+                    item.get("name", "")
+                    for item in data.get("models", [])
+                    if isinstance(item, dict) and item.get("name")
+                ]
+                # Strip :latest tag for cleaner display
+                names = [
+                    n[: -len(":latest")] if n.endswith(":latest") else n
+                    for n in names
+                ]
+                names.sort()
+                if not names:
+                    self.after(0, lambda: self.set_status("Keine Modelle auf dem Ollama-Server gefunden"))
+                    return
+
+                current = self.ollama_model_var.get().strip()
+
+                def _apply() -> None:
+                    self.ollama_model_menu.configure(values=names)
+                    if current not in names:
+                        self.ollama_model_var.set(names[0])
+                    self.set_status(
+                        f"{len(names)} Modell(e) geladen: {', '.join(names[:4])}"
+                        + (" …" if len(names) > 4 else "")
+                    )
+
+                self.after(0, _apply)
+            except Exception as exc:
+                self.after(
+                    0,
+                    lambda: self.set_status(f"Ollama-Verbindung fehlgeschlagen: {exc}"),
+                )
+            finally:
+                def _reset_btn() -> None:
+                    if btn is not None:
+                        btn.configure(state="normal", text="Modelle von Ollama laden")
+                self.after(0, _reset_btn)
+
+        import threading
+        threading.Thread(target=_fetch, daemon=True).start()
 
     def _audio_callback(self, indata: Any, frames: int, callback_time: Any, status: Any) -> None:
         if self.recording_wave is None:
