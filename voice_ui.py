@@ -87,7 +87,7 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
         ctk.set_appearance_mode("dark")
         ctk.set_default_color_theme("blue")
 
-        self.title("Voice Studio")
+        self.title("Voice Assistant")
         self.geometry("1160x760")
 
         self.recording_stream: sd.InputStream | None = None  # kept for compat. checks
@@ -375,9 +375,20 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
     def _refresh_event_box(self) -> None:
         if not hasattr(self, "events_box"):
             return
-        content = "\n".join(self.event_history)
-        self.events_box.delete("1.0", "end")
-        self.events_box.insert("1.0", content if content else "Noch keine Events")
+        history = list(self.event_history)
+        current_len = len(history)
+        prev_len = getattr(self, "_events_displayed", 0)
+        if current_len == prev_len:
+            return
+        if current_len < prev_len or prev_len == 0:
+            # Erster Aufruf oder Deque rotiert: kompletter Neuaufbau
+            self.events_box.delete("1.0", "end")
+            self.events_box.insert("1.0", "\n".join(history) if history else "Noch keine Events")
+        else:
+            # Nur neue Einträge anhängen (O(1) statt O(n))
+            for entry in history[prev_len:]:
+                self.events_box.insert("end", f"\n{entry}")
+        self._events_displayed = current_len
         self.events_box.see("end")
 
     def _refresh_stats_view(self) -> None:
@@ -686,12 +697,19 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
             row=0, column=4, padx=8, pady=8
         )
 
-        # ── Pipeline-Indikator (rechts, streckt sich) ──────────────────
+        # ── Status-Anzeige (streckt sich, Echtzeit-Feedback) ───────────
+        self.status_label = ctk.CTkLabel(
+            topbar, textvariable=self.status_var,
+            font=(FONT_FAMILY, 13), text_color="#94a3b8", anchor="w",
+        )
+        self.status_label.grid(row=0, column=5, padx=(16, 8), pady=8, sticky="ew")
+
+        # ── Pipeline-Indikator (rechts) ──────────────────────────────────
         import tkinter as tk
         self.pipeline_canvas = tk.Canvas(
             topbar, bg="#1a2236", highlightthickness=0, height=36, width=340
         )
-        self.pipeline_canvas.grid(row=0, column=5, padx=(16, 8), pady=6, sticky="e")
+        self.pipeline_canvas.grid(row=0, column=6, padx=(0, 8), pady=6, sticky="e")
 
         body = ctk.CTkFrame(self)
         body.grid(row=1, column=0, padx=12, pady=(0, 12), sticky="nsew")
@@ -1346,6 +1364,14 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
         "ollama": "#f59e0b",
         "tts":    "#4ade80",
     }
+    # Status-Label-Farben je Phase (besser lesbar als Canvas-Farben)
+    _PHASE_DISPLAY_COLORS: dict[str, str] = {
+        "idle":   "#94a3b8",
+        "mic":    "#22d3ee",
+        "stt":    "#a78bfa",
+        "ollama": "#f59e0b",
+        "tts":    "#4ade80",
+    }
 
     def set_pipeline_phase(self, phase: str) -> None:
         """Switch the pipeline indicator to a new phase (thread-safe)."""
@@ -1363,6 +1389,10 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
             self._pipeline_anim_job = None
         self._pipeline_anim_tick = 0
         self.after(0, self._draw_pipeline)
+        # Status-Label-Farbe an aktive Phase anpassen
+        color = self._PHASE_DISPLAY_COLORS.get(phase, "#94a3b8")
+        if hasattr(self, "status_label"):
+            self.after(0, lambda c=color: self.status_label.configure(text_color=c))
         if phase != "idle":
             self._pipeline_schedule_anim()
 
@@ -1922,7 +1952,7 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
 
     def _schedule_waveform_draw(self) -> None:
         self._draw_waveform()
-        self.waveform_animate_job = self.after(40, self._schedule_waveform_draw)  # ~25 fps
+        self.waveform_animate_job = self.after(20, self._schedule_waveform_draw)  # 20 fps
 
     def trigger_waveform_flash(self) -> None:
         """Called when wake-word fires: bright flash for ~15 frames (600 ms)."""
@@ -1931,6 +1961,9 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
     def _draw_waveform(self) -> None:
         canvas = self.waveform_canvas
         if canvas is None:
+            return
+        # Kein Zeichnen wenn die mittlere Spalte ausgeblendet ist
+        if not self.column_visible.get("middle", True):
             return
         try:
             canvas.update_idletasks()
@@ -2943,7 +2976,12 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
             else:
                 tool_action = "none"
 
+            # tts_queue muss vor diesem Branch definiert sein (wird in finally geprüft)
+            tts_queue = None
+
             if tool_action in {"light_on", "light_off"}:
+                self.after(0, self._stop_thinking)
+                self.after(0, lambda: self._stop_cursor(self.answer_box))
                 self.after(0, self.open_light_test_popup)
                 if tool_action == "light_on":
                     self.after(0, lambda: self.set_light_state(True, source="ollama-tool-router"))
@@ -2954,6 +2992,7 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
 
                 self.set_textbox(self.answer_box, answer)
                 self.add_history_entry("Assistent", answer)
+                self.after(0, lambda: self.set_pipeline_phase("idle"))
 
                 if self.auto_speak_var.get() and not self.cancel_tts_event.is_set():
                     self._speak_text_background(answer, done_status="Lichtbefehl ueber Ollama-Toolrouting ausgefuehrt")
@@ -2965,7 +3004,7 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
             chunk_buffer: list[str] = []
             first_token_received = False
             first_token_time: float | None = None
-            tts_queue: queue.Queue[str | None] | None = None
+            tts_queue = None
             tts_text_buffer = ""
             tts_phrase_buffer = ""
             tts_phrase_count = 0

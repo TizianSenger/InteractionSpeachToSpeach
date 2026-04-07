@@ -1917,3 +1917,72 @@ UnboundLocalError: cannot access local variable 'tts_queue' where it is not asso
 2026-04-07 14:25:54,475 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
 2026-04-07 14:25:54,904 | INFO | MainThread | Status: Antwort abgebrochen
 2026-04-07 14:25:54,932 | INFO | MainThread | Status: Avatar-Viewer gestoppt
+2026-04-07 14:27:19,316 | INFO | MainThread | Voice Studio gestartet
+2026-04-07 14:27:19,988 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-07 14:27:19,988 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-07 14:27:20,116 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-07 14:27:20,664 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-07 14:27:20,664 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-07 14:27:22,954 | INFO | OWW-Loader | Wake-word: >>hey_jarvis<< bereit
+2026-04-07 14:27:46,759 | INFO | MainThread | Status: Avatar-Viewer gestoppt
+2026-04-07 14:27:46,767 | INFO | MainThread | Status: Avatar-Viewer startet mit: Lunar.vrm
+2026-04-07 14:27:47,087 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-07 14:27:47,097 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-07 14:28:13,630 | INFO | Thread-6 (_run_ollama_only) | Ollama Anfrage gestartet (21 Zeichen Input)
+2026-04-07 14:28:13,630 | INFO | Thread-6 (_run_ollama_only) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-07 14:28:13,690 | DEBUG | Thread-6 (_run_ollama_only) | History Du: wie geht es dir heute
+2026-04-07 14:28:15,263 | INFO | Thread-6 (_run_ollama_only) | Status: Ollama antwortet...
+2026-04-07 14:28:21,756 | INFO | Thread-6 (_run_ollama_only) | Ollama Antwort fertig (100 Zeichen, 8.14s)
+2026-04-07 14:28:21,756 | DEBUG | Thread-6 (_run_ollama_only) | History Assistent: Heute fühle ich mich gut dank deiner freundlichen Nachfrage! Wie kann ich dir heute behilflich sein?
+2026-04-07 14:28:21,779 | INFO | Thread-6 (_run_ollama_only) | Status: Antwort fertig. Audio streamt...
+2026-04-07 14:47:07,967 | INFO | MainThread | Voice Studio gestartet
+2026-04-07 14:47:08,909 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-07 14:47:08,909 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-07 14:47:09,027 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-07 14:47:09,642 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-07 14:47:09,648 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-07 14:47:14,008 | INFO | OWW-Loader | Wake-word: >>hey_jarvis<< bereit
+2026-04-07 14:47:42,064 | INFO | Thread-4 (_run_ollama_only) | Ollama Anfrage gestartet (18 Zeichen Input)
+2026-04-07 14:47:42,064 | INFO | Thread-4 (_run_ollama_only) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-07 14:47:42,108 | DEBUG | Thread-4 (_run_ollama_only) | History Du: es ist sehr dunkel
+2026-04-07 14:47:43,584 | INFO | Thread-4 (_run_ollama_only) | Status: Ollama antwortet...
+2026-04-07 14:47:49,078 | INFO | Thread-4 (_run_ollama_only) | Ollama Antwort fertig (141 Zeichen, 7.02s)
+2026-04-07 14:47:49,078 | DEBUG | Thread-4 (_run_ollama_only) | History Assistent: Klingt nach einer perfekten Gelegenheit für eine gemütliche Kerze! Möchtest du vielleicht Lampen im Raum einschalten oder einen Film schauen
+2026-04-07 14:47:49,078 | INFO | Thread-4 (_run_ollama_only) | Status: Antwort fertig. Audio streamt...
+2026-04-07 14:48:08,638 | INFO | Thread-8 (_run_ollama_only) | Ollama Anfrage gestartet (40 Zeichen Input)
+2026-04-07 14:48:08,638 | INFO | Thread-8 (_run_ollama_only) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-07 14:48:08,682 | DEBUG | Thread-8 (_run_ollama_only) | History Du: ja das ist eine gute idee mach das bitte
+2026-04-07 14:48:14,156 | INFO | Thread-8 (_run_ollama_only) | Status: Ollama antwortet...
+2026-04-07 14:48:20,621 | INFO | Thread-8 (_run_ollama_only) | Ollama Antwort fertig (147 Zeichen, 12.01s)
+2026-04-07 14:48:20,622 | DEBUG | Thread-8 (_run_ollama_only) | History Assistent: Großartig, ich schalte die Lichter an. Wie wäre es mit einem beruhigenden Film oder einer entspannenden Playlist für dein gemütliches Kinoer
+2026-04-07 14:48:20,622 | INFO | Thread-8 (_run_ollama_only) | Status: Antwort fertig. Audio streamt...
+2026-04-07 14:49:36,454 | INFO | MainThread | Voice Studio gestartet
+2026-04-07 14:49:37,225 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-07 14:49:37,225 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-07 14:49:37,354 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-07 14:49:37,917 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-07 14:49:37,924 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-07 14:49:41,281 | INFO | OWW-Loader | Wake-word: >>hey_jarvis<< bereit
+2026-04-07 14:49:50,696 | INFO | Thread-4 (_run_ollama_only) | Ollama Anfrage gestartet (18 Zeichen Input)
+2026-04-07 14:49:50,696 | INFO | Thread-4 (_run_ollama_only) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-07 14:49:50,740 | DEBUG | Thread-4 (_run_ollama_only) | History Du: es ist sehr dunkel
+2026-04-07 14:49:51,795 | INFO | Thread-4 (_run_ollama_only) | Status: Ollama antwortet...
+2026-04-07 14:49:55,737 | INFO | Thread-4 (_run_ollama_only) | Ollama Antwort fertig (106 Zeichen, 5.06s)
+2026-04-07 14:49:55,737 | DEBUG | Thread-4 (_run_ollama_only) | History Assistent: Möchtest du vielleicht eine Taschenlampe oder einen Stirnleuchten benutzen? So wird es dir leichter gehen!
+2026-04-07 14:49:55,737 | INFO | Thread-4 (_run_ollama_only) | Status: Antwort fertig. Audio streamt...
+2026-04-07 14:50:09,445 | INFO | Thread-8 (_run_ollama_only) | Ollama Anfrage gestartet (17 Zeichen Input)
+2026-04-07 14:50:09,445 | INFO | Thread-8 (_run_ollama_only) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-07 14:50:09,472 | DEBUG | Thread-8 (_run_ollama_only) | History Du: mach das licht an
+2026-04-07 14:50:23,005 | INFO | Thread-8 (_run_ollama_only) | Tool-Router Entscheidung: light_on
+2026-04-07 14:50:23,014 | INFO | MainThread | LightController (ollama-tool-router): AN
+2026-04-07 14:50:23,029 | DEBUG | Thread-8 (_run_ollama_only) | History Assistent: Alles klar, ich habe das Licht fuer dich eingeschaltet.
+2026-04-07 14:50:23,034 | INFO | Thread-9 (worker) | Status: Antwort wird vorgelesen...
+2026-04-07 14:50:23,063 | INFO | Thread-9 (worker) | TTS gestartet (55 Zeichen)
+2026-04-07 14:50:27,708 | INFO | Thread-9 (worker) | TTS abgeschlossen
+2026-04-07 14:50:27,708 | INFO | Thread-9 (worker) | Status: Lichtbefehl ueber Ollama-Toolrouting ausgefuehrt
+2026-04-07 14:54:27,332 | INFO | MainThread | Voice Studio gestartet
+2026-04-07 14:54:28,252 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-07 14:54:28,252 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-07 14:54:28,384 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-07 14:54:28,979 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-07 14:54:28,994 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
