@@ -107,6 +107,12 @@ def main() -> int:
         "--no-default-browser-check",
         "--disable-extensions",
         "--disable-default-apps",
+        "--disable-sync",
+        "--disable-signin",
+        "--no-pings",
+        "--disable-features=msEdgeEnableNTPAppsSyncApps,msEdgeSyncFeature,IdentityConsistency,SignedExchange,EdgeWelcomePage,EdgeSignInPromo,EdgeAccountCTAInNewTab",
+        "--edge-no-first-run-if-not-default",
+        "--suppress-message-center-popups",
     ]
 
     try:

@@ -2127,3 +2127,27 @@ UnboundLocalError: cannot access local variable 'tts_queue' where it is not asso
 2026-04-07 15:31:59,569 | INFO | Thread-6 (_run_transcription) | Ollama Antwort fertig (112 Zeichen, 20.68s)
 2026-04-07 15:31:59,570 | DEBUG | Thread-6 (_run_transcription) | History Assistent: Natürlich! Ich bin bereit für deinen Test. Mach weiter, ich werde versuchen, dir zu helfen. Was hast du im Sinn?
 2026-04-07 15:31:59,571 | INFO | Thread-6 (_run_transcription) | Status: Antwort fertig. Audio streamt...
+2026-04-07 15:33:12,625 | INFO | MainThread | Voice Studio wird beendet
+2026-04-07 15:33:12,630 | INFO | MainThread | Profil gespeichert: C:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\assistant_profile.json
+2026-04-07 15:33:12,631 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-07 15:33:12,654 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-07 15:33:12,749 | INFO | MainThread | Status: Avatar-Viewer gestoppt
+2026-04-07 15:33:21,861 | INFO | MainThread | Voice Studio gestartet
+2026-04-07 15:33:22,617 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-07 15:33:22,617 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-07 15:33:22,744 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-07 15:33:24,753 | INFO | OWW-Loader | Wake-word: >>hey_jarvis<< bereit
+2026-04-07 15:33:28,468 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-07 15:33:28,468 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-07 15:36:15,970 | INFO | MainThread | Voice Studio gestartet
+2026-04-07 15:36:16,867 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-07 15:36:16,867 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-07 15:36:16,988 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-07 15:36:19,003 | INFO | OWW-Loader | Wake-word: >>hey_jarvis<< bereit
+2026-04-07 15:36:22,615 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-07 15:36:22,617 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-07 15:36:30,273 | INFO | MainThread | Voice Studio wird beendet
+2026-04-07 15:36:30,278 | INFO | MainThread | Profil gespeichert: C:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\assistant_profile.json
+2026-04-07 15:36:30,281 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-07 15:36:30,883 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-07 15:36:30,934 | INFO | MainThread | Status: Avatar-Viewer gestoppt
