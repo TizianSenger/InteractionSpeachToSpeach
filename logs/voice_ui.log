@@ -1659,3 +1659,71 @@ UnboundLocalError: cannot access local variable 'tts_queue' where it is not asso
 2026-04-07 12:17:54,433 | INFO | MainThread | Status: 5 Modell(e) geladen: dolphin-mistral, phi4-mini, qwen2.5-coder, qwen3.5 …
 2026-04-07 12:17:54,607 | INFO | MainThread | Status: 5 Modell(e) geladen: dolphin-mistral, phi4-mini, qwen2.5-coder, qwen3.5 …
 2026-04-07 12:17:54,753 | INFO | MainThread | Status: 5 Modell(e) geladen: dolphin-mistral, phi4-mini, qwen2.5-coder, qwen3.5 …
+2026-04-07 12:31:45,409 | INFO | MainThread | Voice Studio wird beendet
+2026-04-07 12:31:45,412 | INFO | MainThread | Profil gespeichert: C:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\assistant_profile.json
+2026-04-07 12:31:45,412 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-07 12:31:45,645 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-07 12:31:45,730 | INFO | MainThread | Status: Avatar-Viewer gestoppt
+2026-04-07 12:31:51,386 | INFO | MainThread | Voice Studio gestartet
+2026-04-07 12:31:51,993 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-07 12:31:51,993 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-07 12:31:52,114 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-07 12:31:52,661 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-07 12:31:52,666 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-07 12:31:54,833 | INFO | OWW-Loader | Wake-word: >>hey_jarvis<< bereit
+2026-04-07 12:40:15,111 | INFO | MainThread | Voice Studio gestartet
+2026-04-07 12:40:15,739 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-07 12:40:15,739 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-07 12:40:15,873 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-07 12:40:16,420 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-07 12:40:16,423 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-07 12:40:18,625 | INFO | OWW-Loader | Wake-word: >>hey_jarvis<< bereit
+2026-04-07 12:51:19,867 | INFO | MainThread | Voice Studio gestartet
+2026-04-07 12:51:20,457 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-07 12:51:20,457 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-07 12:51:20,565 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-07 12:51:21,125 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-07 12:51:21,125 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-07 12:51:23,647 | INFO | OWW-Loader | Wake-word: >>hey_jarvis<< bereit
+2026-04-07 12:56:38,028 | INFO | Thread-4 (_run_ollama_test) | Status: Prüfe Ollama...
+2026-04-07 12:56:38,055 | INFO | Thread-4 (_run_ollama_test) | Status: Ollama OK. Modell erreichbar: phi4-mini
+2026-04-07 12:56:39,767 | INFO | Thread-5 (_run_ollama_test) | Status: Prüfe Ollama...
+2026-04-07 12:56:39,777 | INFO | Thread-5 (_run_ollama_test) | Status: Ollama OK. Modell erreichbar: phi4-mini
+2026-04-07 12:56:43,256 | INFO | MainThread | LightController (popup): AUS
+2026-04-07 12:56:43,845 | INFO | MainThread | LightController (popup): AN
+2026-04-07 12:56:44,409 | INFO | MainThread | LightController (popup): AUS
+2026-04-07 12:58:45,043 | INFO | MainThread | Voice Studio gestartet
+2026-04-07 12:58:45,817 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-07 12:58:45,817 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-07 12:58:45,950 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-07 12:58:46,494 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-07 12:58:46,499 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-07 12:58:49,043 | INFO | OWW-Loader | Wake-word: >>hey_jarvis<< bereit
+2026-04-07 12:59:01,181 | INFO | MainThread | Status: Avatar-Viewer gestoppt
+2026-04-07 12:59:01,193 | INFO | MainThread | Status: Avatar-Viewer startet mit: Cyber.vrm
+2026-04-07 12:59:01,510 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-07 12:59:01,513 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-07 12:59:23,176 | INFO | MainThread | Status: 11 VRM-Modell(e) gefunden
+2026-04-07 12:59:37,217 | INFO | MainThread | Voice Studio gestartet
+2026-04-07 12:59:37,973 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-07 12:59:37,973 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-07 12:59:38,084 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-07 12:59:38,622 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-07 12:59:38,623 | INFO | MainThread | Avatar-Viewer gestartet (Port 18457)
+2026-04-07 12:59:41,287 | INFO | OWW-Loader | Wake-word: >>hey_jarvis<< bereit
+2026-04-07 13:00:52,434 | INFO | MainThread | Voice Studio gestartet
+2026-04-07 13:00:53,095 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-07 13:00:53,095 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-07 13:00:53,212 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-07 13:00:53,734 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-07 13:00:53,753 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-07 13:00:55,986 | INFO | OWW-Loader | Wake-word: >>hey_jarvis<< bereit
+2026-04-07 13:01:07,329 | INFO | MainThread | Status: Avatar-Viewer gestoppt
+2026-04-07 13:01:07,337 | INFO | MainThread | Status: Avatar-Viewer startet mit: PinkBunny.vrm
+2026-04-07 13:01:07,659 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-07 13:01:07,664 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-07 13:01:16,979 | INFO | MainThread | Voice Studio wird beendet
+2026-04-07 13:01:16,982 | INFO | MainThread | Profil gespeichert: C:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\assistant_profile.json
+2026-04-07 13:01:16,983 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-07 13:01:17,583 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-07 13:01:17,612 | INFO | MainThread | Status: Avatar-Viewer gestoppt

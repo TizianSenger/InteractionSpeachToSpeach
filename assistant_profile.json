@@ -32,7 +32,8 @@
   "workflow": {
     "auto_speak": true,
     "auto_pipeline": true,
-    "avatar_lipsync": true
+    "avatar_lipsync": true,
+    "vrm_model": "PinkBunny.vrm"
   },
   "audio": {
     "sample_rate": "16000",

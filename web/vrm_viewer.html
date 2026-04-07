@@ -188,6 +188,11 @@
             createVRMAnimationClip,
         } from '/web/vendor/three-vrm-animation.module.js';
 
+        import { EffectComposer } from '/web/vendor/postprocessing/EffectComposer.js';
+        import { RenderPass } from '/web/vendor/postprocessing/RenderPass.js';
+        import { UnrealBloomPass } from '/web/vendor/postprocessing/UnrealBloomPass.js';
+        import { OutputPass } from '/web/vendor/postprocessing/OutputPass.js';
+
         // ─────────────────────────────────────────────────────────────────────────
         // URL Parameters
         // ─────────────────────────────────────────────────────────────────────────
@@ -213,13 +218,16 @@
         // ─────────────────────────────────────────────────────────────────────────
         // Renderer
         // ─────────────────────────────────────────────────────────────────────────
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        const renderer = new THREE.WebGLRenderer({ antialias: true, precision: 'highp' });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(window.devicePixelRatio);
+        // 1.5× supersampling (SSAA) – renders at higher internal res and downscales,
+        // giving sharper edges than MSAA alone.  Capped at 2 to stay GPU-sane.
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio * 1.5, 2));
         renderer.outputColorSpace = THREE.SRGBColorSpace;
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
         renderer.toneMappingExposure = 1.1;
         renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         document.body.insertBefore(renderer.domElement, document.body.firstChild);
 
         // ─────────────────────────────────────────────────────────────────────────
@@ -227,7 +235,7 @@
         // ─────────────────────────────────────────────────────────────────────────
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x12121e);
-        scene.fog = new THREE.FogExp2(0x12121e, 0.06);
+        scene.fog = new THREE.FogExp2(0x12121e, 0.022);
 
         // ─────────────────────────────────────────────────────────────────────────
         // Camera + Controls
@@ -302,7 +310,14 @@
         const sun = new THREE.DirectionalLight(0xfff4e0, 1.4);
         sun.position.set(2, 4, 3);
         sun.castShadow = true;
-        sun.shadow.mapSize.setScalar(2048);
+        sun.shadow.mapSize.setScalar(4096);
+        sun.shadow.camera.near = 0.5;
+        sun.shadow.camera.far = 14;
+        sun.shadow.camera.left = -3;
+        sun.shadow.camera.right = 3;
+        sun.shadow.camera.top = 5;
+        sun.shadow.camera.bottom = -1;
+        sun.shadow.bias = -0.0004;
         scene.add(sun);
 
         const fill = new THREE.DirectionalLight(0xaaccff, 0.5);
@@ -314,11 +329,21 @@
         scene.add(rim);
 
         // ─────────────────────────────────────────────────────────────────────────
-        // Floor grid
+        // Floor grid + shadow-receiving ground plane
         // ─────────────────────────────────────────────────────────────────────────
         const grid = new THREE.GridHelper(20, 40, 0x333355, 0x222233);
         grid.position.y = 0;
         scene.add(grid);
+
+        // Invisible plane just to catch character shadows
+        const shadowPlane = new THREE.Mesh(
+            new THREE.PlaneGeometry(14, 14),
+            new THREE.ShadowMaterial({ opacity: 0.35 })
+        );
+        shadowPlane.rotation.x = -Math.PI / 2;
+        shadowPlane.position.y = 0.001;
+        shadowPlane.receiveShadow = true;
+        scene.add(shadowPlane);
 
         // ─────────────────────────────────────────────────────────────────────────
         // HDR environment (optional)
@@ -496,6 +521,27 @@
                 VRMUtils.removeUnnecessaryVertices(gltf.scene);
                 VRMUtils.rotateVRM0(vrm);   // VRM 0.x → correct orientation
 
+                // Enable shadow casting and receiving on all VRM meshes
+                // + maximum anisotropic filtering on every texture
+                const maxAniso = renderer.capabilities.getMaxAnisotropy();
+                vrm.scene.traverse((obj) => {
+                    if (obj.isMesh) {
+                        obj.castShadow = true;
+                        obj.receiveShadow = true;
+                        const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+                        for (const mat of mats) {
+                            for (const key of Object.keys(mat)) {
+                                const val = mat[key];
+                                if (val && val.isTexture && val.anisotropy !== maxAniso) {
+                                    val.anisotropy = maxAniso;
+                                    val.needsUpdate = true;
+                                }
+                            }
+                            mat.needsUpdate = true;
+                        }
+                    }
+                });
+
                 scene.add(vrm.scene);
                 alignVRMToGround(vrm);
                 setTimeout(() => alignVRMToGround(vrm), 80);
@@ -607,7 +653,27 @@
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio * 1.5, 2));
+            composer.setSize(window.innerWidth, window.innerHeight);
         });
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // Post-processing: Bloom
+        // ─────────────────────────────────────────────────────────────────────────
+        const composer = new EffectComposer(renderer);
+        composer.addPass(new RenderPass(scene, camera));
+
+        // threshold 0.85 → only very bright highlights bloom (eyes, specular)
+        // strength  0.55 → subtle glow, not overpowering
+        // radius    0.45 → medium spread for soft anime-style look
+        const bloomPass = new UnrealBloomPass(
+            new THREE.Vector2(window.innerWidth, window.innerHeight),
+            0.55,  // strength
+            0.45,  // radius
+            0.85   // luminance threshold
+        );
+        composer.addPass(bloomPass);
+        composer.addPass(new OutputPass());
 
         // ─────────────────────────────────────────────────────────────────────────
         // Render loop
@@ -630,7 +696,7 @@
             }
             if (vrm) vrm.update(dt);
 
-            renderer.render(scene, camera);
+            composer.render();
         }
         renderLoop();
 

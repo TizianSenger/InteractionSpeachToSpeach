@@ -122,6 +122,7 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
         self.pyttsx3_engine: Any | None = None
         self.pyttsx3_engine_lock = threading.Lock()
         self.avatar_lipsync_var = ctk.BooleanVar(value=True)
+        self.vrm_model_var = ctk.StringVar(value="vrm_AvatarSample_S.vrm")
         self.column_visible: dict[str, bool] = {"left": False, "middle": True, "right": True}
         self.column_frames: dict[str, ctk.CTkFrame] = {}
         self.body_frame: ctk.CTkFrame | None = None
@@ -475,6 +476,7 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
                 "auto_speak": bool(self.auto_speak_var.get()),
                 "auto_pipeline": bool(self.auto_pipeline_var.get()),
                 "avatar_lipsync": bool(self.avatar_lipsync_var.get()),
+                "vrm_model": self.vrm_model_var.get().strip(),
             },
             "audio": {
                 "sample_rate": self.sample_rate_var.get().strip(),
@@ -553,6 +555,12 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
                 self.auto_pipeline_var.set(bool(workflow["auto_pipeline"]))
             if "avatar_lipsync" in workflow:
                 self.avatar_lipsync_var.set(bool(workflow["avatar_lipsync"]))
+            vrm_name = _str(workflow, "vrm_model", self.vrm_model_var.get())
+            self.vrm_model_var.set(vrm_name)
+            # Apply immediately so the auto-start viewer uses the saved model
+            vrm_abs = Path(__file__).resolve().parent / "runtime_assets" / "model" / vrm_name
+            if vrm_abs.exists():
+                self.avatar_bridge.vrm_relative_path = f"runtime_assets/model/{vrm_name}"
 
             # Audio
             self.sample_rate_var.set(_str(audio, "sample_rate", self.sample_rate_var.get()))
@@ -922,7 +930,7 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
         tabs = ctk.CTkTabview(popup, corner_radius=10, border_width=0)
         tabs.pack(fill="both", expand=True, padx=12, pady=(8, 12))
 
-        for tab_name in ("Workflow", "STT", "Modell", "Persona", "Audio", "TTS"):
+        for tab_name in ("Workflow", "STT", "Modell", "Persona", "Audio", "TTS", "Avatar"):
             tabs.add(tab_name)
 
         # Helper: section header + separator line
@@ -1223,6 +1231,54 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
         ctk.CTkLabel(
             tts,
             text="Tipp: Lade eine .onnx-Stimmdatei herunter und trage den Pfad ein.",
+            text_color="gray60", wraplength=560, justify="left", anchor="w",
+            font=(FONT_FAMILY, 12),
+        ).pack(fill="x", padx=14, pady=(0, 10))
+
+        # ── Tab: Avatar ───────────────────────────────────────────────────
+        av = ctk.CTkScrollableFrame(tabs.tab("Avatar"), fg_color="transparent")
+        av.pack(fill="both", expand=True)
+
+        section(av, "VRM-Modell auswählen")
+        lbl(av, "Installiertes Modell")
+        vrm_names = self._scan_vrm_models()
+        self.vrm_model_menu = ctk.CTkOptionMenu(
+            av, values=vrm_names if vrm_names else ["(Kein Modell gefunden)"],
+            variable=self.vrm_model_var,
+        )
+        self.vrm_model_menu.pack(fill="x", padx=14, pady=(0, 6))
+
+        # Refresh + Browse row
+        btn_row = ctk.CTkFrame(av, fg_color="transparent")
+        btn_row.pack(fill="x", padx=14, pady=(0, 8))
+        btn_row.grid_columnconfigure((0, 1), weight=1)
+        ctk.CTkButton(
+            btn_row, text="↻  Ordner neu einlesen",
+            command=self._refresh_vrm_model_list,
+            height=36,
+        ).grid(row=0, column=0, padx=(0, 4), sticky="ew")
+        ctk.CTkButton(
+            btn_row, text="＋  VRM-Datei importieren",
+            command=self._browse_vrm_model,
+            height=36,
+        ).grid(row=0, column=1, padx=(4, 0), sticky="ew")
+
+        ctk.CTkLabel(
+            av,
+            text="Importierte Dateien werden in den Modell-Ordner kopiert.",
+            text_color="gray60", wraplength=560, justify="left", anchor="w",
+            font=(FONT_FAMILY, 12),
+        ).pack(fill="x", padx=14, pady=(0, 10))
+
+        section(av, "Modell anwenden")
+        ctk.CTkButton(
+            av, text="Viewer neu starten mit gewähltem Modell",
+            command=self._apply_vrm_model,
+            height=40, fg_color="#1d4ed8", hover_color="#1e40af",
+        ).pack(fill="x", padx=14, pady=(0, 6))
+        ctk.CTkLabel(
+            av,
+            text="Der Viewer wird gestoppt und sofort mit dem neuen Modell neu gestartet.",
             text_color="gray60", wraplength=560, justify="left", anchor="w",
             font=(FONT_FAMILY, 12),
         ).pack(fill="x", padx=14, pady=(0, 10))
@@ -2500,6 +2556,65 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
 
         import threading
         threading.Thread(target=_fetch, daemon=True).start()
+
+    # ── VRM model helpers ─────────────────────────────────────────────────
+
+    def _vrm_model_dir(self) -> Path:
+        return Path(__file__).resolve().parent / "runtime_assets" / "model"
+
+    def _scan_vrm_models(self) -> list[str]:
+        """Return sorted list of .vrm filenames in the model directory."""
+        model_dir = self._vrm_model_dir()
+        if not model_dir.exists():
+            return []
+        return sorted(p.name for p in model_dir.glob("*.vrm"))
+
+    def _refresh_vrm_model_list(self) -> None:
+        names = self._scan_vrm_models()
+        menu = getattr(self, "vrm_model_menu", None)
+        if menu is None:
+            return
+        if not names:
+            menu.configure(values=["(Kein Modell gefunden)"])
+            return
+        menu.configure(values=names)
+        if self.vrm_model_var.get() not in names:
+            self.vrm_model_var.set(names[0])
+        self.set_status(f"{len(names)} VRM-Modell(e) gefunden")
+
+    def _browse_vrm_model(self) -> None:
+        from tkinter import filedialog
+        path = filedialog.askopenfilename(
+            title="VRM-Datei auswählen",
+            filetypes=[("VRM-Dateien", "*.vrm"), ("Alle Dateien", "*.*")],
+        )
+        if not path:
+            return
+        src = Path(path)
+        dest = self._vrm_model_dir() / src.name
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        if dest != src:
+            import shutil
+            shutil.copy2(src, dest)
+        self._refresh_vrm_model_list()
+        self.vrm_model_var.set(src.name)
+        self.set_status(f"Modell importiert: {src.name}")
+
+    def _apply_vrm_model(self) -> None:
+        selected = self.vrm_model_var.get().strip()
+        if not selected or selected == "(Kein Modell gefunden)":
+            self.set_status("Kein gültiges Modell ausgewählt")
+            return
+        vrm_rel = f"runtime_assets/model/{selected}"
+        vrm_abs = Path(__file__).resolve().parent / vrm_rel
+        if not vrm_abs.exists():
+            self.set_status(f"Datei nicht gefunden: {vrm_rel}")
+            return
+        self.avatar_bridge.vrm_relative_path = vrm_rel
+        if self.avatar_bridge.is_running():
+            self._stop_avatar_viewer()
+        self.after(300, self._start_avatar_viewer)
+        self.set_status(f"Avatar-Viewer startet mit: {selected}")
 
     def _audio_callback(self, indata: Any, frames: int, callback_time: Any, status: Any) -> None:
         if self.recording_wave is None:
