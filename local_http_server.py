@@ -27,6 +27,12 @@ _lipsync_state: dict[str, float | bool] = {
     "updated_at": 0.0,
 }
 
+_phase_state_lock = threading.Lock()
+_phase_state: dict[str, str | float] = {
+    "phase": "idle",
+    "updated_at": 0.0,
+}
+
 
 class _Handler(http.server.SimpleHTTPRequestHandler):
     def _send_json(self, status_code: int, payload: dict[str, object]) -> None:
@@ -69,6 +75,28 @@ class _Handler(http.server.SimpleHTTPRequestHandler):
 
         self._send_json(200, {"ok": True})
 
+    def _handle_phase_get(self) -> None:
+        with _phase_state_lock:
+            payload = dict(_phase_state)
+        self._send_json(200, payload)
+
+    def _handle_phase_post(self) -> None:
+        content_length = int(self.headers.get("Content-Length", "0") or "0")
+        if content_length <= 0 or content_length > self._MAX_REQUEST_BODY:
+            self._send_json(400, {"ok": False, "error": "bad_request"})
+            return
+        try:
+            raw_body = self.rfile.read(content_length)
+            parsed = json.loads(raw_body.decode("utf-8"))
+            phase = str(parsed.get("phase", "idle"))
+        except Exception:
+            self._send_json(400, {"ok": False, "error": "invalid_json"})
+            return
+        with _phase_state_lock:
+            _phase_state["phase"] = phase
+            _phase_state["updated_at"] = time.time()
+        self._send_json(200, {"ok": True})
+
     def end_headers(self) -> None:
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
@@ -79,11 +107,17 @@ class _Handler(http.server.SimpleHTTPRequestHandler):
         if self.path.startswith("/api/lipsync"):
             self._handle_lipsync_get()
             return
+        if self.path.startswith("/api/phase"):
+            self._handle_phase_get()
+            return
         super().do_GET()
 
     def do_POST(self) -> None:
         if self.path.startswith("/api/lipsync"):
             self._handle_lipsync_post()
+            return
+        if self.path.startswith("/api/phase"):
+            self._handle_phase_post()
             return
         self.send_error(404)
 

@@ -57,41 +57,24 @@
             pointer-events: none;
         }
 
-        #controls {
-            position: fixed;
-            bottom: 50px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            gap: 10px;
-        }
-
-        button {
-            padding: 8px 22px;
-            border: none;
-            border-radius: 20px;
-            font-size: 13px;
-            cursor: pointer;
-            transition: opacity 0.15s;
-        }
-
-        button:hover {
-            opacity: 0.85;
-        }
-
-        #btn-play {
-            background: #1f7a5c;
-            color: #fff;
-        }
-
-        #btn-stop {
-            background: #7a1f1f;
-            color: #fff;
-        }
-
         #btn-reset {
+            position: fixed;
+            top: 12px;
+            right: 12px;
+            padding: 6px 14px;
+            border: none;
+            border-radius: 16px;
+            font-size: 12px;
+            cursor: pointer;
             background: #333;
             color: #ccc;
+            opacity: 0.75;
+            transition: opacity 0.15s;
+            z-index: 50;
+        }
+
+        #btn-reset:hover {
+            opacity: 1;
         }
 
         #loader {
@@ -135,11 +118,7 @@
     <div id="hud-top"></div>
     <div id="status">Bereit</div>
 
-    <div id="controls">
-        <button id="btn-play" onclick="playAnimation()">▶ Abspielen</button>
-        <button id="btn-stop" onclick="stopAnimation()">⏹ Stopp</button>
-        <button id="btn-reset" onclick="resetCamera()">↺ Kamera</button>
-    </div>
+    <button id="btn-reset" onclick="resetCamera()">↺ Kamera</button>
 
     <!-- Fehler-Overlay: zeigt JS/Netzwerk-Fehler sichtbar an -->
     <div id="error-overlay" style="
@@ -199,6 +178,7 @@
         const params = new URLSearchParams(location.search);
         const VRM_URL = params.get('vrm') || null;
         const VRMA_URL = params.get('vrma') || null;
+        const IDLE_URL = params.get('idle') || null;
         const HDR_URL = params.get('hdr') || null;
         const AUTOPLAY = params.get('autoplay') === '1';
         const MOUTH_TEST = params.get('mouthtest') === '1';
@@ -284,11 +264,11 @@
             const boundedWidthDistance = Math.min(distForWidth, distForHeight * 1.18);
             const fitDistance = Math.max(distForHeight, boundedWidthDistance) * 1.10;
 
-            const targetY = box.min.y + height * 0.38;
+            const targetY = box.min.y + height * 0.32;
             controls.target.set(center.x, targetY, center.z);
 
-            // Keep model centered vertically with slight top-down angle.
-            camera.position.set(center.x, box.min.y + height * 0.52, center.z + fitDistance);
+            // Camera at chest/belly height.
+            camera.position.set(center.x, box.min.y + height * 0.38, center.z + fitDistance);
             camera.near = Math.max(0.01, fitDistance / 250);
             camera.far = Math.max(200, fitDistance * 12);
             camera.updateProjectionMatrix();
@@ -376,8 +356,12 @@
         let vrm = null;
         let mixer = null;
         let vrmaClip = null;
-        let vrmaAction = null;
-        let isAnimating = false;
+        let vrmaAction = null;          // user-triggered animation
+        let idleClip = null;            // idle/phase VRMA clip
+        let idleAction = null;          // currently playing idle action
+        let isAnimating = false;        // true = user animation playing
+        let currentPhase = 'idle';      // last known pipeline phase
+        let phaseLastPollMs = 0;        // throttle /api/phase polling
         let idleT = 0;
         let lastMs = performance.now();
         let mouthTestT = 0;
@@ -387,6 +371,137 @@
         let externalLipSmoothed = 0;
         let externalLipLastPollMs = 0;
         let externalLipLastUpdate = 0;
+
+        // ─────────────────────────────────────────────────────────────────────────
+        // Idle / phase animation helpers
+        // ─────────────────────────────────────────────────────────────────────────
+
+        // Separate loader for VRMA files – uses the same shared loader that
+        // already has both VRMLoaderPlugin AND VRMAnimationLoaderPlugin registered.
+        // VRMAnimationLoaderPlugin alone (without VRMLoaderPlugin on the same
+        // instance) does NOT populate gltf.userData.vrmAnimations.
+        const animLoader = loader;  // alias – same instance as the VRM loader
+
+        // Phase → VRMA URL
+        const PHASE_ANIM_MAP = {
+            idle: IDLE_URL,
+            mic: IDLE_URL,
+            stt: IDLE_URL,
+            ollama: IDLE_URL,   // overridden below if Thinking exists
+            tts: IDLE_URL,
+        };
+
+        // Try to resolve Thinking animation URL from same origin
+        // Replaces the last dir segment before /animation.vrma with 'Thinking'
+        const THINKING_URL = IDLE_URL
+            ? IDLE_URL.replace(/\/[^\/]+\/animation\.vrma$/, '/Thinking/animation.vrma')
+            : null;
+
+        // Cache: url → THREE.AnimationClip
+        const _clipCache = {};
+
+        async function _loadClip(url) {
+            if (!url) return null;
+            if (_clipCache[url]) return _clipCache[url];
+            const shortUrl = url.split('/').slice(-3).join('/');
+            try {
+                const gltf = await new Promise((res, rej) =>
+                    animLoader.load(url, res, undefined, rej)
+                );
+
+                // Debug: show what the file actually contains
+                const extsUsed = gltf.parser.json.extensionsUsed || [];
+                const rawAnims = gltf.animations || [];
+                const vrmAnims = gltf.userData.vrmAnimations;
+
+                if (vrmAnims && vrmAnims.length > 0) {
+                    const clip = createVRMAnimationClip(vrmAnims[0], vrm);
+                    _clipCache[url] = clip;
+                    return clip;
+                }
+
+                // Fallback: use raw Three.js animation clip directly
+                // (works when VRMC_vrm_animation extension is missing but GLB has animations)
+                if (rawAnims.length > 0) {
+                    _showErr('ℹ Fallback auf raw GLB-Animation für ' + shortUrl
+                        + ' | extensionsUsed: [' + extsUsed.join(', ') + ']'
+                        + ' | raw clips: ' + rawAnims.length);
+                    const clip = rawAnims[0];
+                    _clipCache[url] = clip;
+                    return clip;
+                }
+
+                const msg = 'VRMA enthält keine Animationen: ' + shortUrl
+                    + ' | extensionsUsed: [' + extsUsed.join(', ') + ']'
+                    + ' | raw clips: ' + rawAnims.length;
+                _showErr('⚠ ' + msg);
+                setStatus('⚠ ' + msg);
+                return null;
+            } catch (err) {
+                const msg = 'VRMA Ladefehler [' + shortUrl + ']: ' + (err.message || err);
+                _showErr('⚠ ' + msg);
+                setStatus('⚠ ' + msg);
+                return null;
+            }
+        }
+
+        // Crossfade to a new clip.  Weight goes to 1 instantly for first play,
+        // or smooth 0.4 s blend when switching from an existing action.
+        function _crossfadeTo(clip, loop = true, timeScale = 1.0) {
+            if (!mixer || !clip) {
+                if (!clip && idleAction) { idleAction.fadeOut(0.3); idleAction = null; }
+                return;
+            }
+            const next = mixer.clipAction(clip);
+            next.loop = loop ? THREE.LoopRepeat : THREE.LoopOnce;
+            next.clampWhenFinished = !loop;
+            if (idleAction && idleAction !== next) {
+                // Smooth crossfade from current – warp=false so timeScale stays exact
+                next.reset().setEffectiveTimeScale(timeScale).setEffectiveWeight(1);
+                idleAction.crossFadeTo(next, 0.4, false);
+                next.play();
+            } else if (!idleAction) {
+                // First play – no fade, start immediately at full weight
+                next.reset().setEffectiveTimeScale(timeScale).setEffectiveWeight(1).play();
+            } else {
+                // Same clip already playing – just update the timeScale
+                next.setEffectiveTimeScale(timeScale);
+            }
+            idleAction = next;
+
+            // VRM animations are designed for scene at Y=0.
+            // alignVRMToGround shifts scene.position.y upward for the T-pose,
+            // which causes feet to float that exact amount during animation.
+            // Reset to 0 now so the animation's own foot contacts are correct.
+            if (vrm) {
+                vrm.scene.position.y = 0;
+                vrm.scene.updateWorldMatrix(true, true);
+            }
+        }
+
+        async function _applyPhase(phase) {
+            if (!vrm || !mixer) return;
+            currentPhase = phase;
+
+            if (isAnimating) return;   // user animation has priority
+
+            // resolve URL: Thinking for ollama phase, Relax for everything else
+            let url = (phase === 'ollama' && THINKING_URL) ? THINKING_URL : (PHASE_ANIM_MAP[phase] ?? IDLE_URL);
+            const clip = await _loadClip(url);
+            _crossfadeTo(clip, true, url === IDLE_URL ? 0.5 : 1.0);
+        }
+
+        async function pollPipelinePhase(nowMs) {
+            if ((nowMs - phaseLastPollMs) < 200) return;  // poll every 200 ms
+            phaseLastPollMs = nowMs;
+            try {
+                const resp = await fetch(`/api/phase?ts=${Math.floor(nowMs)}`, { cache: 'no-store' });
+                if (!resp.ok) return;
+                const data = await resp.json();
+                const phase = String(data.phase ?? 'idle');
+                if (phase !== currentPhase) _applyPhase(phase);
+            } catch { /* server not ready yet */ }
+        }
 
         function setLipOpen(open) {
             const clamped = Math.min(1.0, Math.max(0.0, open));
@@ -528,6 +643,10 @@
                     if (obj.isMesh) {
                         obj.castShadow = true;
                         obj.receiveShadow = true;
+                        // Disable frustum culling: animated VRM bones invalidate the
+                        // original bounding sphere, causing Three.js to incorrectly
+                        // cull mesh parts → textures appear to flicker/disappear.
+                        obj.frustumCulled = false;
                         const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
                         for (const mat of mats) {
                             for (const key of Object.keys(mat)) {
@@ -613,33 +732,29 @@
         };
 
         // ─────────────────────────────────────────────────────────────────────────
-        // Idle (breathing, head bob, blink)
+        // Idle (blink + expressions only – bones handled by VRMA when loaded)
         // ─────────────────────────────────────────────────────────────────────────
         function applyIdle(dt) {
             if (!vrm) return;
             idleT += dt;
 
-            if (vrm.humanoid) {
+            // Only apply bone movement when NO idle VRMA is running
+            if (!idleAction && vrm.humanoid) {
                 const chest = vrm.humanoid.getNormalizedBoneNode('chest');
-                if (chest) {
-                    chest.rotation.x = Math.sin(idleT * 1.15) * 0.012;
-                }
+                if (chest) chest.rotation.x = Math.sin(idleT * 1.15) * 0.012;
                 const head = vrm.humanoid.getNormalizedBoneNode('head');
                 if (head) {
                     head.rotation.y = Math.sin(idleT * 0.38) * 0.07;
                     head.rotation.x = Math.sin(idleT * 0.27 + 1.0) * 0.04;
                 }
                 const hips = vrm.humanoid.getNormalizedBoneNode('hips');
-                if (hips) {
-                    hips.position.y = Math.sin(idleT * 1.15) * 0.003;
-                }
+                if (hips) hips.position.y = Math.sin(idleT * 1.15) * 0.003;
             }
 
+            // Blink always runs regardless of VRMA
             if (vrm.expressionManager) {
                 const cycle = idleT % 5.5;
-                const blink = cycle < 0.12
-                    ? Math.sin((cycle / 0.12) * Math.PI)
-                    : 0;
+                const blink = cycle < 0.12 ? Math.sin((cycle / 0.12) * Math.PI) : 0;
                 vrm.expressionManager.setValue('blink', blink);
                 vrm.expressionManager.setValue('blinkLeft', blink);
                 vrm.expressionManager.setValue('blinkRight', blink);
@@ -685,6 +800,7 @@
             const dt = Math.min((nowMs - lastMs) / 1000, 0.05);
             lastMs = nowMs;
             pollExternalLipSync(nowMs);
+            pollPipelinePhase(nowMs);
 
             controls.update();
 
@@ -708,7 +824,19 @@
                 .then(() => {
                     if (VRMA_URL) return loadVRMA(VRMA_URL);
                 })
-                .then(() => {
+                .then(async () => {
+                    // Auto-load idle animation
+                    if (IDLE_URL) {
+                        setStatus('Lade Idle-Animation\u2026 (' + IDLE_URL.split('/').slice(-3).join('/') + ')');
+                        const clip = await _loadClip(IDLE_URL);
+                        if (clip) {
+                            _crossfadeTo(clip, true, 0.5);
+                            setStatus('VRM + Idle bereit \u2713');
+                        }
+                        // if clip is null, _loadClip already called _showErr + setStatus
+                    } else {
+                        setStatus('VRM geladen ✓  (kein idle= Parameter übergeben)');
+                    }
                     if (AUTOPLAY && VRMA_URL) {
                         setTimeout(() => window.playAnimation(), 300);
                     }

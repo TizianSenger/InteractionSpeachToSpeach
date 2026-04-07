@@ -54,7 +54,14 @@ class AvatarBridge:
 
         rel_vrm = self.vrm_relative_path.replace("\\", "/")
         vrm_url = f"http://127.0.0.1:{self.http_port}/{urllib.parse.quote(rel_vrm, safe='/')}"
-        query = urllib.parse.urlencode({"vrm": vrm_url})
+
+        # Auto-play Walk as idle animation if available
+        idle_rel = "runtime_assets/animations/Walk/animation.vrma"
+        idle_abs = self.base_dir / idle_rel
+        params: dict[str, str] = {"vrm": vrm_url}
+        if idle_abs.exists():
+            params["idle"] = f"http://127.0.0.1:{self.http_port}/{urllib.parse.quote(idle_rel, safe='/')}"
+        query = urllib.parse.urlencode(params)
         return f"http://127.0.0.1:{self.http_port}/web/vrm_viewer.html?{query}"
 
     def start(
@@ -167,6 +174,19 @@ class AvatarBridge:
                 f"http://127.0.0.1:{self.http_port}/api/lipsync",
                 json={"active": False, "energy": 0.0},
                 timeout=(0.5, 0.5),
+            )
+        except Exception:
+            pass
+
+    def post_phase(self, phase: str) -> None:
+        """Notify the viewer of the current pipeline phase for animation switching."""
+        if self.http_port is None or not self.is_running():
+            return
+        try:
+            self.http_session.post(
+                f"http://127.0.0.1:{self.http_port}/api/phase",
+                json={"phase": phase},
+                timeout=(0.3, 0.3),
             )
         except Exception:
             pass

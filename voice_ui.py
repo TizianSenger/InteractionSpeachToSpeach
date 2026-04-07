@@ -1352,6 +1352,8 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
         if phase == self.pipeline_phase:
             return
         self.pipeline_phase = phase
+        # Notify avatar viewer for animation switching
+        self.avatar_bridge.post_phase(phase)
         # Cancel running animation
         if self._pipeline_anim_job is not None:
             try:

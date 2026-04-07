@@ -635,7 +635,7 @@ class VRMAnimationLoaderPlugin {
             if (defExtension == null) {
                 return;
             }
-            const specVersion = defExtension.specVersion;
+            const specVersion = defExtension.specVersion ?? '1.0';
             if (!POSSIBLE_SPEC_VERSIONS.has(specVersion)) {
                 console.warn(`VRMAnimationLoaderPlugin: Unknown VRMC_vrm_animation spec version: ${specVersion}`);
                 return;
