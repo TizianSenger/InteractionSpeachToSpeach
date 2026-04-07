@@ -1322,6 +1322,32 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
         except Exception:
             return
 
+        # Theme-aware palette
+        is_light = ctk.get_appearance_mode().lower() == "light"
+        if is_light:
+            canvas_bg    = "#e8edf4"
+            inactive_col = "#b0bdd0"
+            done_col     = "#bfcfe4"
+            done_fill    = "#dce8f5"
+            done_outline = "#0284c7"
+            done_check   = "#0284c7"
+            text_done    = "#64748b"
+            text_pending = "#94a3b8"
+        else:
+            canvas_bg    = "#1a2236"
+            inactive_col = "#334155"
+            done_col     = "#1e3a4a"
+            done_fill    = "#1e3a4a"
+            done_outline = "#22d3ee"
+            done_check   = "#22d3ee"
+            text_done    = "#64748b"
+            text_pending = "#475569"
+
+        try:
+            cv.configure(bg=canvas_bg)
+        except Exception:
+            pass
+
         active = self.pipeline_phase
         steps = self._PIPELINE_STEPS
         n = len(steps)                # 4
@@ -1332,10 +1358,6 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
         # x positions for dots: evenly spaced
         xs = [int(w * (i + 0.5) / n) for i in range(n)]
         active_color = self._PHASE_COLORS.get(active, "#22d3ee")
-        inactive_col = "#334155"
-        done_col = "#1e3a4a"
-        text_active = "#ffffff"
-        text_done   = "#64748b"
 
         # Determine which step index is active (-1 = idle)
         active_idx = next(
@@ -1354,8 +1376,8 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
             if i < active_idx:
                 # completed
                 cv.create_oval(x - dot_r, y - dot_r, x + dot_r, y + dot_r,
-                               fill="#1e3a4a", outline="#22d3ee", width=1)
-                cv.create_text(x, y, text="✓", fill="#22d3ee",
+                               fill=done_fill, outline=done_outline, width=1)
+                cv.create_text(x, y, text="✓", fill=done_check,
                                font=("Segoe UI", 8, "bold"))
                 cv.create_text(x, text_y, text=label, fill=text_done,
                                font=("Segoe UI", 8))
@@ -1373,7 +1395,7 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
                 # pending
                 cv.create_oval(x - dot_r, y - dot_r, x + dot_r, y + dot_r,
                                fill=inactive_col, outline="")
-                cv.create_text(x, text_y, text=label, fill="#475569",
+                cv.create_text(x, text_y, text=label, fill=text_pending,
                                font=("Segoe UI", 8))
 
     def set_textbox(self, textbox: ctk.CTkTextbox, content: str) -> None:
@@ -1858,6 +1880,34 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
 
         self._ww_pulse_tick += 1
 
+        # Theme-aware palette
+        is_light = ctk.get_appearance_mode().lower() == "light"
+        if is_light:
+            canvas_bg  = "#f0f4f8"
+            grid_mid   = "#c5cdd9"
+            grid_dash  = "#dce3ec"
+            idle_bar   = "#94a3b8"
+            idle_glow  = "#e2e8f0"
+            rec_bar    = "#0284c7"
+            rec_glow   = "#7dd3fc"
+            ww_glow    = "#93c5fd"
+            flash_glow = "#67e8f9"
+        else:
+            canvas_bg  = "#0d1117"
+            grid_mid   = "#1e2a3a"
+            grid_dash  = "#151f2b"
+            idle_bar   = "#334155"
+            idle_glow  = "#1e2a3a"
+            rec_bar    = "#22d3ee"
+            rec_glow   = "#0e7490"
+            ww_glow    = "#0a4a5a"
+            flash_glow = "#67e8f9"
+
+        try:
+            canvas.configure(bg=canvas_bg)
+        except Exception:
+            pass
+
         # Determine visual mode
         is_recording = self.is_recording
         ww_listening = (
@@ -1873,49 +1923,61 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
         # Colour scheme per mode
         import math
         if flash:
-            # Bright white-cyan burst, fades over the 15 frames
+            # Bright white burst, fades over the 15 frames
             fade = self._ww_flash_frames / 15          # 1.0 → 0.0
-            r = int(0x22 + (0xff - 0x22) * fade)
-            g = int(0xd3 + (0xff - 0xd3) * fade)
-            b = int(0xee + (0xff - 0xee) * fade)
+            br, bg_, bb = (0x02, 0x84, 0xc7) if is_light else (0x22, 0xd3, 0xee)
+            r = int(br + (0xff - br) * fade)
+            g = int(bg_ + (0xff - bg_) * fade)
+            b = int(bb + (0xff - bb) * fade)
             bar_color = f"#{r:02x}{g:02x}{b:02x}"
-            glow_color = "#67e8f9"
+            glow_color = flash_glow
             height_boost = 1.0 + 0.6 * fade
         elif is_recording:
-            bar_color = "#22d3ee"
-            glow_color = "#0e7490"
+            bar_color = rec_bar
+            glow_color = rec_glow
             height_boost = 1.0
         elif ww_listening:
             # Gentle idle pulse: amplitude 0.08, period ~2 s
             pulse = 0.92 + 0.08 * math.sin(self._ww_pulse_tick * 0.08)
-            r = int(0x22 * pulse)
-            g = int(0xd3 * pulse)
-            b = int(0xee * pulse)
+            if is_light:
+                # Pulse between rec_bar (#0284c7) and a lighter sky-blue (#7dd3fc)
+                r = int(0x02 + (0x7d - 0x02) * (1.0 - pulse))
+                g = int(0x84 + (0xd3 - 0x84) * (1.0 - pulse))
+                b = int(0xc7 + (0xfc - 0xc7) * (1.0 - pulse))
+            else:
+                r = int(0x22 * pulse)
+                g = int(0xd3 * pulse)
+                b = int(0xee * pulse)
             bar_color = f"#{r:02x}{g:02x}{b:02x}"
-            glow_color = "#0a4a5a"
+            glow_color = ww_glow
             height_boost = pulse
         else:
-            bar_color = "#334155"
-            glow_color = "#1e2a3a"
+            bar_color = idle_bar
+            glow_color = idle_glow
             height_boost = 1.0
 
         canvas.delete("all")
 
         # Background grid lines
         mid_y = h // 2
-        canvas.create_line(0, mid_y, w, mid_y, fill="#1e2a3a", width=1)
+        canvas.create_line(0, mid_y, w, mid_y, fill=grid_mid, width=1)
         for frac in (0.25, 0.75):
             y = int(h * frac)
-            canvas.create_line(0, y, w, y, fill="#151f2b", width=1, dash=(4, 6))
+            canvas.create_line(0, y, w, y, fill=grid_dash, width=1, dash=(4, 6))
 
         # Wake-word listening ring (thin outer circle hint)
         if ww_listening and not is_recording:
             cx, cy = w // 2, mid_y
             ring_r = min(cx, mid_y) - 4
             alpha_pulse = 0.4 + 0.3 * math.sin(self._ww_pulse_tick * 0.08)
-            rr = int(0x22 * alpha_pulse)
-            gg = int(0xd3 * alpha_pulse)
-            bb = int(0xee * alpha_pulse)
+            if is_light:
+                rr = int(0x02 + (0x7d - 0x02) * (1.0 - alpha_pulse))
+                gg = int(0x84 + (0xd3 - 0x84) * (1.0 - alpha_pulse))
+                bb = int(0xc7 + (0xfc - 0xc7) * (1.0 - alpha_pulse))
+            else:
+                rr = int(0x22 * alpha_pulse)
+                gg = int(0xd3 * alpha_pulse)
+                bb = int(0xee * alpha_pulse)
             ring_col = f"#{rr:02x}{gg:02x}{bb:02x}"
             canvas.create_oval(
                 cx - ring_r, cy - ring_r, cx + ring_r, cy + ring_r,
