@@ -2354,3 +2354,311 @@ RuntimeError: Ollama: Modell 'gpt-4o-mini' nicht gefunden. Bitte zuerst: ollama 
 2026-04-08 09:15:16,850 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
 2026-04-08 09:15:16,867 | INFO | MainThread | Status: Antwort abgebrochen
 2026-04-08 09:15:16,913 | INFO | MainThread | Status: Avatar-Viewer gestoppt
+2026-04-08 09:16:34,860 | INFO | MainThread | Voice Studio gestartet
+2026-04-08 09:16:35,363 | INFO | MainThread | Status: Provider aktiv: Ollama
+2026-04-08 09:16:35,703 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-08 09:16:35,707 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-08 09:16:35,861 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-08 09:16:37,776 | INFO | OWW-Loader | Wake-word: >>hey_jarvis<< bereit
+2026-04-08 09:16:41,141 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-08 09:16:41,150 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-08 09:16:54,866 | INFO | MainThread | Status: Ollama: 5 Modell(e) geladen: dolphin-mistral, phi4-mini, qwen2.5-coder, qwen3.5 …
+2026-04-08 09:17:13,072 | INFO | Dummy-5 | Wake-word erkannt: >>Hey Jarvis<< score=0.975
+2026-04-08 09:17:13,167 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-08 09:17:13,491 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-08 09:17:13,491 | INFO | MainThread | VAD aktiv (energie-basiert, Timeout 1.5s)
+2026-04-08 09:17:13,491 | INFO | MainThread | Status: Mikrofon läuft... | VAD AN (Standard (Windows))
+2026-04-08 09:17:16,488 | INFO | Dummy-5 | VAD: Stille – stoppe Aufnahme
+2026-04-08 09:17:16,489 | INFO | MainThread | Aufnahmedauer: 2.99s
+2026-04-08 09:17:16,489 | INFO | MainThread | Status: Aufnahme beendet. Starte Auto-Workflow...
+2026-04-08 09:17:16,497 | INFO | Thread-7 (_run_transcription) | Status: Transkribiere Audio...
+2026-04-08 09:17:19,484 | INFO | Thread-7 (_run_transcription) | Transkription fertig (23 Zeichen)
+2026-04-08 09:17:19,487 | INFO | Thread-7 (_run_transcription) | Status: Transkript erkannt. Sende an Ollama...
+2026-04-08 09:17:19,497 | INFO | Thread-7 (_run_transcription) | Ollama Anfrage gestartet (23 Zeichen Input)
+2026-04-08 09:17:19,497 | INFO | Thread-7 (_run_transcription) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-08 09:17:19,533 | DEBUG | Thread-7 (_run_transcription) | History Du: Wie war dein Tag heute?
+2026-04-08 09:17:20,593 | INFO | Thread-7 (_run_transcription) | Status: Ollama antwortet...
+2026-04-08 09:17:25,690 | INFO | Thread-7 (_run_transcription) | Ollama Antwort fertig (152 Zeichen, 6.19s)
+2026-04-08 09:17:25,692 | DEBUG | Thread-7 (_run_transcription) | History Assistent: Heute bin ich nur eine Software, also habe ich keine Gefühle, aber mein System wurde erfolgreich aktualisiert! Wie kann ich Ihnen heute behi
+2026-04-08 09:17:25,693 | INFO | Thread-7 (_run_transcription) | Status: Antwort fertig. Audio streamt...
+2026-04-08 09:17:52,762 | INFO | Dummy-5 | Wake-word erkannt: >>Hey Jarvis<< score=0.895
+2026-04-08 09:17:52,920 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-08 09:17:52,931 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-08 09:17:52,941 | INFO | MainThread | VAD aktiv (energie-basiert, Timeout 1.5s)
+2026-04-08 09:17:52,942 | INFO | MainThread | Status: Mikrofon läuft... | VAD AN (Standard (Windows))
+2026-04-08 09:17:56,119 | INFO | Dummy-5 | VAD: Stille – stoppe Aufnahme
+2026-04-08 09:17:56,120 | INFO | MainThread | Aufnahmedauer: 3.18s
+2026-04-08 09:17:56,125 | INFO | MainThread | Status: Aufnahme beendet. Starte Auto-Workflow...
+2026-04-08 09:17:56,141 | INFO | Thread-21 (_run_transcription) | Status: Transkribiere Audio...
+2026-04-08 09:18:00,563 | INFO | Thread-21 (_run_transcription) | Transkription fertig (23 Zeichen)
+2026-04-08 09:18:00,580 | INFO | Thread-21 (_run_transcription) | Status: Transkript erkannt. Sende an Ollama...
+2026-04-08 09:18:00,639 | INFO | Thread-21 (_run_transcription) | Ollama Anfrage gestartet (23 Zeichen Input)
+2026-04-08 09:18:00,640 | INFO | Thread-21 (_run_transcription) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-08 09:18:00,718 | DEBUG | Thread-21 (_run_transcription) | History Du: Schattet das Licht ein.
+2026-04-08 09:18:05,590 | INFO | Thread-21 (_run_transcription) | Status: Ollama antwortet...
+2026-04-08 09:18:16,382 | INFO | Thread-21 (_run_transcription) | Ollama Antwort fertig (190 Zeichen, 15.75s)
+2026-04-08 09:18:16,382 | DEBUG | Thread-21 (_run_transcription) | History Assistent: Entschuldigung für die Verwirrung, als KI kann ich physische Aktionen nicht ausführen. Möchten Sie Hilfe beim Einschalten des Lichts oder be
+2026-04-08 09:18:16,382 | INFO | Thread-21 (_run_transcription) | Status: Antwort fertig. Audio streamt...
+2026-04-08 09:18:35,240 | INFO | Dummy-5 | Wake-word erkannt: >>Hey Jarvis<< score=0.940
+2026-04-08 09:18:35,327 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-08 09:18:35,343 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-08 09:18:35,348 | INFO | MainThread | VAD aktiv (energie-basiert, Timeout 1.5s)
+2026-04-08 09:18:35,348 | INFO | MainThread | Status: Mikrofon läuft... | VAD AN (Standard (Windows))
+2026-04-08 09:18:38,515 | INFO | Dummy-5 | VAD: Stille – stoppe Aufnahme
+2026-04-08 09:18:38,516 | INFO | MainThread | Aufnahmedauer: 3.17s
+2026-04-08 09:18:38,517 | INFO | MainThread | Status: Aufnahme beendet. Starte Auto-Workflow...
+2026-04-08 09:18:38,527 | INFO | Thread-34 (_run_transcription) | Status: Transkribiere Audio...
+2026-04-08 09:18:41,304 | INFO | Thread-34 (_run_transcription) | Transkription fertig (19 Zeichen)
+2026-04-08 09:18:41,309 | INFO | Thread-34 (_run_transcription) | Status: Transkript erkannt. Sende an Ollama...
+2026-04-08 09:18:41,327 | INFO | Thread-34 (_run_transcription) | Ollama Anfrage gestartet (19 Zeichen Input)
+2026-04-08 09:18:41,327 | INFO | Thread-34 (_run_transcription) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-08 09:18:41,357 | DEBUG | Thread-34 (_run_transcription) | History Du: macht das Licht an.
+2026-04-08 09:18:51,696 | INFO | Thread-34 (_run_transcription) | Tool-Router Entscheidung: light_on
+2026-04-08 09:18:51,702 | INFO | MainThread | LightController (ollama-tool-router): AN
+2026-04-08 09:18:51,711 | DEBUG | Thread-34 (_run_transcription) | History Assistent: Alles klar, ich habe das Licht fuer dich eingeschaltet.
+2026-04-08 09:18:51,714 | INFO | Thread-39 (worker) | Status: Antwort wird vorgelesen...
+2026-04-08 09:18:51,757 | INFO | Thread-39 (worker) | TTS gestartet (55 Zeichen)
+2026-04-08 09:18:56,074 | INFO | Thread-39 (worker) | TTS abgeschlossen
+2026-04-08 09:18:56,074 | INFO | Thread-39 (worker) | Status: Lichtbefehl ueber Ollama-Toolrouting ausgefuehrt
+2026-04-08 09:22:21,259 | INFO | MainThread | Voice Studio wird beendet
+2026-04-08 09:22:21,263 | INFO | MainThread | Profil gespeichert: C:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\assistant_profile.json
+2026-04-08 09:22:21,263 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-08 09:22:21,280 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-08 09:22:21,306 | INFO | MainThread | Status: Avatar-Viewer gestoppt
+2026-04-08 09:50:40,118 | INFO | MainThread | Voice Studio gestartet
+2026-04-08 09:51:26,107 | INFO | MainThread | Voice Studio gestartet
+2026-04-08 09:51:26,519 | INFO | MainThread | Status: Provider aktiv: Ollama
+2026-04-08 09:51:26,917 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-08 09:51:26,917 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-08 09:51:27,048 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-08 09:51:27,200 | WARNING | Thread-1 (_run_background_warmup) | Hintergrundstart fehlgeschlagen: '_tkinter.tkapp' object has no attribute 'whisper_module'
+2026-04-08 09:51:28,048 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-08 09:51:28,060 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-08 09:51:28,194 | INFO | OWW-Loader | Wake-word: >>hey_jarvis<< bereit
+2026-04-08 09:51:54,852 | INFO | MainThread | Voice Studio wird beendet
+2026-04-08 09:51:54,854 | INFO | MainThread | Profil gespeichert: C:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\assistant_profile.json
+2026-04-08 09:53:45,834 | INFO | MainThread | Voice Studio gestartet
+2026-04-08 09:53:46,262 | INFO | MainThread | Status: Provider aktiv: Ollama
+2026-04-08 09:53:46,676 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-08 09:53:46,676 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-08 09:53:46,821 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-08 09:53:46,981 | WARNING | Thread-1 (_run_background_warmup) | Hintergrundstart fehlgeschlagen: '_tkinter.tkapp' object has no attribute 'whisper_module'
+2026-04-08 09:53:47,843 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-08 09:53:47,843 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-08 09:53:47,904 | INFO | OWW-Loader | Wake-word: >>hey_jarvis<< bereit
+2026-04-08 09:54:25,262 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-08 09:54:25,434 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-08 09:54:25,441 | INFO | MainThread | VAD aktiv (energie-basiert, Timeout 1.5s)
+2026-04-08 09:54:25,444 | INFO | MainThread | Status: Mikrofon läuft... | VAD AN (Standard (Windows))
+2026-04-08 09:54:29,437 | INFO | MainThread | Aufnahmedauer: 3.99s
+2026-04-08 09:54:29,438 | INFO | MainThread | Status: Aufnahme beendet. Starte Auto-Workflow...
+2026-04-08 09:54:29,451 | INFO | Thread-5 (_run_transcription) | Status: Transkribiere Audio...
+2026-04-08 09:54:29,474 | ERROR | Thread-5 (_run_transcription) | Transkription: '_tkinter.tkapp' object has no attribute 'whisper_module'
+Traceback (most recent call last):
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\voice_ui.py", line 2021, in _run_transcription
+    model = self.load_whisper_model(model_name)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\voice_ui.py", line 1950, in load_whisper_model
+    if self.whisper_module is None:
+       ^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\tkinter\__init__.py", line 2429, in __getattr__
+    return getattr(self.tk, attr)
+           ^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: '_tkinter.tkapp' object has no attribute 'whisper_module'
+2026-04-08 09:54:29,474 | INFO | Thread-5 (_run_transcription) | Status: Fehler: '_tkinter.tkapp' object has no attribute 'whisper_module'
+2026-04-08 09:54:31,541 | INFO | Thread-7 (_run_transcription) | Status: Transkribiere Audio...
+2026-04-08 09:54:31,561 | ERROR | Thread-7 (_run_transcription) | Transkription: '_tkinter.tkapp' object has no attribute 'whisper_module'
+Traceback (most recent call last):
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\voice_ui.py", line 2021, in _run_transcription
+    model = self.load_whisper_model(model_name)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\voice_ui.py", line 1950, in load_whisper_model
+    if self.whisper_module is None:
+       ^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\tkinter\__init__.py", line 2429, in __getattr__
+    return getattr(self.tk, attr)
+           ^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: '_tkinter.tkapp' object has no attribute 'whisper_module'
+2026-04-08 09:54:31,562 | INFO | Thread-7 (_run_transcription) | Status: Fehler: '_tkinter.tkapp' object has no attribute 'whisper_module'
+2026-04-08 09:54:53,174 | INFO | Thread-8 (_run_transcription) | Status: Transkribiere Audio...
+2026-04-08 09:54:53,201 | ERROR | Thread-8 (_run_transcription) | Transkription: '_tkinter.tkapp' object has no attribute 'whisper_module'
+Traceback (most recent call last):
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\voice_ui.py", line 2021, in _run_transcription
+    model = self.load_whisper_model(model_name)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\voice_ui.py", line 1950, in load_whisper_model
+    if self.whisper_module is None:
+       ^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\tkinter\__init__.py", line 2429, in __getattr__
+    return getattr(self.tk, attr)
+           ^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: '_tkinter.tkapp' object has no attribute 'whisper_module'
+2026-04-08 09:54:53,201 | INFO | Thread-8 (_run_transcription) | Status: Fehler: '_tkinter.tkapp' object has no attribute 'whisper_module'
+2026-04-08 09:54:57,515 | INFO | Thread-9 (_run_ollama_only) | Ollama Anfrage gestartet (22 Zeichen Input)
+2026-04-08 09:54:57,516 | INFO | Thread-9 (_run_ollama_only) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-08 09:54:57,527 | DEBUG | Thread-9 (_run_ollama_only) | History Du: das ist ja interessant
+2026-04-08 09:55:10,453 | INFO | Thread-9 (_run_ollama_only) | Status: Ollama antwortet...
+2026-04-08 09:55:15,388 | INFO | Thread-9 (_run_ollama_only) | Ollama Antwort fertig (144 Zeichen, 17.87s)
+2026-04-08 09:55:15,389 | DEBUG | Thread-9 (_run_ollama_only) | History Assistent: Interessant, nicht wahr? Es fasziniert mich immer, wie viele faszinierende Dinge es gibt! Was hat dich dazu gebracht, das zu finden interess
+2026-04-08 09:55:15,389 | INFO | Thread-9 (_run_ollama_only) | Status: Antwort fertig. Audio streamt...
+2026-04-08 09:55:25,704 | WARNING | Thread-11 (worker) | TTS-Chunk fehlgeschlagen: main thread is not in main loop
+2026-04-08 09:55:43,232 | INFO | MainThread | Voice Studio gestartet
+2026-04-08 09:55:43,644 | INFO | MainThread | Status: Provider aktiv: Ollama
+2026-04-08 09:55:44,031 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-08 09:55:44,032 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-08 09:55:44,154 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-08 09:55:44,319 | WARNING | Thread-1 (_run_background_warmup) | Hintergrundstart fehlgeschlagen: '_tkinter.tkapp' object has no attribute 'whisper_module'
+2026-04-08 09:55:45,190 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-08 09:55:45,190 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-08 09:55:45,427 | INFO | OWW-Loader | Wake-word: >>hey_jarvis<< bereit
+2026-04-08 09:55:56,280 | INFO | Dummy-4 | Wake-word erkannt: >>Hey Jarvis<< score=0.979
+2026-04-08 09:55:56,365 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-08 09:55:56,592 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-08 09:55:56,601 | INFO | MainThread | VAD aktiv (energie-basiert, Timeout 1.5s)
+2026-04-08 09:55:56,601 | INFO | MainThread | Status: Mikrofon läuft... | VAD AN (Standard (Windows))
+2026-04-08 09:55:59,524 | INFO | Dummy-4 | VAD: Stille – stoppe Aufnahme
+2026-04-08 09:55:59,525 | INFO | MainThread | Aufnahmedauer: 2.92s
+2026-04-08 09:55:59,527 | INFO | MainThread | Status: Aufnahme beendet. Starte Auto-Workflow...
+2026-04-08 09:55:59,535 | INFO | Thread-6 (_run_transcription) | Status: Transkribiere Audio...
+2026-04-08 09:55:59,579 | ERROR | Thread-6 (_run_transcription) | Transkription: '_tkinter.tkapp' object has no attribute 'whisper_module'
+Traceback (most recent call last):
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\voice_ui.py", line 2023, in _run_transcription
+    model = self.load_whisper_model(model_name)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\voice_ui.py", line 1952, in load_whisper_model
+    if self.whisper_module is None:
+       ^^^^^^^^^^^^^^^^^^^
+  File "C:\Program Files\WindowsApps\PythonSoftwareFoundation.Python.3.11_3.11.2544.0_x64__qbz5n2kfra8p0\Lib\tkinter\__init__.py", line 2429, in __getattr__
+    return getattr(self.tk, attr)
+           ^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: '_tkinter.tkapp' object has no attribute 'whisper_module'
+2026-04-08 09:55:59,581 | INFO | Thread-6 (_run_transcription) | Status: Fehler: '_tkinter.tkapp' object has no attribute 'whisper_module'
+2026-04-08 09:56:49,520 | INFO | MainThread | Voice Studio wird beendet
+2026-04-08 09:56:49,525 | INFO | MainThread | Profil gespeichert: C:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\assistant_profile.json
+2026-04-08 09:56:49,525 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-08 09:56:49,557 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-08 09:56:49,609 | INFO | MainThread | Status: Avatar-Viewer gestoppt
+2026-04-08 09:58:54,293 | INFO | MainThread | Voice Studio gestartet
+2026-04-08 09:58:54,717 | INFO | MainThread | Status: Provider aktiv: Ollama
+2026-04-08 09:58:55,093 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-08 09:58:55,093 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-08 09:58:55,229 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-08 09:58:57,046 | INFO | OWW-Loader | Wake-word: >>hey_jarvis<< bereit
+2026-04-08 09:59:01,031 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-08 09:59:01,033 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-08 09:59:10,040 | INFO | Dummy-4 | Wake-word erkannt: >>Hey Jarvis<< score=0.801
+2026-04-08 09:59:10,122 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-08 09:59:10,406 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-08 09:59:10,411 | INFO | MainThread | VAD aktiv (energie-basiert, Timeout 1.5s)
+2026-04-08 09:59:10,411 | INFO | MainThread | Status: Mikrofon läuft... | VAD AN (Standard (Windows))
+2026-04-08 09:59:13,507 | INFO | Dummy-4 | VAD: Stille – stoppe Aufnahme
+2026-04-08 09:59:13,514 | INFO | MainThread | Aufnahmedauer: 3.11s
+2026-04-08 09:59:13,514 | INFO | MainThread | Status: Aufnahme beendet. Starte Auto-Workflow...
+2026-04-08 09:59:13,514 | INFO | Thread-6 (_run_transcription) | Status: Transkribiere Audio...
+2026-04-08 09:59:16,761 | INFO | Thread-6 (_run_transcription) | Transkription fertig (22 Zeichen)
+2026-04-08 09:59:16,767 | INFO | Thread-6 (_run_transcription) | Status: Transkript erkannt. Sende an Ollama...
+2026-04-08 09:59:16,783 | INFO | Thread-6 (_run_transcription) | Ollama Anfrage gestartet (22 Zeichen Input)
+2026-04-08 09:59:16,783 | INFO | Thread-6 (_run_transcription) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-08 09:59:16,829 | DEBUG | Thread-6 (_run_transcription) | History Du: Wie geht es dir heute?
+2026-04-08 09:59:17,960 | INFO | Thread-6 (_run_transcription) | Status: Ollama antwortet...
+2026-04-08 09:59:20,956 | INFO | Thread-6 (_run_transcription) | Ollama Antwort fertig (74 Zeichen, 4.17s)
+2026-04-08 09:59:20,956 | DEBUG | Thread-6 (_run_transcription) | History Assistent: Heute fühle ich mich gut, danke! Wie kann ich Ihnen heute behilflich sein?
+2026-04-08 09:59:20,967 | INFO | Thread-6 (_run_transcription) | Status: Antwort fertig. Audio streamt...
+2026-04-08 09:59:53,896 | INFO | MainThread | Status: Provider aktiv: OpenAI
+2026-04-08 10:00:11,793 | INFO | MainThread | Status: OpenAI: 109 Modell(e) geladen: babbage-002, chatgpt-image-latest, dall-e-2, dall-e-3 …
+2026-04-08 10:00:22,193 | INFO | MainThread | Status: Provider-Diagnostik OK (OpenAI)
+2026-04-08 10:00:35,757 | INFO | Dummy-4 | Wake-word erkannt: >>Hey Jarvis<< score=0.806
+2026-04-08 10:00:35,849 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-08 10:00:35,865 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-08 10:00:35,866 | INFO | MainThread | VAD aktiv (energie-basiert, Timeout 1.5s)
+2026-04-08 10:00:35,866 | INFO | MainThread | Status: Mikrofon läuft... | VAD AN (Standard (Windows))
+2026-04-08 10:00:38,876 | INFO | Dummy-4 | VAD: Stille – stoppe Aufnahme
+2026-04-08 10:00:38,877 | INFO | MainThread | Aufnahmedauer: 3.01s
+2026-04-08 10:00:38,882 | INFO | MainThread | Status: Aufnahme beendet. Starte Auto-Workflow...
+2026-04-08 10:00:38,885 | INFO | Thread-20 (_run_transcription) | Status: Transkribiere Audio...
+2026-04-08 10:00:41,992 | INFO | Thread-20 (_run_transcription) | Transkription fertig (25 Zeichen)
+2026-04-08 10:00:41,994 | INFO | Thread-20 (_run_transcription) | Status: Transkript erkannt. Sende an Ollama...
+2026-04-08 10:00:42,002 | INFO | Thread-20 (_run_transcription) | Ollama Anfrage gestartet (25 Zeichen Input)
+2026-04-08 10:00:42,003 | INFO | Thread-20 (_run_transcription) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-08 10:00:42,057 | DEBUG | Thread-20 (_run_transcription) | History Du: Das ist ein kleiner Test.
+2026-04-08 10:00:44,988 | ERROR | Thread-20 (_run_transcription) | Ollama: OpenAI: Rate-Limit erreicht (429)
+Traceback (most recent call last):
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 344, in ask_llm
+    return self._call_with_retry(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 259, in _call_with_retry
+    raise last_exc
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 244, in _call_with_retry
+    return fn()
+           ^^^^
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 345, in <lambda>
+    lambda: provider.stream_chat(
+            ^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_providers\openai_provider.py", line 151, in stream_chat
+    raise exc
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_providers\openai_provider.py", line 120, in stream_chat
+    response.raise_for_status()
+  File "C:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\.venv\Lib\site-packages\requests\models.py", line 1028, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 429 Client Error: Too Many Requests for url: https://api.openai.com/v1/chat/completions
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\voice_ui.py", line 2269, in _run_ollama_only
+    answer = self.ask_ollama(
+             ^^^^^^^^^^^^^^^^
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 371, in ask_ollama
+    return self.ask_llm(user_text=user_text, on_chunk=on_chunk, cancel_event=cancel_event)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 358, in ask_llm
+    raise self._format_provider_exception(provider_key, exc) from exc
+RuntimeError: OpenAI: Rate-Limit erreicht (429)
+2026-04-08 10:00:44,991 | INFO | Thread-20 (_run_transcription) | Status: Fehler: OpenAI: Rate-Limit erreicht (429)
+2026-04-08 10:05:44,449 | INFO | MainThread | Voice Studio gestartet
+2026-04-08 10:05:44,834 | INFO | MainThread | Status: Provider aktiv: Ollama
+2026-04-08 10:05:45,228 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-08 10:05:45,228 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-08 10:05:45,400 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-08 10:05:47,059 | INFO | OWW-Loader | Wake-word: >>hey_jarvis<< bereit
+2026-04-08 10:05:50,317 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-08 10:05:50,321 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-08 10:06:03,185 | INFO | MainThread | Status: Provider aktiv: OpenAI
+2026-04-08 10:06:16,836 | INFO | MainThread | Status: API-Key OK (OpenAI)
+2026-04-08 10:06:35,688 | INFO | Thread-5 (_run_ollama_only) | Ollama Anfrage gestartet (21 Zeichen Input)
+2026-04-08 10:06:35,688 | INFO | Thread-5 (_run_ollama_only) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-08 10:06:35,736 | DEBUG | Thread-5 (_run_ollama_only) | History Du: wie geht es dir heute
+2026-04-08 10:06:38,165 | ERROR | Thread-5 (_run_ollama_only) | Ollama: OpenAI: Rate-Limit/Quota (429). API-Limits/Billing/Quota im Provider pruefen
+Traceback (most recent call last):
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 377, in ask_llm
+    return self._call_with_retry(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 292, in _call_with_retry
+    raise last_exc
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 277, in _call_with_retry
+    return fn()
+           ^^^^
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 378, in <lambda>
+    lambda: provider.stream_chat(
+            ^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_providers\openai_provider.py", line 151, in stream_chat
+    raise exc
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_providers\openai_provider.py", line 120, in stream_chat
+    response.raise_for_status()
+  File "C:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\.venv\Lib\site-packages\requests\models.py", line 1028, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 429 Client Error: Too Many Requests for url: https://api.openai.com/v1/chat/completions
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\voice_ui.py", line 2269, in _run_ollama_only
+    answer = self.ask_ollama(
+             ^^^^^^^^^^^^^^^^
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 404, in ask_ollama
+    return self.ask_llm(user_text=user_text, on_chunk=on_chunk, cancel_event=cancel_event)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 391, in ask_llm
+    raise self._format_provider_exception(provider_key, exc) from exc
+RuntimeError: OpenAI: Rate-Limit/Quota (429). API-Limits/Billing/Quota im Provider pruefen
+2026-04-08 10:06:38,179 | INFO | Thread-5 (_run_ollama_only) | Status: Fehler: OpenAI: Rate-Limit/Quota (429). API-Limits/Billing/Quota im Provider pruefen

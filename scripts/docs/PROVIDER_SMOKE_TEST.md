@@ -49,13 +49,13 @@ Pro Provider:
 - Cancel funktioniert.
 - Antwort landet im Verlauf.
 
-## Audio/Interrupt Check
+## Audio/Wiedergabe Check
 
 1. Auto-Speak aktivieren.
 2. Frage senden, waehrend TTS laeuft hineinsprechen.
 3. Erwartung:
-- Barge-In stoppt laufende Antwort.
-- Neue Aufnahme startet.
+- TTS laeuft stabil durch.
+- Cancel stoppt die laufende Antwort.
 - App bleibt responsive.
 
 ## Config Export/Import (ohne API-Keys)
