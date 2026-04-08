@@ -1,0 +1,6 @@
+Persistentes, semantisches Memory (RAG + User Profile + Episoden).
+Generalisierte Tool-Engine (Kalender, Mail, Smart Home, Apps, Web, Dateien) statt Sonderfall-Router.
+Planer-Schicht über dem LLM (Ziele, Teilaufgaben, Replanning, Fehlerbehandlung).
+Robuste Safety-/Policy-Ebene (Intent-Scoring, Confirmation bei riskanten Aktionen).
+Bessere Echtzeitfähigkeit (barge-in, interruptions, duplex voice, unter 500 ms turn latency).
+Wahrnehmung erweitern (Screen/vision/context signals) für „situatives“ Verhalten.
