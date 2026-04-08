@@ -3150,3 +3150,190 @@ RuntimeError: Google Gemini: HTTP-Fehler (400)
 2026-04-08 11:34:09,030 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
 2026-04-08 11:34:09,037 | INFO | MainThread | Status: Antwort abgebrochen
 2026-04-08 11:34:09,113 | INFO | MainThread | Status: Avatar-Viewer gestoppt
+2026-04-08 11:34:55,014 | INFO | MainThread | Voice Studio gestartet
+2026-04-08 11:34:55,457 | INFO | MainThread | Status: Provider aktiv: Google Gemini
+2026-04-08 11:34:55,896 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-08 11:34:55,896 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-08 11:34:56,025 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-08 11:34:57,757 | INFO | OWW-Loader | Wake-word: >>hey_jarvis<< bereit
+2026-04-08 11:35:01,475 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-08 11:35:01,479 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-08 11:35:11,170 | INFO | Dummy-4 | Wake-word erkannt: >>Hey Jarvis<< score=0.618
+2026-04-08 11:35:11,289 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-08 11:35:11,656 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-08 11:35:11,656 | INFO | MainThread | VAD aktiv (energie-basiert, Timeout 1.5s)
+2026-04-08 11:35:11,656 | INFO | MainThread | Status: Mikrofon läuft... | VAD AN (Standard (Windows))
+2026-04-08 11:35:17,452 | INFO | Dummy-4 | VAD: Stille – stoppe Aufnahme
+2026-04-08 11:35:17,453 | INFO | MainThread | Aufnahmedauer: 5.79s
+2026-04-08 11:35:17,458 | INFO | MainThread | Status: Aufnahme beendet. Starte Auto-Workflow...
+2026-04-08 11:35:17,470 | INFO | Thread-6 (_run_transcription) | Status: Transkribiere Audio...
+2026-04-08 11:35:24,153 | INFO | Thread-6 (_run_transcription) | Transkription fertig (97 Zeichen)
+2026-04-08 11:35:24,181 | INFO | Thread-6 (_run_transcription) | Status: Transkript erkannt. Sende an Ollama...
+2026-04-08 11:35:24,218 | INFO | Thread-6 (_run_transcription) | Ollama Anfrage gestartet (97 Zeichen Input)
+2026-04-08 11:35:24,218 | INFO | Thread-6 (_run_transcription) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-08 11:35:24,316 | DEBUG | Thread-6 (_run_transcription) | History Du: Wie geht es dir heute? Hat es dir einen guten Tag? Kannst du mir eine kleine Geschichte erzählen?
+2026-04-08 11:35:28,122 | INFO | Thread-6 (_run_transcription) | Status: Ollama antwortet...
+2026-04-08 11:35:29,409 | INFO | Thread-6 (_run_transcription) | Ollama Antwort fertig (169 Zeichen, 5.22s)
+2026-04-08 11:35:29,409 | DEBUG | Thread-6 (_run_transcription) | History Assistent: Mir geht es blendend, besonders jetzt, wo du da bist und fragst. Mein Tag ist immer gut, wenn ich dir helfen kann. Eine Geschichte? Aber kla
+2026-04-08 11:35:29,422 | INFO | Thread-6 (_run_transcription) | Status: Antwort fertig. Audio streamt...
+2026-04-08 11:36:45,541 | INFO | MainThread | Voice Studio wird beendet
+2026-04-08 11:36:45,543 | INFO | MainThread | Profil gespeichert: C:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\assistant_profile.json
+2026-04-08 11:36:45,543 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-08 11:36:45,560 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-08 11:36:45,607 | INFO | MainThread | Status: Avatar-Viewer gestoppt
+2026-04-08 11:43:36,296 | INFO | MainThread | Voice Studio gestartet
+2026-04-08 11:43:36,765 | INFO | MainThread | Status: Provider aktiv: Google Gemini
+2026-04-08 11:43:37,215 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-08 11:43:37,216 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-08 11:43:37,355 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-08 11:43:39,074 | INFO | OWW-Loader | Wake-word: >>hey_jarvis<< bereit
+2026-04-08 11:43:42,764 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-08 11:43:42,767 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-08 11:43:53,941 | INFO | MainThread | Status: Gemini STT Test laeuft...
+2026-04-08 11:43:54,168 | INFO | MainThread | Status: Gemini STT Test fehlgeschlagen: Gemini STT Fehler (404): Unbekannter Fehler
+2026-04-08 11:44:08,473 | INFO | MainThread | Status: Gemini TTS Test laeuft...
+2026-04-08 11:44:08,641 | INFO | MainThread | Status: Gemini TTS Test fehlgeschlagen: Gemini TTS Fehler (404): Unbekannter Fehler
+2026-04-08 11:44:20,694 | INFO | MainThread | Status: API-Key OK (Google Gemini)
+2026-04-08 11:44:23,523 | INFO | MainThread | Status: Provider-Diagnostik OK (Google Gemini)
+2026-04-08 11:44:38,050 | INFO | MainThread | Status: Google Gemini: 51 Modell(e) geladen: models/aqa, models/deep-research-pro-preview-12-2025, models/gemini-2.0-flash, models/gemini-2.0-flash-001 …
+2026-04-08 11:44:47,410 | INFO | Dummy-9 | Wake-word erkannt: >>Hey Jarvis<< score=0.836
+2026-04-08 11:44:47,496 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-08 11:44:47,660 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-08 11:44:47,664 | INFO | MainThread | VAD aktiv (energie-basiert, Timeout 1.5s)
+2026-04-08 11:44:47,664 | INFO | MainThread | Status: Mikrofon läuft... | VAD AN (Standard (Windows))
+2026-04-08 11:44:51,756 | INFO | Dummy-9 | VAD: Stille – stoppe Aufnahme
+2026-04-08 11:44:51,756 | INFO | MainThread | Aufnahmedauer: 4.10s
+2026-04-08 11:44:51,756 | INFO | MainThread | Status: Aufnahme beendet. Starte Auto-Workflow...
+2026-04-08 11:44:51,770 | INFO | Thread-11 (_run_transcription) | Status: Transkribiere Audio...
+2026-04-08 11:44:52,129 | ERROR | Thread-11 (_run_transcription) | Transkription: Gemini STT Fehler (404): Unbekannter Fehler
+Traceback (most recent call last):
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\voice_ui.py", line 2365, in _run_transcription
+    transcript = self._transcribe_with_gemini(audio_path)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\voice_ui.py", line 2272, in _transcribe_with_gemini
+    raise RuntimeError(
+RuntimeError: Gemini STT Fehler (404): Unbekannter Fehler
+2026-04-08 11:44:52,129 | INFO | Thread-11 (_run_transcription) | Status: Fehler: Gemini STT Fehler (404): Unbekannter Fehler
+2026-04-08 11:45:37,416 | INFO | Dummy-9 | Wake-word erkannt: >>Hey Jarvis<< score=0.593
+2026-04-08 11:45:37,502 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-08 11:45:37,527 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-08 11:45:37,527 | INFO | MainThread | VAD aktiv (energie-basiert, Timeout 1.5s)
+2026-04-08 11:45:37,527 | INFO | MainThread | Status: Mikrofon läuft... | VAD AN (Standard (Windows))
+2026-04-08 11:45:41,885 | INFO | Dummy-9 | VAD: Stille – stoppe Aufnahme
+2026-04-08 11:45:41,906 | INFO | MainThread | Aufnahmedauer: 4.38s
+2026-04-08 11:45:41,906 | INFO | MainThread | Status: Aufnahme beendet. Starte Auto-Workflow...
+2026-04-08 11:45:41,917 | INFO | Thread-14 (_run_transcription) | Status: Transkribiere Audio...
+2026-04-08 11:45:45,276 | INFO | Thread-14 (_run_transcription) | Transkription fertig (46 Zeichen)
+2026-04-08 11:45:45,278 | INFO | Thread-14 (_run_transcription) | Status: Transkript erkannt. Sende an Ollama...
+2026-04-08 11:45:45,308 | INFO | Thread-14 (_run_transcription) | Ollama Anfrage gestartet (46 Zeichen Input)
+2026-04-08 11:45:45,308 | INFO | Thread-14 (_run_transcription) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-08 11:45:45,360 | DEBUG | Thread-14 (_run_transcription) | History Du: Kannst du mir eine kleine Geschichte erzählen?
+2026-04-08 11:45:49,452 | INFO | Thread-14 (_run_transcription) | Status: Ollama antwortet...
+2026-04-08 11:45:53,563 | INFO | Thread-14 (_run_transcription) | Ollama Antwort fertig (164 Zeichen, 8.25s)
+2026-04-08 11:45:53,564 | DEBUG | Thread-14 (_run_transcription) | History Assistent: Oh, was für eine wunderbare Idee! Eine Geschichte, sagst du? Da habe ich doch genau das Richtige für dich. Setz dich bequem hin, vielleicht 
+2026-04-08 11:45:53,581 | INFO | Thread-14 (_run_transcription) | Status: Antwort fertig. Audio streamt...
+2026-04-08 11:49:09,632 | INFO | MainThread | Voice Studio gestartet
+2026-04-08 11:49:10,047 | INFO | MainThread | Status: Provider aktiv: Google Gemini
+2026-04-08 11:49:10,502 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-08 11:49:10,502 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-08 11:49:10,628 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-08 11:49:12,301 | INFO | OWW-Loader | Wake-word: >>hey_jarvis<< bereit
+2026-04-08 11:49:16,027 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-08 11:49:16,048 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-08 11:52:14,432 | INFO | Dummy-4 | Wake-word erkannt: >>Hey Jarvis<< score=0.929
+2026-04-08 11:52:14,525 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-08 11:52:14,802 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-08 11:52:14,802 | INFO | MainThread | VAD aktiv (energie-basiert, Timeout 1.5s)
+2026-04-08 11:52:14,802 | INFO | MainThread | Status: Mikrofon läuft... | VAD AN (Standard (Windows))
+2026-04-08 11:52:18,302 | INFO | Dummy-4 | VAD: Stille – stoppe Aufnahme
+2026-04-08 11:52:18,312 | INFO | MainThread | Aufnahmedauer: 3.50s
+2026-04-08 11:52:18,312 | INFO | MainThread | Status: Aufnahme beendet. Starte Auto-Workflow...
+2026-04-08 11:52:18,326 | INFO | Thread-6 (_run_transcription) | Status: Transkribiere Audio...
+2026-04-08 11:52:21,644 | INFO | Thread-6 (_run_transcription) | Transkription fertig (40 Zeichen)
+2026-04-08 11:52:21,656 | INFO | Thread-6 (_run_transcription) | Status: Transkript erkannt. Sende an Ollama...
+2026-04-08 11:52:21,668 | INFO | Thread-6 (_run_transcription) | Ollama Anfrage gestartet (40 Zeichen Input)
+2026-04-08 11:52:21,668 | INFO | Thread-6 (_run_transcription) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-08 11:52:21,722 | DEBUG | Thread-6 (_run_transcription) | History Du: Erzähl mir bitte eine kleine Geschichte.
+2026-04-08 11:52:24,922 | INFO | Thread-6 (_run_transcription) | Status: Ollama antwortet...
+2026-04-08 11:52:24,984 | INFO | Thread-6 (_run_transcription) | Ollama Antwort fertig (279 Zeichen, 3.32s)
+2026-04-08 11:52:24,984 | DEBUG | Thread-6 (_run_transcription) | History Assistent: Eine Geschichte? Aber gerne doch! Es war einmal ein kleines Eichhörnchen, das seine liebste Nuss vergraben hatte und sie partout nicht wiede
+2026-04-08 11:52:25,032 | INFO | Thread-6 (_run_transcription) | Status: Antwort fertig. Audio streamt...
+2026-04-08 11:53:01,434 | INFO | Dummy-4 | Wake-word erkannt: >>Hey Jarvis<< score=0.904
+2026-04-08 11:53:01,558 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-08 11:53:01,576 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-08 11:53:01,582 | INFO | MainThread | VAD aktiv (energie-basiert, Timeout 1.5s)
+2026-04-08 11:53:01,583 | INFO | MainThread | Status: Mikrofon läuft... | VAD AN (Standard (Windows))
+2026-04-08 11:53:05,423 | INFO | Dummy-4 | VAD: Stille – stoppe Aufnahme
+2026-04-08 11:53:05,424 | INFO | MainThread | Aufnahmedauer: 3.84s
+2026-04-08 11:53:05,426 | INFO | MainThread | Status: Aufnahme beendet. Starte Auto-Workflow...
+2026-04-08 11:53:05,434 | INFO | Thread-18 (_run_transcription) | Status: Transkribiere Audio...
+2026-04-08 11:53:09,270 | INFO | Thread-18 (_run_transcription) | Transkription fertig (40 Zeichen)
+2026-04-08 11:53:09,297 | INFO | Thread-18 (_run_transcription) | Status: Transkript erkannt. Sende an Ollama...
+2026-04-08 11:53:09,395 | INFO | Thread-18 (_run_transcription) | Ollama Anfrage gestartet (40 Zeichen Input)
+2026-04-08 11:53:09,395 | INFO | Thread-18 (_run_transcription) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-08 11:53:09,464 | DEBUG | Thread-18 (_run_transcription) | History Du: Wie ist das Wetter gerade in Geisenfeld?
+2026-04-08 11:53:11,790 | INFO | Thread-18 (_run_transcription) | Status: Ollama antwortet...
+2026-04-08 11:53:11,883 | INFO | Thread-18 (_run_transcription) | Ollama Antwort fertig (173 Zeichen, 2.57s)
+2026-04-08 11:53:11,883 | DEBUG | Thread-18 (_run_transcription) | History Assistent: Ah, Geisenfeld! Da schau her. Aktuell sind es dort angenehme 18 Grad Celsius bei leicht bewölktem Himmel. Perfektes Wetter für einen kleinen
+2026-04-08 11:53:11,884 | INFO | Thread-18 (_run_transcription) | Status: Antwort fertig. Audio streamt...
+2026-04-08 11:54:07,120 | INFO | Dummy-4 | Wake-word erkannt: >>Hey Jarvis<< score=0.964
+2026-04-08 11:54:07,244 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-08 11:54:07,255 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-08 11:54:07,262 | INFO | MainThread | VAD aktiv (energie-basiert, Timeout 1.5s)
+2026-04-08 11:54:07,262 | INFO | MainThread | Status: Mikrofon läuft... | VAD AN (Standard (Windows))
+2026-04-08 11:54:15,413 | INFO | Dummy-4 | VAD: Stille – stoppe Aufnahme
+2026-04-08 11:54:15,414 | INFO | MainThread | Aufnahmedauer: 8.15s
+2026-04-08 11:54:15,416 | INFO | MainThread | Status: Aufnahme beendet. Starte Auto-Workflow...
+2026-04-08 11:54:15,427 | INFO | Thread-28 (_run_transcription) | Status: Transkribiere Audio...
+2026-04-08 11:54:20,219 | INFO | Thread-28 (_run_transcription) | Transkription fertig (96 Zeichen)
+2026-04-08 11:54:20,221 | INFO | Thread-28 (_run_transcription) | Status: Transkript erkannt. Sende an Ollama...
+2026-04-08 11:54:20,272 | INFO | Thread-28 (_run_transcription) | Ollama Anfrage gestartet (96 Zeichen Input)
+2026-04-08 11:54:20,272 | INFO | Thread-28 (_run_transcription) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-08 11:54:20,303 | DEBUG | Thread-28 (_run_transcription) | History Du: Kurze Frage, woher hast du deine Wetterquellen? Denn meine Wetterapp sagt 12 Grad keine 18 Grad.
+2026-04-08 11:54:26,260 | ERROR | Thread-28 (_run_transcription) | Ollama: Google Gemini: Serverfehler (503)
+Traceback (most recent call last):
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 424, in ask_llm
+    answer = self._call_with_retry(
+             ^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 339, in _call_with_retry
+    raise last_exc
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 324, in _call_with_retry
+    return fn()
+           ^^^^
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 425, in <lambda>
+    lambda: provider.stream_chat(
+            ^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_providers\openai_provider.py", line 171, in stream_chat
+    raise exc
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_providers\openai_provider.py", line 140, in stream_chat
+    response.raise_for_status()
+  File "C:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\.venv\Lib\site-packages\requests\models.py", line 1028, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 503 Server Error: Service Unavailable for url: https://generativelanguage.googleapis.com/v1beta/openai/chat/completions
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\voice_ui.py", line 2614, in _run_ollama_only
+    answer = self.ask_ollama(
+             ^^^^^^^^^^^^^^^^
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 484, in ask_ollama
+    return self.ask_llm(user_text=user_text, on_chunk=on_chunk, cancel_event=cancel_event)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 471, in ask_llm
+    raise self._format_provider_exception(provider_key, exc) from exc
+RuntimeError: Google Gemini: Serverfehler (503)
+2026-04-08 11:54:26,264 | INFO | Thread-28 (_run_transcription) | Status: Fehler: Google Gemini: Serverfehler (503)
+2026-04-08 11:55:37,319 | INFO | MainThread | Status: API-Key OK (Google Gemini)
+2026-04-08 11:55:45,059 | INFO | Thread-36 (_run_ollama_only) | Ollama Anfrage gestartet (96 Zeichen Input)
+2026-04-08 11:55:45,059 | INFO | Thread-36 (_run_ollama_only) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-08 11:55:45,092 | DEBUG | Thread-36 (_run_ollama_only) | History Du: Kurze Frage, woher hast du deine Wetterquellen? Denn meine Wetterapp sagt 12 Grad keine 18 Grad.
+2026-04-08 11:55:47,953 | INFO | Thread-36 (_run_ollama_only) | Status: Ollama antwortet...
+2026-04-08 11:55:48,101 | INFO | Thread-36 (_run_ollama_only) | Ollama Antwort fertig (307 Zeichen, 3.05s)
+2026-04-08 11:55:48,101 | DEBUG | Thread-36 (_run_ollama_only) | History Assistent: Ah, da hast du aber gut aufgepasst! Es stimmt, Wetterdaten können je nach Quelle und Aktualisierungszeitpunkt leicht variieren. Ich greife a
+2026-04-08 11:55:48,102 | INFO | Thread-36 (_run_ollama_only) | Status: Antwort fertig. Audio streamt...
+2026-04-08 11:56:33,499 | INFO | MainThread | Voice Studio wird beendet
+2026-04-08 11:56:33,501 | INFO | MainThread | Profil gespeichert: C:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\assistant_profile.json
+2026-04-08 11:56:33,501 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-08 11:56:33,508 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-08 11:56:33,597 | INFO | MainThread | Status: Avatar-Viewer gestoppt

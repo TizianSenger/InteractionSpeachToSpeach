@@ -13,11 +13,13 @@
     "tts_voice": "Deutsch (männlich, tief) - Killian",
     "tts_emotion": "freundlich",
     "tts_rate": "170",
+    "gemini_tts_model": "gemini-2.5-flash-preview-tts",
     "piper_model_path": "models/de_DE-karlsson-medium.onnx",
     "piper_config_path": "",
     "appearance_mode": "Dark"
   },
   "stt": {
+    "stt_provider": "Whisper (lokal)",
     "whisper_model": "small",
     "whisper_language": "Deutsch",
     "whisper_speed": "Genau"

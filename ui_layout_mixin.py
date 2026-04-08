@@ -385,6 +385,20 @@ class UiLayoutMixin:
         stt.pack(fill="both", expand=True)
 
         section(stt, "Whisper-Modell")
+        lbl(stt, "STT-Provider")
+        self.stt_provider_menu = ctk.CTkOptionMenu(
+            stt,
+            values=STT_PROVIDER_OPTIONS,
+            variable=self.stt_provider_var,
+        )
+        self.stt_provider_menu.pack(fill="x", padx=14, pady=(0, 8))
+        self.gemini_stt_test_btn = ctk.CTkButton(
+            stt,
+            text="Gemini STT testen",
+            command=self.run_gemini_stt_test_async,
+            height=34,
+        )
+        self.gemini_stt_test_btn.pack(fill="x", padx=14, pady=(0, 8))
         lbl(stt, "Modell")
         self.whisper_menu = ctk.CTkOptionMenu(
             stt, values=WHISPER_MODEL_OPTIONS,
@@ -843,7 +857,12 @@ class UiLayoutMixin:
 
         section(tts, "Engine & Stimme")
         lbl(tts, "TTS-Engine")
-        tts_engines = ["edge-tts (natürlich)", "piper (lokal, natürlich)", "pyttsx3 (lokal)"]
+        tts_engines = [
+            "edge-tts (natürlich)",
+            "gemini-tts (cloud)",
+            "piper (lokal, natürlich)",
+            "pyttsx3 (lokal)",
+        ]
         self.tts_engine_menu = ctk.CTkOptionMenu(
             tts, values=tts_engines,
             variable=self.tts_engine_var,
@@ -866,6 +885,24 @@ class UiLayoutMixin:
         lbl(tts, "Sprechgeschwindigkeit (Rate)")
         self.tts_rate_entry = ctk.CTkEntry(tts, textvariable=self.tts_rate_var, height=36)
         self.tts_rate_entry.pack(fill="x", padx=14, pady=(0, 10))
+
+        section(tts, "Gemini TTS")
+        lbl(tts, "Gemini TTS Modell")
+        self.gemini_tts_model_entry = ctk.CTkEntry(tts, textvariable=self.gemini_tts_model_var, height=36)
+        self.gemini_tts_model_entry.pack(fill="x", padx=14, pady=(0, 8))
+        ctk.CTkLabel(
+            tts,
+            text="Nutze z.B. gemini-2.5-flash-preview-tts. Base URL/API-Key kommen aus dem Gemini-Provider.",
+            text_color="gray60", wraplength=560, justify="left", anchor="w",
+            font=(FONT_FAMILY, 12),
+        ).pack(fill="x", padx=14, pady=(0, 10))
+        self.gemini_tts_test_btn = ctk.CTkButton(
+            tts,
+            text="Gemini TTS testen",
+            command=self.run_gemini_tts_test_async,
+            height=34,
+        )
+        self.gemini_tts_test_btn.pack(fill="x", padx=14, pady=(0, 10))
 
         section(tts, "Piper – Lokale Stimme")
         lbl(tts, "Modell-Pfad  (.onnx)")

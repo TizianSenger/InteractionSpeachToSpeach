@@ -124,8 +124,10 @@ class VoiceAssistantUI(
         self.gemini_model_var = ctk.StringVar(value=GEMINI_DEFAULT_MODEL)
         self.gemini_base_url_var = ctk.StringVar(value=GEMINI_DEFAULT_BASE_URL)
         self.gemini_api_key_var = ctk.StringVar(value="")
+        self.gemini_tts_model_var = ctk.StringVar(value=GEMINI_TTS_DEFAULT_MODEL)
         self.whisper_language_var = ctk.StringVar(value="Deutsch")
         self.whisper_speed_var = ctk.StringVar(value="Genau")
+        self.stt_provider_var = ctk.StringVar(value=STT_PROVIDER_OPTIONS[0])
         self.mic_device_var = ctk.StringVar(value="")
         self.sample_rate_var = ctk.StringVar(value="16000")
         self.tts_rate_var = ctk.StringVar(value="170")
@@ -988,6 +990,18 @@ class VoiceAssistantUI(
 
     def on_tts_engine_changed(self, _selected: str) -> None:
         selected_engine = self.tts_engine_var.get().strip().lower()
+
+        if "gemini" in selected_engine:
+            gemini_voice_labels = list(GEMINI_TTS_VOICE_OPTIONS.keys())
+            self.tts_voice_menu.configure(values=gemini_voice_labels)
+            current_voice = self.tts_voice_var.get().strip()
+            if current_voice not in gemini_voice_labels:
+                self.tts_voice_var.set(gemini_voice_labels[0])
+
+            self.tts_emotion_menu.configure(state="disabled")
+            self.piper_model_entry.configure(state="disabled")
+            self.piper_config_entry.configure(state="disabled")
+            return
 
         if "piper" in selected_engine:
             self.refresh_piper_model_options()
@@ -2216,6 +2230,124 @@ class VoiceAssistantUI(
         worker = threading.Thread(target=self._run_transcription, args=(auto_send,), daemon=True)
         worker.start()
 
+    def _normalize_gemini_base_url(self, raw_base_url: str) -> str:
+        normalized = (raw_base_url or GEMINI_DEFAULT_BASE_URL).strip().rstrip("/")
+        if not normalized:
+            return GEMINI_DEFAULT_BASE_URL
+        lowered = normalized.lower()
+        if "generativelanguage.googleapis.com" in lowered and "/openai" not in lowered:
+            normalized = f"{normalized}/openai"
+        return normalized
+
+    def _transcribe_with_gemini(self, audio_path: str, require_text: bool = True) -> str:
+        base_url = self._normalize_gemini_base_url(self.gemini_base_url_var.get())
+        if base_url != self.gemini_base_url_var.get().strip():
+            self.gemini_base_url_var.set(base_url)
+
+        api_key = self.gemini_api_key_var.get().strip()
+        if not api_key:
+            raise RuntimeError("Gemini API-Key fehlt")
+
+        model_name = self.gemini_model_var.get().strip() or GEMINI_DEFAULT_MODEL
+        endpoint = f"{base_url}/audio/transcriptions"
+        headers = {"Authorization": f"Bearer {api_key}"}
+
+        with open(audio_path, "rb") as audio_file:
+            files = {
+                "file": (Path(audio_path).name, audio_file, "audio/wav"),
+            }
+            data = {
+                "model": model_name,
+            }
+            response = self.http_session.post(
+                endpoint,
+                headers=headers,
+                data=data,
+                files=files,
+                timeout=(20, 300),
+            )
+
+        if response.status_code >= 400:
+            detail = (response.text or "").strip()
+            raise RuntimeError(
+                f"Gemini STT Fehler ({response.status_code}): {detail[:300] or 'Unbekannter Fehler'}"
+            )
+
+        try:
+            payload = response.json()
+        except Exception:
+            payload = {}
+
+        text = str(payload.get("text", "")).strip()
+        if require_text and not text:
+            raise RuntimeError("Gemini STT lieferte keinen Text")
+        return text
+
+    def run_gemini_stt_test_async(self) -> None:
+        btn = getattr(self, "gemini_stt_test_btn", None)
+        if btn is not None:
+            btn.configure(state="disabled", text="Teste...")
+        self.set_status("Gemini STT Test laeuft...")
+
+        def worker() -> None:
+            test_path = ""
+            try:
+                sample_rate = 16000
+                duration_seconds = 0.8
+                t = np.linspace(0.0, duration_seconds, int(sample_rate * duration_seconds), endpoint=False)
+                # Short synthetic tone keeps payload valid while remaining lightweight.
+                signal = (0.08 * np.sin(2.0 * np.pi * 440.0 * t)).astype(np.float32)
+                pcm = (signal * 32767.0).astype(np.int16)
+
+                fd, test_path = tempfile.mkstemp(suffix=".wav")
+                os.close(fd)
+                with wave.open(test_path, "wb") as wf:
+                    wf.setnchannels(1)
+                    wf.setsampwidth(2)
+                    wf.setframerate(sample_rate)
+                    wf.writeframes(pcm.tobytes())
+
+                transcript = self._transcribe_with_gemini(test_path, require_text=False)
+                if transcript:
+                    preview = transcript[:80].replace("\n", " ")
+                    self.after(0, lambda p=preview: self.set_status(f"Gemini STT Test OK. Antwort: {p}"))
+                else:
+                    self.after(0, lambda: self.set_status("Gemini STT Test OK (Endpoint erreichbar)"))
+            except Exception as exc:
+                err_text = str(exc)
+                self.after(0, lambda msg=err_text: self.set_status(f"Gemini STT Test fehlgeschlagen: {msg}"))
+            finally:
+                if test_path:
+                    try:
+                        Path(test_path).unlink(missing_ok=True)
+                    except Exception:
+                        pass
+                if btn is not None:
+                    self.after(0, lambda: btn.configure(state="normal", text="Gemini STT testen"))
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def run_gemini_tts_test_async(self) -> None:
+        btn = getattr(self, "gemini_tts_test_btn", None)
+        if btn is not None:
+            btn.configure(state="disabled", text="Teste...")
+        self.set_status("Gemini TTS Test laeuft...")
+
+        def worker() -> None:
+            try:
+                self.set_output_speaking(True)
+                self.speak_text_gemini_tts("Hallo, das ist ein kurzer Gemini TTS Test.")
+                self.after(0, lambda: self.set_status("Gemini TTS Test erfolgreich"))
+            except Exception as exc:
+                err_text = str(exc)
+                self.after(0, lambda msg=err_text: self.set_status(f"Gemini TTS Test fehlgeschlagen: {msg}"))
+            finally:
+                self.set_output_speaking(False)
+                if btn is not None:
+                    self.after(0, lambda: btn.configure(state="normal", text="Gemini TTS testen"))
+
+        threading.Thread(target=worker, daemon=True).start()
+
     def _run_transcription(self, auto_send: bool = False) -> None:
         started = time.perf_counter()
         try:
@@ -2227,47 +2359,52 @@ class VoiceAssistantUI(
 
             self.set_status("Transkribiere Audio...")
             self.after(0, lambda: self.set_pipeline_phase("stt"))
-            if not ensure_ffmpeg_available():
-                raise FileNotFoundError(
-                    "ffmpeg nicht gefunden. Bitte ffmpeg installieren oder Terminal/VS Code neu starten."
-                )
 
-            model = self.load_whisper_model(model_name)
-            language_label = self.whisper_language_var.get().strip()
-            language_code = WHISPER_LANGUAGE_OPTIONS.get(language_label, "")
-            speed_mode = self.whisper_speed_var.get().strip()
-
-            if self.whisper_backend == "faster-whisper":
-                transcribe_options: dict[str, Any] = {
-                    "beam_size": 1 if speed_mode == "Schnell" else 3,
-                    "condition_on_previous_text": False if speed_mode == "Schnell" else True,
-                    "vad_filter": True,
-                }
-                if language_code:
-                    transcribe_options["language"] = language_code
-
-                segments, _info = model.transcribe(audio_path, **transcribe_options)
-                transcript = "".join(segment.text for segment in segments).strip()
+            stt_provider = self.stt_provider_var.get().strip()
+            if stt_provider == "Google Gemini (API)":
+                transcript = self._transcribe_with_gemini(audio_path)
+                self.whisper_backend = "gemini-stt"
             else:
-                use_fp16 = str(model.device).lower().startswith("cuda")
-                transcribe_options = {
-                    "fp16": use_fp16,
-                }
-                if language_code:
-                    transcribe_options["language"] = language_code
-
-                if speed_mode == "Schnell":
-                    transcribe_options.update(
-                        {
-                            "beam_size": 1,
-                            "best_of": 1,
-                            "temperature": 0.0,
-                            "condition_on_previous_text": False,
-                        }
+                if not ensure_ffmpeg_available():
+                    raise FileNotFoundError(
+                        "ffmpeg nicht gefunden. Bitte ffmpeg installieren oder Terminal/VS Code neu starten."
                     )
+                model = self.load_whisper_model(model_name)
+                language_label = self.whisper_language_var.get().strip()
+                language_code = WHISPER_LANGUAGE_OPTIONS.get(language_label, "")
+                speed_mode = self.whisper_speed_var.get().strip()
 
-                result = model.transcribe(audio_path, **transcribe_options)
-                transcript = str(result.get("text", "")).strip()
+                if self.whisper_backend == "faster-whisper":
+                    transcribe_options: dict[str, Any] = {
+                        "beam_size": 1 if speed_mode == "Schnell" else 3,
+                        "condition_on_previous_text": False if speed_mode == "Schnell" else True,
+                        "vad_filter": True,
+                    }
+                    if language_code:
+                        transcribe_options["language"] = language_code
+
+                    segments, _info = model.transcribe(audio_path, **transcribe_options)
+                    transcript = "".join(segment.text for segment in segments).strip()
+                else:
+                    use_fp16 = str(model.device).lower().startswith("cuda")
+                    transcribe_options = {
+                        "fp16": use_fp16,
+                    }
+                    if language_code:
+                        transcribe_options["language"] = language_code
+
+                    if speed_mode == "Schnell":
+                        transcribe_options.update(
+                            {
+                                "beam_size": 1,
+                                "best_of": 1,
+                                "temperature": 0.0,
+                                "condition_on_previous_text": False,
+                            }
+                        )
+
+                    result = model.transcribe(audio_path, **transcribe_options)
+                    transcript = str(result.get("text", "")).strip()
 
             if not transcript:
                 self.last_transcript = ""
@@ -2369,6 +2506,7 @@ class VoiceAssistantUI(
                 return
 
             chunk_buffer: list[str] = []
+            streamed_parts: list[str] = []
             first_token_received = False
             first_token_time: float | None = None
             tts_queue = None
@@ -2401,6 +2539,7 @@ class VoiceAssistantUI(
                     return
 
                 chunk_buffer.append(chunk)
+                streamed_parts.append(chunk)
                 if not first_token_received:
                     first_token_received = True
                     first_token_time = time.perf_counter()
@@ -2478,6 +2617,15 @@ class VoiceAssistantUI(
                 cancel_event=self.cancel_ollama_event,
             )
             flush_chunks()
+
+            # If provider appended text after stream (e.g., continuation fallback),
+            # make sure the UI view also gets the missing tail.
+            streamed_text = "".join(streamed_parts)
+            if answer and answer.startswith(streamed_text):
+                missing_tail = answer[len(streamed_text):]
+                if missing_tail:
+                    self.append_textbox(self.answer_box, missing_tail)
+
             # Stream done — remove cursor
             self.after(0, lambda: self._stop_cursor(self.answer_box))
 

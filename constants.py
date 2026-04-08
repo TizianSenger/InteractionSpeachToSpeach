@@ -17,6 +17,12 @@ GEMINI_MODEL_OPTIONS = [
     "gemini-2.0-flash-lite",
     "gemini-1.5-pro",
 ]
+GEMINI_TTS_DEFAULT_MODEL = "gemini-2.5-flash-preview-tts"
+GEMINI_TTS_VOICE_OPTIONS: dict[str, str] = {
+    "Gemini (neutral) - Kore": "Kore",
+    "Gemini (warm) - Aoede": "Aoede",
+    "Gemini (deep) - Charon": "Charon",
+}
 ANTHROPIC_DEFAULT_BASE_URL = "https://api.anthropic.com"
 ANTHROPIC_DEFAULT_API_VERSION = "2023-06-01"
 PYTTSX3_VOICE_OPTIONS = ["Deutsch (weiblich) - Lokal", "Deutsch (männlich) - Lokal"]
@@ -39,6 +45,7 @@ WHISPER_LANGUAGE_OPTIONS: dict[str, str] = {
     "Deutsch": "de",
     "Englisch": "en",
 }
+STT_PROVIDER_OPTIONS = ["Whisper (lokal)", "Google Gemini (API)"]
 WHISPER_SPEED_OPTIONS = ["Schnell", "Genau"]
 WHISPER_MODEL_OPTIONS = ["small", "medium"]
 REALTIME_MODE_OPTIONS = ["Balanced", "Aggressiv", "Stabil"]

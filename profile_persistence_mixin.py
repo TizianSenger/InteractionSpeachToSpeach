@@ -51,11 +51,13 @@ class ProfilePersistenceMixin:
                 "tts_voice": self.tts_voice_var.get().strip(),
                 "tts_emotion": self.tts_emotion_var.get().strip(),
                 "tts_rate": self.tts_rate_var.get().strip(),
+                "gemini_tts_model": self.gemini_tts_model_var.get().strip(),
                 "piper_model_path": self.piper_model_path_var.get().strip(),
                 "piper_config_path": self.piper_config_path_var.get().strip(),
                 "appearance_mode": self.appearance_mode_var.get().strip(),
             },
             "stt": {
+                "stt_provider": self.stt_provider_var.get().strip(),
                 "whisper_model": self.whisper_model_var.get().strip(),
                 "whisper_language": self.whisper_language_var.get().strip(),
                 "whisper_speed": self.whisper_speed_var.get().strip(),
@@ -146,11 +148,13 @@ class ProfilePersistenceMixin:
             self.tts_voice_var.set(_str(preferences, "tts_voice", self.tts_voice_var.get()))
             self.tts_emotion_var.set(_str(preferences, "tts_emotion", self.tts_emotion_var.get()))
             self.tts_rate_var.set(_str(preferences, "tts_rate", self.tts_rate_var.get()))
+            self.gemini_tts_model_var.set(_str(preferences, "gemini_tts_model", self.gemini_tts_model_var.get()))
             self.piper_model_path_var.set(_str(preferences, "piper_model_path", self.piper_model_path_var.get()))
             self.piper_config_path_var.set(_str(preferences, "piper_config_path", self.piper_config_path_var.get()))
             self.appearance_mode_var.set(_str(preferences, "appearance_mode", self.appearance_mode_var.get()))
 
             # STT
+            self.stt_provider_var.set(_str(stt, "stt_provider", self.stt_provider_var.get()))
             self.whisper_model_var.set(_str(stt, "whisper_model", self.whisper_model_var.get()))
             self.whisper_language_var.set(_str(stt, "whisper_language", self.whisper_language_var.get()))
             self.whisper_speed_var.set(_str(stt, "whisper_speed", self.whisper_speed_var.get()))

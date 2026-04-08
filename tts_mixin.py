@@ -39,7 +39,15 @@ def _strip_emojis(text: str) -> str:
 
 import pyttsx3
 
-from constants import EDGE_VOICE_OPTIONS, EMOTION_PRESETS, MODEL_GLOB_PATTERN, PYTTSX3_VOICE_OPTIONS
+from constants import (
+    EDGE_VOICE_OPTIONS,
+    EMOTION_PRESETS,
+    GEMINI_DEFAULT_BASE_URL,
+    GEMINI_TTS_DEFAULT_MODEL,
+    GEMINI_TTS_VOICE_OPTIONS,
+    MODEL_GLOB_PATTERN,
+    PYTTSX3_VOICE_OPTIONS,
+)
 
 
 def safe_remove_file(path: str, retries: int = 6, delay_seconds: float = 0.15) -> None:
@@ -240,6 +248,10 @@ class TtsMixin:
             return
         self._ensure_avatar_for_lipsync()
         selected_engine = self.tts_engine_var.get().strip().lower()
+        if "gemini" in selected_engine:
+            self.speak_text_gemini_tts(text)
+            return
+
         if "edge-tts" in selected_engine:
             self.speak_text_edge_tts(text)
             return
@@ -249,6 +261,111 @@ class TtsMixin:
             return
 
         self.speak_text_pyttsx3(text)
+
+    def _normalize_gemini_base_url(self, raw_base_url: str) -> str:
+        normalized = (raw_base_url or GEMINI_DEFAULT_BASE_URL).strip().rstrip("/")
+        if not normalized:
+            return GEMINI_DEFAULT_BASE_URL
+        lowered = normalized.lower()
+        if "generativelanguage.googleapis.com" in lowered and "/openai" not in lowered:
+            normalized = f"{normalized}/openai"
+        return normalized
+
+    def speak_text_gemini_tts(self, text: str) -> None:
+        api_key = self.gemini_api_key_var.get().strip()
+        if not api_key:
+            raise RuntimeError("Gemini API-Key fehlt fuer Gemini-TTS")
+
+        base_url = self._normalize_gemini_base_url(self.gemini_base_url_var.get())
+        if base_url != self.gemini_base_url_var.get().strip():
+            self.after(0, lambda: self.gemini_base_url_var.set(base_url))
+
+        model_name = self.gemini_tts_model_var.get().strip() or GEMINI_TTS_DEFAULT_MODEL
+        voice_label = self.tts_voice_var.get().strip()
+        voice_name = GEMINI_TTS_VOICE_OPTIONS.get(voice_label, "Kore")
+
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        }
+        payload = {
+            "model": model_name,
+            "modalities": ["AUDIO"],
+            "audio": {
+                "voice": voice_name,
+                "format": "wav",
+            },
+            "input": text,
+        }
+
+        response = self.http_session.post(
+            f"{base_url}/audio/speech",
+            headers=headers,
+            json=payload,
+            timeout=(15, 240),
+        )
+
+        if response.status_code >= 400:
+            detail = (response.text or "").strip()
+            raise RuntimeError(f"Gemini TTS Fehler ({response.status_code}): {detail[:300] or 'Unbekannter Fehler'}")
+
+        content_type = response.headers.get("content-type", "").lower()
+        raw_audio: bytes
+        if "application/json" in content_type:
+            data = response.json()
+            # OpenAI-compatible responses may return base64 in different keys.
+            b64_audio = ""
+            if isinstance(data, dict):
+                b64_audio = str(data.get("audio", "") or "")
+                if not b64_audio and isinstance(data.get("data"), dict):
+                    b64_audio = str(data["data"].get("audio", "") or "")
+                if not b64_audio and isinstance(data.get("choices"), list) and data["choices"]:
+                    choice = data["choices"][0]
+                    if isinstance(choice, dict):
+                        b64_audio = str(choice.get("audio", "") or "")
+            if not b64_audio:
+                raise RuntimeError("Gemini TTS lieferte kein Audio im JSON-Response")
+            import base64
+
+            raw_audio = base64.b64decode(b64_audio)
+        else:
+            raw_audio = response.content
+
+        if not raw_audio:
+            raise RuntimeError("Gemini TTS lieferte leere Audiodaten")
+
+        try:
+            pygame_module = importlib.import_module("pygame")
+        except ModuleNotFoundError as exc:
+            raise RuntimeError(
+                "pygame fehlt im aktiven Python. Bitte im gleichen Interpreter installieren: pip install pygame"
+            ) from exc
+
+        suffix = ".wav" if "wav" in content_type else ".mp3"
+        fd, temp_path = tempfile.mkstemp(suffix=suffix)
+        os.close(fd)
+        try:
+            with open(temp_path, "wb") as f:
+                f.write(raw_audio)
+            sound, envelope = self._build_pygame_sound_rms_envelope(
+                pygame_module=pygame_module,
+                audio_path=temp_path,
+            )
+            if sound is not None:
+                self._play_pygame_sound_with_feedback(
+                    sound=sound,
+                    text=text,
+                    envelope=envelope,
+                )
+            else:
+                self._play_pygame_music_with_feedback(
+                    pygame_module=pygame_module,
+                    audio_path=temp_path,
+                    text=text,
+                    envelope=envelope if envelope else None,
+                )
+        finally:
+            safe_remove_file(temp_path)
 
     def _speak_text_background(self, text: str, done_status: str = "Fertig") -> None:
         def worker() -> None:

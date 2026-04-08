@@ -462,6 +462,8 @@ class LlmProviderMixin:
                     except Exception:
                         cont = ""
                     if cont:
+                        if on_chunk is not None:
+                            on_chunk(" " + cont.lstrip())
                         answer = f"{answer.rstrip()} {cont.lstrip()}"
 
             return answer
