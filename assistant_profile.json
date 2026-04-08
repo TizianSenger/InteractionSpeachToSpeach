@@ -10,7 +10,7 @@
   "preferences": {
     "mic_device_label": "Standard (Windows)",
     "tts_engine": "edge-tts (natürlich)",
-    "tts_voice": "Deutsch (weiblich) - Amala",
+    "tts_voice": "Deutsch (männlich, tief) - Killian",
     "tts_emotion": "freundlich",
     "tts_rate": "170",
     "piper_model_path": "models/de_DE-karlsson-medium.onnx",
@@ -23,8 +23,24 @@
     "whisper_speed": "Genau"
   },
   "model": {
+    "provider": "Ollama",
     "ollama_model": "phi4-mini",
     "ollama_url": "http://localhost:11434",
+    "openai_model": "gpt-4o-mini",
+    "openai_base_url": "https://api.openai.com/v1",
+    "openai_api_key": "",
+    "azure_openai_endpoint": "",
+    "azure_openai_deployment": "",
+    "azure_openai_api_key": "",
+    "azure_openai_api_version": "2024-10-21",
+    "anthropic_model": "claude-3-5-sonnet-latest",
+    "anthropic_api_key": "",
+    "anthropic_base_url": "https://api.anthropic.com",
+    "anthropic_api_version": "2023-06-01",
+    "groq_model": "llama-3.3-70b-versatile",
+    "groq_base_url": "https://api.groq.com/openai/v1",
+    "groq_api_key": "",
+    "store_api_keys": true,
     "concise_reply": true,
     "reply_max_tokens": "120",
     "reply_temperature": "0.3"
@@ -33,7 +49,7 @@
     "auto_speak": true,
     "auto_pipeline": true,
     "avatar_lipsync": true,
-    "vrm_model": "PinkBunny.vrm"
+    "vrm_model": "Sasuke.vrm"
   },
   "audio": {
     "sample_rate": "16000",
@@ -41,6 +57,7 @@
     "vad_aggressiveness": "1",
     "vad_silence_timeout": "1.5",
     "wake_word_enabled": true,
-    "wake_word_model": "Hey Jarvis"
+    "wake_word_model": "Hey Jarvis",
+    "realtime_mode": "Balanced"
   }
 }

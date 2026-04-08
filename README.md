@@ -139,6 +139,61 @@ Funktionen in der UI:
 - STT Sprache wählbar: `Deutsch`, `Englisch` oder `Auto`
 - STT Modus wählbar: `Schnell` (niedrigere Latenz) oder `Genau`
 - Fast-Reply Controls fuer Ollama: `Max Tokens`, `Temperatur`, `Kurze Voice-Antworten`
+- Multi-Provider LLM Support: `Ollama`, `OpenAI`, `Azure OpenAI`, `Anthropic`, `Groq`
+- Provider-Diagnostik mit Verbindungs-/Modellcheck im Modell-Tab
+- Optionales Security-Flag: `API-Keys im Profil speichern` (deaktivierbar)
+
+## LLM Provider Setup (UI)
+
+Im Tab `Einstellungen -> Modell`:
+
+1. `Provider` auswaehlen.
+2. Provider-spezifische Felder setzen (`URL/Endpoint`, `API-Key`, `Modell/Deployment`).
+3. `Modelle vom Provider laden` klicken.
+4. Optional `Provider-Diagnostik` ausfuehren.
+
+Hinweise:
+
+- `Ollama`: lokal, kein API-Key notwendig.
+- `OpenAI`/`Groq`: Base URL + API-Key + Modell.
+- `Azure OpenAI`: Endpoint + Deployment + API-Version + API-Key.
+- `Anthropic`: Base URL + API-Version + API-Key + Modell.
+
+Sicherheit:
+
+- Wenn `API-Keys im Profil speichern` deaktiviert ist, werden API-Keys nicht in `assistant_profile.json` persistiert.
+
+Config Transfer:
+
+- Im Modell-Tab gibt es `Provider-Config export` und `Provider-Config import`.
+- Export/Import enthalten bewusst **keine API-Keys**.
+
+## Troubleshooting Provider
+
+1. Fehler `API-Key fehlt`
+	- Im Modell-Tab den passenden Provider auswaehlen und API-Key eintragen.
+
+2. Fehler `Endpoint oder Modell nicht gefunden (404)`
+	- URL/Endpoint und Modell-/Deployment-Namen pruefen.
+	- Bei Azure: Deployment statt Basismodell verwenden.
+
+3. Fehler `Auth fehlgeschlagen (401)`
+	- API-Key pruefen.
+	- Bei Azure sicherstellen, dass der richtige Endpoint zur Ressource passt.
+
+4. Fehler `Rate-Limit erreicht (429)`
+	- Kurz warten und erneut versuchen.
+	- Kleinere Modell- oder Token-Settings verwenden.
+
+5. Verbindungsprobleme/Timeout
+	- Netzwerk/VPN/Firewall pruefen.
+	- Mit `Provider-Diagnostik` im Modell-Tab Latenz und Modell-Liste testen.
+
+## QA / Smoke-Test
+
+Fuer schnelle Release-Checks nutze:
+
+- [scripts/docs/PROVIDER_SMOKE_TEST.md](scripts/docs/PROVIDER_SMOKE_TEST.md)
 
 Hinweis: `edge-tts` klingt natürlicher, benötigt aber eine Internetverbindung.
 Für die Wiedergabe in der UI wird dafür `pygame` genutzt.

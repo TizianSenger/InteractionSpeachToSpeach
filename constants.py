@@ -6,6 +6,12 @@ NO_MIC_DEVICES_LABEL = "Keine Geräte gefunden"
 WINDOWS_DEFAULT_MIC_LABEL = "Standard (Windows)"
 NO_PIPER_MODELS_LABEL = "Keine Piper-Stimmen gefunden"
 OLLAMA_MODEL_OPTIONS = ["phi4-mini", "dolphin-mistral"]
+LLM_PROVIDER_OPTIONS = ["Ollama", "OpenAI", "Azure OpenAI", "Anthropic", "Groq"]
+OPENAI_DEFAULT_BASE_URL = "https://api.openai.com/v1"
+AZURE_OPENAI_DEFAULT_API_VERSION = "2024-10-21"
+GROQ_DEFAULT_BASE_URL = "https://api.groq.com/openai/v1"
+ANTHROPIC_DEFAULT_BASE_URL = "https://api.anthropic.com"
+ANTHROPIC_DEFAULT_API_VERSION = "2023-06-01"
 PYTTSX3_VOICE_OPTIONS = ["Deutsch (weiblich) - Lokal", "Deutsch (männlich) - Lokal"]
 EDGE_VOICE_OPTIONS: dict[str, str] = {
     "Deutsch (weiblich) - Katja": "de-DE-KatjaNeural",
@@ -34,9 +40,6 @@ TTS_STREAM_FIRST_CHARS = 24
 TTS_STREAM_MAX_BUFFER_CHARS = 90
 TTS_STREAM_MAX_WAIT_SECONDS = 0.35
 TTS_STREAM_MAX_SENTENCES = 2
-BARGE_IN_ENERGY_THRESHOLD = 0.018
-BARGE_IN_MIN_FRAMES = 3
-BARGE_IN_COOLDOWN_SECONDS = 1.2
 DEFAULT_ABORTED_STATUS = "Antwort abgebrochen"
 OLLAMA_VOICE_SYSTEM_PROMPT = (
     "Du bist ein Sprachassistent. Antworte kurz, klar und direkt auf Deutsch. "

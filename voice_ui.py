@@ -160,16 +160,10 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
         self._thinking_active: bool = False
         self._thinking_job: str | None = None
         self._thinking_tick: int = 0
-        self._barge_in_pending: bool = False
-        self._barge_in_speech_frames: int = 0
-        self._barge_in_cooldown_until: float = 0.0
-        self._barge_in_trigger_started_at: float | None = None
         self._active_response_started_at: float | None = None
         self._first_audio_chunk_recorded: bool = False
         self.realtime_mode_var = ctk.StringVar(value="Balanced")
-        self._barge_in_energy_threshold = BARGE_IN_ENERGY_THRESHOLD
-        self._barge_in_min_frames = BARGE_IN_MIN_FRAMES
-        self._barge_in_cooldown_seconds = BARGE_IN_COOLDOWN_SECONDS
+        self.store_api_keys_var = ctk.BooleanVar(value=True)
         self._tts_stream_first_chars = TTS_STREAM_FIRST_CHARS
         self._tts_stream_min_chars = TTS_STREAM_MIN_CHARS
         self._tts_stream_max_buffer_chars = TTS_STREAM_MAX_BUFFER_CHARS
@@ -197,7 +191,6 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
             "ollama_total_seconds": [],
             "tts_chunk_seconds": [],
             "first_audio_seconds": [],
-            "barge_in_reaction_seconds": [],
         }
         self.counters: dict[str, int] = {
             "recordings_started": 0,
@@ -220,12 +213,28 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
         )
 
         self.status_var = ctk.StringVar(value="Bereit")
+        self.provider_diagnostics_var = ctk.StringVar(value="Provider-Diagnostik: -")
         self.debug_log_level_var = ctk.StringVar(value="INFO")
         self.stats_summary_var = ctk.StringVar(value="Keine Daten")
         self.stats_latency_var = ctk.StringVar(value="Latenzen: -")
         self.whisper_model_var = ctk.StringVar(value="small")
+        self.llm_provider_var = ctk.StringVar(value="Ollama")
         self.ollama_model_var = ctk.StringVar(value="phi4-mini")
         self.ollama_url_var = ctk.StringVar(value="http://localhost:11434")
+        self.openai_model_var = ctk.StringVar(value="gpt-4o-mini")
+        self.openai_base_url_var = ctk.StringVar(value=OPENAI_DEFAULT_BASE_URL)
+        self.openai_api_key_var = ctk.StringVar(value="")
+        self.azure_openai_endpoint_var = ctk.StringVar(value="")
+        self.azure_openai_deployment_var = ctk.StringVar(value="")
+        self.azure_openai_api_key_var = ctk.StringVar(value="")
+        self.azure_openai_api_version_var = ctk.StringVar(value=AZURE_OPENAI_DEFAULT_API_VERSION)
+        self.anthropic_model_var = ctk.StringVar(value="claude-3-5-sonnet-latest")
+        self.anthropic_api_key_var = ctk.StringVar(value="")
+        self.anthropic_base_url_var = ctk.StringVar(value=ANTHROPIC_DEFAULT_BASE_URL)
+        self.anthropic_api_version_var = ctk.StringVar(value=ANTHROPIC_DEFAULT_API_VERSION)
+        self.groq_model_var = ctk.StringVar(value="llama-3.3-70b-versatile")
+        self.groq_base_url_var = ctk.StringVar(value=GROQ_DEFAULT_BASE_URL)
+        self.groq_api_key_var = ctk.StringVar(value="")
         self.whisper_language_var = ctk.StringVar(value="Deutsch")
         self.whisper_speed_var = ctk.StringVar(value="Genau")
         self.mic_device_var = ctk.StringVar(value="")
@@ -438,7 +447,6 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
             f"Transkription: {self._format_metric('transcription_seconds')} | "
             f"First token: {self._format_metric('ollama_first_token_seconds')} | "
             f"First audio: {self._format_metric('first_audio_seconds')} | "
-            f"Barge-in: {self._format_metric('barge_in_reaction_seconds')} | "
             f"Ollama gesamt: {self._format_metric('ollama_total_seconds')} | "
             f"TTS Chunk: {self._format_metric('tts_chunk_seconds')}"
         )
@@ -450,25 +458,16 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
             normalized = "Balanced"
 
         if normalized == "Aggressiv":
-            self._barge_in_energy_threshold = 0.014
-            self._barge_in_min_frames = 2
-            self._barge_in_cooldown_seconds = 0.9
             self._tts_stream_first_chars = 16
             self._tts_stream_min_chars = 28
             self._tts_stream_max_buffer_chars = 70
             self._tts_stream_max_wait_seconds = 0.22
         elif normalized == "Stabil":
-            self._barge_in_energy_threshold = 0.024
-            self._barge_in_min_frames = 4
-            self._barge_in_cooldown_seconds = 1.8
             self._tts_stream_first_chars = 32
             self._tts_stream_min_chars = 55
             self._tts_stream_max_buffer_chars = 120
             self._tts_stream_max_wait_seconds = 0.50
         else:
-            self._barge_in_energy_threshold = BARGE_IN_ENERGY_THRESHOLD
-            self._barge_in_min_frames = BARGE_IN_MIN_FRAMES
-            self._barge_in_cooldown_seconds = BARGE_IN_COOLDOWN_SECONDS
             self._tts_stream_first_chars = TTS_STREAM_FIRST_CHARS
             self._tts_stream_min_chars = TTS_STREAM_MIN_CHARS
             self._tts_stream_max_buffer_chars = TTS_STREAM_MAX_BUFFER_CHARS
@@ -480,6 +479,190 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
 
     def on_realtime_mode_changed(self, selected_mode: str) -> None:
         self.apply_realtime_preset(selected_mode, announce=True)
+
+    def _canonical_provider_label(self, value: str) -> str:
+        normalized = (value or "Ollama").strip().lower()
+        aliases = {
+            "azure": "Azure OpenAI",
+            "azureopenai": "Azure OpenAI",
+            "azure_openai": "Azure OpenAI",
+        }
+        if normalized in aliases:
+            return aliases[normalized]
+        for option in LLM_PROVIDER_OPTIONS:
+            if option.lower() == normalized:
+                return option
+        return "Ollama"
+
+    def on_llm_provider_changed(self, selected_provider: str) -> None:
+        normalized = self._canonical_provider_label(selected_provider)
+
+        self.llm_provider_var.set(normalized)
+        provider_frames = getattr(self, "provider_frames", {})
+        if not provider_frames:
+            return
+
+        for key, frame in provider_frames.items():
+            if key == normalized:
+                frame.pack(fill="x", padx=14, pady=(0, 8))
+            else:
+                frame.pack_forget()
+
+        # Keep the existing model dropdown linked to active provider selection.
+        if normalized == "OpenAI":
+            self.ollama_model_var.set(self.openai_model_var.get().strip())
+        elif normalized == "Azure OpenAI":
+            self.ollama_model_var.set(self.azure_openai_deployment_var.get().strip())
+        elif normalized == "Anthropic":
+            self.ollama_model_var.set(self.anthropic_model_var.get().strip())
+        elif normalized == "Groq":
+            self.ollama_model_var.set(self.groq_model_var.get().strip())
+        else:
+            self.ollama_model_var.set(self.ollama_model_var.get().strip() or "phi4-mini")
+
+        self.set_status(f"Provider aktiv: {normalized}")
+
+    def on_active_provider_model_changed(self, selected_model: str) -> None:
+        model_name = selected_model.strip()
+        if not model_name:
+            return
+
+        self.ollama_model_var.set(model_name)
+        provider = self.llm_provider_var.get().strip()
+        if provider == "OpenAI":
+            self.openai_model_var.set(model_name)
+        elif provider == "Azure OpenAI":
+            self.azure_openai_deployment_var.set(model_name)
+        elif provider == "Anthropic":
+            self.anthropic_model_var.set(model_name)
+        elif provider == "Groq":
+            self.groq_model_var.set(model_name)
+        else:
+            self.ollama_model_var.set(model_name)
+
+    def run_provider_diagnostics_async(self) -> None:
+        self.provider_diagnostics_var.set("Provider-Diagnostik: pruefe...")
+
+        btn = getattr(self, "provider_diagnostics_btn", None)
+        if btn is not None:
+            btn.configure(state="disabled", text="Pruefe...")
+
+        def worker() -> None:
+            try:
+                result = self.run_provider_diagnostics()
+                provider_key = str(result.get("provider", "")).strip()
+                provider_name = self._provider_display_name(provider_key)
+                model_name = str(result.get("model", "-"))
+                latency = float(result.get("latency_seconds", 0.0))
+                models_count = int(result.get("models_count", 0))
+                preview = result.get("models_preview", [])
+                preview_text = ", ".join(preview) if preview else "-"
+                text = (
+                    f"Provider-Diagnostik: OK | {provider_name} | Modell: {model_name} | "
+                    f"Modelle: {models_count} | RTT: {latency:.2f}s | Preview: {preview_text}"
+                )
+                self.after(0, lambda: self.provider_diagnostics_var.set(text))
+                self.after(0, lambda: self.set_status(f"Provider-Diagnostik OK ({provider_name})"))
+            except Exception as exc:
+                self.after(0, lambda: self.provider_diagnostics_var.set(f"Provider-Diagnostik: Fehler - {exc}"))
+                self.after(0, lambda: self.set_status(f"Provider-Diagnostik fehlgeschlagen: {exc}"))
+            finally:
+                if btn is not None:
+                    self.after(0, lambda: btn.configure(state="normal", text="Provider-Diagnostik"))
+
+        threading.Thread(target=worker, daemon=True).start()
+
+    def _provider_config_export_payload(self) -> dict[str, Any]:
+        return {
+            "provider": self.llm_provider_var.get().strip(),
+            "model": {
+                "ollama_model": self.ollama_model_var.get().strip(),
+                "ollama_url": self.ollama_url_var.get().strip(),
+                "openai_model": self.openai_model_var.get().strip(),
+                "openai_base_url": self.openai_base_url_var.get().strip(),
+                "azure_openai_endpoint": self.azure_openai_endpoint_var.get().strip(),
+                "azure_openai_deployment": self.azure_openai_deployment_var.get().strip(),
+                "azure_openai_api_version": self.azure_openai_api_version_var.get().strip(),
+                "anthropic_model": self.anthropic_model_var.get().strip(),
+                "anthropic_base_url": self.anthropic_base_url_var.get().strip(),
+                "anthropic_api_version": self.anthropic_api_version_var.get().strip(),
+                "groq_model": self.groq_model_var.get().strip(),
+                "groq_base_url": self.groq_base_url_var.get().strip(),
+                "reply_max_tokens": self.reply_max_tokens_var.get().strip(),
+                "reply_temperature": self.reply_temperature_var.get().strip(),
+                "concise_reply": bool(self.concise_reply_var.get()),
+            },
+            "meta": {
+                "version": 1,
+                "contains_api_keys": False,
+            },
+        }
+
+    def export_provider_config(self) -> None:
+        from tkinter import filedialog
+
+        default_name = "provider_config.json"
+        target = filedialog.asksaveasfilename(
+            title="Provider-Konfiguration exportieren",
+            defaultextension=".json",
+            initialfile=default_name,
+            filetypes=[("JSON-Dateien", "*.json"), ("Alle Dateien", "*.*")],
+        )
+        if not target:
+            return
+
+        try:
+            payload = self._provider_config_export_payload()
+            Path(target).write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+            self.set_status(f"Provider-Konfiguration exportiert: {Path(target).name}")
+        except Exception as exc:
+            self.set_status(f"Export fehlgeschlagen: {exc}")
+
+    def import_provider_config(self) -> None:
+        from tkinter import filedialog
+
+        source = filedialog.askopenfilename(
+            title="Provider-Konfiguration importieren",
+            filetypes=[("JSON-Dateien", "*.json"), ("Alle Dateien", "*.*")],
+        )
+        if not source:
+            return
+
+        try:
+            data = json.loads(Path(source).read_text(encoding="utf-8"))
+            if not isinstance(data, dict):
+                raise ValueError("Datei ist kein gueltiges JSON-Objekt")
+
+            model = data.get("model", {}) if isinstance(data.get("model", {}), dict) else {}
+
+            def _str(d: dict[str, Any], key: str, fallback: str) -> str:
+                value = str(d.get(key, "")).strip()
+                return value if value else fallback
+
+            provider_label = self._canonical_provider_label(str(data.get("provider", self.llm_provider_var.get())))
+            self.llm_provider_var.set(provider_label)
+
+            self.ollama_model_var.set(_str(model, "ollama_model", self.ollama_model_var.get()))
+            self.ollama_url_var.set(_str(model, "ollama_url", self.ollama_url_var.get()))
+            self.openai_model_var.set(_str(model, "openai_model", self.openai_model_var.get()))
+            self.openai_base_url_var.set(_str(model, "openai_base_url", self.openai_base_url_var.get()))
+            self.azure_openai_endpoint_var.set(_str(model, "azure_openai_endpoint", self.azure_openai_endpoint_var.get()))
+            self.azure_openai_deployment_var.set(_str(model, "azure_openai_deployment", self.azure_openai_deployment_var.get()))
+            self.azure_openai_api_version_var.set(_str(model, "azure_openai_api_version", self.azure_openai_api_version_var.get()))
+            self.anthropic_model_var.set(_str(model, "anthropic_model", self.anthropic_model_var.get()))
+            self.anthropic_base_url_var.set(_str(model, "anthropic_base_url", self.anthropic_base_url_var.get()))
+            self.anthropic_api_version_var.set(_str(model, "anthropic_api_version", self.anthropic_api_version_var.get()))
+            self.groq_model_var.set(_str(model, "groq_model", self.groq_model_var.get()))
+            self.groq_base_url_var.set(_str(model, "groq_base_url", self.groq_base_url_var.get()))
+            self.reply_max_tokens_var.set(_str(model, "reply_max_tokens", self.reply_max_tokens_var.get()))
+            self.reply_temperature_var.set(_str(model, "reply_temperature", self.reply_temperature_var.get()))
+            if "concise_reply" in model:
+                self.concise_reply_var.set(bool(model["concise_reply"]))
+
+            self.on_llm_provider_changed(provider_label)
+            self.set_status(f"Provider-Konfiguration importiert: {Path(source).name}")
+        except Exception as exc:
+            self.set_status(f"Import fehlgeschlagen: {exc}")
 
     def clear_debug_logs(self) -> None:
         if hasattr(self, "debug_log_box"):
@@ -516,6 +699,13 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
         self._refresh_persona_labels()
 
     def _collect_profile_data(self) -> dict[str, Any]:
+        store_secrets = bool(self.store_api_keys_var.get())
+
+        openai_key = self.openai_api_key_var.get().strip() if store_secrets else ""
+        azure_key = self.azure_openai_api_key_var.get().strip() if store_secrets else ""
+        anthropic_key = self.anthropic_api_key_var.get().strip() if store_secrets else ""
+        groq_key = self.groq_api_key_var.get().strip() if store_secrets else ""
+
         return {
             "persona": {
                 "flirty": float(self.persona_flirty_var.get()),
@@ -541,8 +731,24 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
                 "whisper_speed": self.whisper_speed_var.get().strip(),
             },
             "model": {
+                "provider": self.llm_provider_var.get().strip(),
                 "ollama_model": self.ollama_model_var.get().strip(),
                 "ollama_url": self.ollama_url_var.get().strip(),
+                "openai_model": self.openai_model_var.get().strip(),
+                "openai_base_url": self.openai_base_url_var.get().strip(),
+                "openai_api_key": openai_key,
+                "azure_openai_endpoint": self.azure_openai_endpoint_var.get().strip(),
+                "azure_openai_deployment": self.azure_openai_deployment_var.get().strip(),
+                "azure_openai_api_key": azure_key,
+                "azure_openai_api_version": self.azure_openai_api_version_var.get().strip(),
+                "anthropic_model": self.anthropic_model_var.get().strip(),
+                "anthropic_api_key": anthropic_key,
+                "anthropic_base_url": self.anthropic_base_url_var.get().strip(),
+                "anthropic_api_version": self.anthropic_api_version_var.get().strip(),
+                "groq_model": self.groq_model_var.get().strip(),
+                "groq_base_url": self.groq_base_url_var.get().strip(),
+                "groq_api_key": groq_key,
+                "store_api_keys": store_secrets,
                 "concise_reply": bool(self.concise_reply_var.get()),
                 "reply_max_tokens": self.reply_max_tokens_var.get().strip(),
                 "reply_temperature": self.reply_temperature_var.get().strip(),
@@ -617,8 +823,31 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
             self.whisper_speed_var.set(_str(stt, "whisper_speed", self.whisper_speed_var.get()))
 
             # Modell
+            loaded_provider = _str(model, "provider", self.llm_provider_var.get())
+            self.llm_provider_var.set(self._canonical_provider_label(loaded_provider))
+            if "store_api_keys" in model:
+                self.store_api_keys_var.set(bool(model["store_api_keys"]))
             self.ollama_model_var.set(_str(model, "ollama_model", self.ollama_model_var.get()))
             self.ollama_url_var.set(_str(model, "ollama_url", self.ollama_url_var.get()))
+            self.openai_model_var.set(_str(model, "openai_model", self.openai_model_var.get()))
+            self.openai_base_url_var.set(_str(model, "openai_base_url", self.openai_base_url_var.get()))
+            self.openai_api_key_var.set(_str(model, "openai_api_key", self.openai_api_key_var.get()))
+            self.azure_openai_endpoint_var.set(_str(model, "azure_openai_endpoint", self.azure_openai_endpoint_var.get()))
+            self.azure_openai_deployment_var.set(_str(model, "azure_openai_deployment", self.azure_openai_deployment_var.get()))
+            self.azure_openai_api_key_var.set(_str(model, "azure_openai_api_key", self.azure_openai_api_key_var.get()))
+            self.azure_openai_api_version_var.set(_str(model, "azure_openai_api_version", self.azure_openai_api_version_var.get()))
+            self.anthropic_model_var.set(_str(model, "anthropic_model", self.anthropic_model_var.get()))
+            self.anthropic_api_key_var.set(_str(model, "anthropic_api_key", self.anthropic_api_key_var.get()))
+            self.anthropic_base_url_var.set(_str(model, "anthropic_base_url", self.anthropic_base_url_var.get()))
+            self.anthropic_api_version_var.set(_str(model, "anthropic_api_version", self.anthropic_api_version_var.get()))
+            self.groq_model_var.set(_str(model, "groq_model", self.groq_model_var.get()))
+            self.groq_base_url_var.set(_str(model, "groq_base_url", self.groq_base_url_var.get()))
+            self.groq_api_key_var.set(_str(model, "groq_api_key", self.groq_api_key_var.get()))
+            if not self.store_api_keys_var.get():
+                self.openai_api_key_var.set("")
+                self.azure_openai_api_key_var.set("")
+                self.anthropic_api_key_var.set("")
+                self.groq_api_key_var.set("")
             if "concise_reply" in model:
                 self.concise_reply_var.set(bool(model["concise_reply"]))
             self.reply_max_tokens_var.set(_str(model, "reply_max_tokens", self.reply_max_tokens_var.get()))
@@ -1119,21 +1348,208 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
         mdl = ctk.CTkScrollableFrame(tabs.tab("Modell"), fg_color="transparent")
         mdl.pack(fill="both", expand=True)
 
-        section(mdl, "Ollama")
-        lbl(mdl, "Modell")
+        section(mdl, "LLM Provider")
+        lbl(mdl, "Provider")
+        self.llm_provider_menu = ctk.CTkOptionMenu(
+            mdl,
+            values=LLM_PROVIDER_OPTIONS,
+            variable=self.llm_provider_var,
+            command=self.on_llm_provider_changed,
+        )
+        self.llm_provider_menu.pack(fill="x", padx=14, pady=(0, 8))
+
+        self.provider_frames: dict[str, ctk.CTkFrame] = {}
+
+        ollama_frame = ctk.CTkFrame(mdl, fg_color="transparent")
+        self.provider_frames["Ollama"] = ollama_frame
+        lbl(ollama_frame, "Modell")
         self.ollama_model_menu = ctk.CTkOptionMenu(
-            mdl, values=OLLAMA_MODEL_OPTIONS,
+            ollama_frame,
+            values=OLLAMA_MODEL_OPTIONS,
             variable=self.ollama_model_var,
+            command=self.on_active_provider_model_changed,
         )
-        self.ollama_model_menu.pack(fill="x", padx=14, pady=(0, 6))
+        self.ollama_model_menu.pack(fill="x", padx=0, pady=(0, 6))
         self.refresh_ollama_btn = ctk.CTkButton(
-            mdl, text="Modelle von Ollama laden",
-            command=self.refresh_ollama_models, height=36,
+            ollama_frame,
+            text="Modelle vom Provider laden",
+            command=self.refresh_ollama_models,
+            height=36,
         )
-        self.refresh_ollama_btn.pack(fill="x", padx=14, pady=(0, 8))
-        lbl(mdl, "API-URL")
-        self.ollama_url_entry = ctk.CTkEntry(mdl, textvariable=self.ollama_url_var, height=36)
-        self.ollama_url_entry.pack(fill="x", padx=14, pady=(0, 10))
+        self.refresh_ollama_btn.pack(fill="x", padx=0, pady=(0, 8))
+        lbl(ollama_frame, "API-URL")
+        self.ollama_url_entry = ctk.CTkEntry(ollama_frame, textvariable=self.ollama_url_var, height=36)
+        self.ollama_url_entry.pack(fill="x", padx=0, pady=(0, 10))
+
+        openai_frame = ctk.CTkFrame(mdl, fg_color="transparent")
+        self.provider_frames["OpenAI"] = openai_frame
+        lbl(openai_frame, "Modell")
+        self.openai_model_menu = ctk.CTkOptionMenu(
+            openai_frame,
+            values=[self.openai_model_var.get().strip() or "gpt-4o-mini"],
+            variable=self.openai_model_var,
+            command=self.on_active_provider_model_changed,
+        )
+        self.openai_model_menu.pack(fill="x", padx=0, pady=(0, 6))
+        self.refresh_openai_btn = ctk.CTkButton(
+            openai_frame,
+            text="Modelle vom Provider laden",
+            command=self.refresh_ollama_models,
+            height=36,
+        )
+        self.refresh_openai_btn.pack(fill="x", padx=0, pady=(0, 8))
+        lbl(openai_frame, "Base URL")
+        self.openai_base_url_entry = ctk.CTkEntry(openai_frame, textvariable=self.openai_base_url_var, height=36)
+        self.openai_base_url_entry.pack(fill="x", padx=0, pady=(0, 6))
+        lbl(openai_frame, "API Key")
+        self.openai_api_key_entry = ctk.CTkEntry(openai_frame, textvariable=self.openai_api_key_var, show="*", height=36)
+        self.openai_api_key_entry.pack(fill="x", padx=0, pady=(0, 10))
+
+        groq_frame = ctk.CTkFrame(mdl, fg_color="transparent")
+        self.provider_frames["Groq"] = groq_frame
+        lbl(groq_frame, "Modell")
+        self.groq_model_menu = ctk.CTkOptionMenu(
+            groq_frame,
+            values=[self.groq_model_var.get().strip() or "llama-3.3-70b-versatile"],
+            variable=self.groq_model_var,
+            command=self.on_active_provider_model_changed,
+        )
+        self.groq_model_menu.pack(fill="x", padx=0, pady=(0, 6))
+        self.refresh_groq_btn = ctk.CTkButton(
+            groq_frame,
+            text="Modelle vom Provider laden",
+            command=self.refresh_ollama_models,
+            height=36,
+        )
+        self.refresh_groq_btn.pack(fill="x", padx=0, pady=(0, 8))
+        lbl(groq_frame, "Base URL")
+        self.groq_base_url_entry = ctk.CTkEntry(groq_frame, textvariable=self.groq_base_url_var, height=36)
+        self.groq_base_url_entry.pack(fill="x", padx=0, pady=(0, 6))
+        lbl(groq_frame, "API Key")
+        self.groq_api_key_entry = ctk.CTkEntry(groq_frame, textvariable=self.groq_api_key_var, show="*", height=36)
+        self.groq_api_key_entry.pack(fill="x", padx=0, pady=(0, 10))
+
+        azure_frame = ctk.CTkFrame(mdl, fg_color="transparent")
+        self.provider_frames["Azure OpenAI"] = azure_frame
+        lbl(azure_frame, "Deployment")
+        self.azure_openai_model_menu = ctk.CTkOptionMenu(
+            azure_frame,
+            values=[self.azure_openai_deployment_var.get().strip() or "my-deployment"],
+            variable=self.azure_openai_deployment_var,
+            command=self.on_active_provider_model_changed,
+        )
+        self.azure_openai_model_menu.pack(fill="x", padx=0, pady=(0, 6))
+        self.refresh_azure_btn = ctk.CTkButton(
+            azure_frame,
+            text="Modelle vom Provider laden",
+            command=self.refresh_ollama_models,
+            height=36,
+        )
+        self.refresh_azure_btn.pack(fill="x", padx=0, pady=(0, 8))
+        lbl(azure_frame, "Endpoint")
+        self.azure_openai_endpoint_entry = ctk.CTkEntry(
+            azure_frame,
+            textvariable=self.azure_openai_endpoint_var,
+            height=36,
+        )
+        self.azure_openai_endpoint_entry.pack(fill="x", padx=0, pady=(0, 6))
+        lbl(azure_frame, "API Version")
+        self.azure_openai_api_version_entry = ctk.CTkEntry(
+            azure_frame,
+            textvariable=self.azure_openai_api_version_var,
+            height=36,
+        )
+        self.azure_openai_api_version_entry.pack(fill="x", padx=0, pady=(0, 6))
+        lbl(azure_frame, "API Key")
+        self.azure_openai_api_key_entry = ctk.CTkEntry(
+            azure_frame,
+            textvariable=self.azure_openai_api_key_var,
+            show="*",
+            height=36,
+        )
+        self.azure_openai_api_key_entry.pack(fill="x", padx=0, pady=(0, 10))
+
+        anthropic_frame = ctk.CTkFrame(mdl, fg_color="transparent")
+        self.provider_frames["Anthropic"] = anthropic_frame
+        lbl(anthropic_frame, "Modell")
+        self.anthropic_model_menu = ctk.CTkOptionMenu(
+            anthropic_frame,
+            values=[self.anthropic_model_var.get().strip() or "claude-3-5-sonnet-latest"],
+            variable=self.anthropic_model_var,
+            command=self.on_active_provider_model_changed,
+        )
+        self.anthropic_model_menu.pack(fill="x", padx=0, pady=(0, 6))
+        self.refresh_anthropic_btn = ctk.CTkButton(
+            anthropic_frame,
+            text="Modelle vom Provider laden",
+            command=self.refresh_ollama_models,
+            height=36,
+        )
+        self.refresh_anthropic_btn.pack(fill="x", padx=0, pady=(0, 8))
+        lbl(anthropic_frame, "Base URL")
+        self.anthropic_base_url_entry = ctk.CTkEntry(
+            anthropic_frame,
+            textvariable=self.anthropic_base_url_var,
+            height=36,
+        )
+        self.anthropic_base_url_entry.pack(fill="x", padx=0, pady=(0, 6))
+        lbl(anthropic_frame, "API Version")
+        self.anthropic_api_version_entry = ctk.CTkEntry(
+            anthropic_frame,
+            textvariable=self.anthropic_api_version_var,
+            height=36,
+        )
+        self.anthropic_api_version_entry.pack(fill="x", padx=0, pady=(0, 6))
+        lbl(anthropic_frame, "API Key")
+        self.anthropic_api_key_entry = ctk.CTkEntry(
+            anthropic_frame,
+            textvariable=self.anthropic_api_key_var,
+            show="*",
+            height=36,
+        )
+        self.anthropic_api_key_entry.pack(fill="x", padx=0, pady=(0, 10))
+
+        self.on_llm_provider_changed(self.llm_provider_var.get())
+
+        section(mdl, "Diagnostik")
+        self.provider_diagnostics_btn = ctk.CTkButton(
+            mdl,
+            text="Provider-Diagnostik",
+            command=self.run_provider_diagnostics_async,
+            height=36,
+        )
+        self.provider_diagnostics_btn.pack(fill="x", padx=14, pady=(0, 6))
+        transfer_row = ctk.CTkFrame(mdl, fg_color="transparent")
+        transfer_row.pack(fill="x", padx=14, pady=(0, 6))
+        transfer_row.grid_columnconfigure((0, 1), weight=1)
+        self.export_provider_cfg_btn = ctk.CTkButton(
+            transfer_row,
+            text="Provider-Config export",
+            command=self.export_provider_config,
+            height=34,
+        )
+        self.export_provider_cfg_btn.grid(row=0, column=0, padx=(0, 4), sticky="ew")
+        self.import_provider_cfg_btn = ctk.CTkButton(
+            transfer_row,
+            text="Provider-Config import",
+            command=self.import_provider_config,
+            height=34,
+        )
+        self.import_provider_cfg_btn.grid(row=0, column=1, padx=(4, 0), sticky="ew")
+        self.store_api_keys_switch = ctk.CTkSwitch(
+            mdl,
+            text="API-Keys im Profil speichern",
+            variable=self.store_api_keys_var,
+        )
+        self.store_api_keys_switch.pack(anchor="w", padx=14, pady=(0, 6))
+        ctk.CTkLabel(
+            mdl,
+            textvariable=self.provider_diagnostics_var,
+            text_color="gray60",
+            wraplength=560,
+            justify="left",
+            anchor="w",
+        ).pack(fill="x", padx=14, pady=(0, 10))
 
         section(mdl, "Generierungs-Parameter")
         self.concise_reply_switch = ctk.CTkSwitch(
@@ -2239,58 +2655,8 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
             # Energy-based VAD
             self._vad_check_energy(peak)
         else:
-            # Duplex mode: user speech can interrupt assistant speech instantly.
-            self._barge_in_check_energy(peak)
             # Feed openwakeword (only when not already recording)
             self._ww_feed_audio(indata[:, 0])
-
-    def _can_barge_in_now(self) -> bool:
-        if self.is_recording:
-            return False
-        return self.pipeline_phase in {"ollama", "tts"}
-
-    def _barge_in_check_energy(self, peak: float) -> None:
-        if not self._can_barge_in_now():
-            self._barge_in_speech_frames = 0
-            return
-
-        if self._barge_in_pending:
-            return
-
-        now = time.perf_counter()
-        if now < self._barge_in_cooldown_until:
-            return
-
-        if peak >= self._barge_in_energy_threshold:
-            self._barge_in_speech_frames += 1
-        else:
-            self._barge_in_speech_frames = max(0, self._barge_in_speech_frames - 1)
-
-        if self._barge_in_speech_frames < self._barge_in_min_frames:
-            return
-
-        self._barge_in_speech_frames = 0
-        self._barge_in_pending = True
-        self._barge_in_trigger_started_at = now
-        self._barge_in_cooldown_until = now + self._barge_in_cooldown_seconds
-        self.after(0, self._trigger_barge_in)
-
-    def _trigger_barge_in(self) -> None:
-        self._barge_in_pending = False
-        if not self._can_barge_in_now():
-            return
-
-        self.logger.info("Barge-in erkannt: laufende Antwort wird unterbrochen")
-        if self._barge_in_trigger_started_at is not None:
-            self._add_metric_sample(
-                "barge_in_reaction_seconds",
-                max(0.0, time.perf_counter() - self._barge_in_trigger_started_at),
-            )
-            self._barge_in_trigger_started_at = None
-        self._track_event("Barge-in: Antwort unterbrochen")
-        self.set_status("Barge-in erkannt: Ich hoere zu...")
-        self.cancel_current_response()
-        self.after(80, self.start_recording)
 
     def _vad_check_energy(self, peak: float) -> None:
         if not self.vad_enabled_var.get():
@@ -2791,42 +3157,68 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
             return None
         return device
 
-    def refresh_ollama_models(self) -> None:
-        btn = getattr(self, "refresh_ollama_btn", None)
+    def refresh_provider_models(self) -> None:
+        provider_name = self.llm_provider_var.get().strip() or "Ollama"
+        button_name = {
+            "OpenAI": "refresh_openai_btn",
+            "Azure OpenAI": "refresh_azure_btn",
+            "Anthropic": "refresh_anthropic_btn",
+            "Groq": "refresh_groq_btn",
+        }.get(provider_name, "refresh_ollama_btn")
+        btn = getattr(self, button_name, None)
         if btn is not None:
             btn.configure(state="disabled", text="Lädt...")
 
         def _fetch() -> None:
             try:
-                ollama_url = self.ollama_url_var.get().strip() or "http://localhost:11434"
-                resp = self.http_session.get(
-                    f"{ollama_url.rstrip('/')}/api/tags", timeout=6
-                )
-                resp.raise_for_status()
-                data = resp.json()
-                names: list[str] = [
-                    item.get("name", "")
-                    for item in data.get("models", [])
-                    if isinstance(item, dict) and item.get("name")
-                ]
-                # Strip :latest tag for cleaner display
-                names = [
-                    n[: -len(":latest")] if n.endswith(":latest") else n
-                    for n in names
-                ]
-                names.sort()
+                provider_name = self.llm_provider_var.get().strip() or "Ollama"
+                names = self.list_provider_models()
                 if not names:
-                    self.after(0, lambda: self.set_status("Keine Modelle auf dem Ollama-Server gefunden"))
+                    self.after(0, lambda: self.set_status("Keine Modelle fuer den aktiven Provider gefunden"))
                     return
 
-                current = self.ollama_model_var.get().strip()
+                provider_key = provider_name.lower()
+                if provider_key == "openai":
+                    current = self.openai_model_var.get().strip()
+                elif provider_key == "azure openai":
+                    current = self.azure_openai_deployment_var.get().strip()
+                elif provider_key == "anthropic":
+                    current = self.anthropic_model_var.get().strip()
+                elif provider_key == "groq":
+                    current = self.groq_model_var.get().strip()
+                else:
+                    current = self.ollama_model_var.get().strip()
 
                 def _apply() -> None:
                     self.ollama_model_menu.configure(values=names)
+                    if hasattr(self, "openai_model_menu"):
+                        self.openai_model_menu.configure(values=names)
+                    if hasattr(self, "azure_openai_model_menu"):
+                        self.azure_openai_model_menu.configure(values=names)
+                    if hasattr(self, "anthropic_model_menu"):
+                        self.anthropic_model_menu.configure(values=names)
+                    if hasattr(self, "groq_model_menu"):
+                        self.groq_model_menu.configure(values=names)
                     if current not in names:
-                        self.ollama_model_var.set(names[0])
+                        selected = names[0]
+                    else:
+                        selected = current
+
+                    if provider_key == "openai":
+                        self.openai_model_var.set(selected)
+                    elif provider_key == "azure openai":
+                        self.azure_openai_deployment_var.set(selected)
+                    elif provider_key == "anthropic":
+                        self.anthropic_model_var.set(selected)
+                    elif provider_key == "groq":
+                        self.groq_model_var.set(selected)
+                    else:
+                        self.ollama_model_var.set(selected)
+
+                    # Keep existing model dropdown readable by mirroring active provider model.
+                    self.ollama_model_var.set(selected)
                     self.set_status(
-                        f"{len(names)} Modell(e) geladen: {', '.join(names[:4])}"
+                        f"{provider_name}: {len(names)} Modell(e) geladen: {', '.join(names[:4])}"
                         + (" …" if len(names) > 4 else "")
                     )
 
@@ -2834,16 +3226,20 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
             except Exception as exc:
                 self.after(
                     0,
-                    lambda: self.set_status(f"Ollama-Verbindung fehlgeschlagen: {exc}"),
+                    lambda: self.set_status(f"Provider-Refresh fehlgeschlagen: {exc}"),
                 )
             finally:
                 def _reset_btn() -> None:
                     if btn is not None:
-                        btn.configure(state="normal", text="Modelle von Ollama laden")
+                        btn.configure(state="normal", text="Modelle vom Provider laden")
                 self.after(0, _reset_btn)
 
         import threading
         threading.Thread(target=_fetch, daemon=True).start()
+
+    def refresh_ollama_models(self) -> None:
+        """Backward-compatible alias."""
+        self.refresh_provider_models()
 
     # ── VRM model helpers ─────────────────────────────────────────────────
 
