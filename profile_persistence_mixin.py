@@ -34,6 +34,7 @@ class ProfilePersistenceMixin:
         azure_key = self.azure_openai_api_key_var.get().strip() if store_secrets else ""
         anthropic_key = self.anthropic_api_key_var.get().strip() if store_secrets else ""
         groq_key = self.groq_api_key_var.get().strip() if store_secrets else ""
+        gemini_key = self.gemini_api_key_var.get().strip() if store_secrets else ""
 
         return {
             "persona": {
@@ -77,6 +78,9 @@ class ProfilePersistenceMixin:
                 "groq_model": self.groq_model_var.get().strip(),
                 "groq_base_url": self.groq_base_url_var.get().strip(),
                 "groq_api_key": groq_key,
+                "gemini_model": self.gemini_model_var.get().strip(),
+                "gemini_base_url": self.gemini_base_url_var.get().strip(),
+                "gemini_api_key": gemini_key,
                 "store_api_keys": store_secrets,
                 "concise_reply": bool(self.concise_reply_var.get()),
                 "reply_max_tokens": self.reply_max_tokens_var.get().strip(),
@@ -172,11 +176,15 @@ class ProfilePersistenceMixin:
             self.groq_model_var.set(_str(model, "groq_model", self.groq_model_var.get()))
             self.groq_base_url_var.set(_str(model, "groq_base_url", self.groq_base_url_var.get()))
             self.groq_api_key_var.set(_str(model, "groq_api_key", self.groq_api_key_var.get()))
+            self.gemini_model_var.set(_str(model, "gemini_model", self.gemini_model_var.get()))
+            self.gemini_base_url_var.set(_str(model, "gemini_base_url", self.gemini_base_url_var.get()))
+            self.gemini_api_key_var.set(_str(model, "gemini_api_key", self.gemini_api_key_var.get()))
             if not self.store_api_keys_var.get():
                 self.openai_api_key_var.set("")
                 self.azure_openai_api_key_var.set("")
                 self.anthropic_api_key_var.set("")
                 self.groq_api_key_var.set("")
+                self.gemini_api_key_var.set("")
             if "concise_reply" in model:
                 self.concise_reply_var.set(bool(model["concise_reply"]))
             self.reply_max_tokens_var.set(_str(model, "reply_max_tokens", self.reply_max_tokens_var.get()))

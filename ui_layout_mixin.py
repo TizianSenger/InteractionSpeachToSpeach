@@ -514,6 +514,37 @@ class UiLayoutMixin:
         )
         self.groq_api_test_btn.pack(fill="x", padx=0, pady=(0, 10))
 
+        gemini_frame = ctk.CTkFrame(mdl, fg_color="transparent")
+        self.provider_frames["Google Gemini"] = gemini_frame
+        lbl(gemini_frame, "Modell")
+        self.gemini_model_menu = ctk.CTkOptionMenu(
+            gemini_frame,
+            values=GEMINI_MODEL_OPTIONS,
+            variable=self.gemini_model_var,
+            command=self.on_active_provider_model_changed,
+        )
+        self.gemini_model_menu.pack(fill="x", padx=0, pady=(0, 6))
+        self.refresh_gemini_btn = ctk.CTkButton(
+            gemini_frame,
+            text="Modelle vom Provider laden",
+            command=self.refresh_ollama_models,
+            height=36,
+        )
+        self.refresh_gemini_btn.pack(fill="x", padx=0, pady=(0, 8))
+        lbl(gemini_frame, "Base URL")
+        self.gemini_base_url_entry = ctk.CTkEntry(gemini_frame, textvariable=self.gemini_base_url_var, height=36)
+        self.gemini_base_url_entry.pack(fill="x", padx=0, pady=(0, 6))
+        lbl(gemini_frame, "API Key")
+        self.gemini_api_key_entry = ctk.CTkEntry(gemini_frame, textvariable=self.gemini_api_key_var, show="*", height=36)
+        self.gemini_api_key_entry.pack(fill="x", padx=0, pady=(0, 6))
+        self.gemini_api_test_btn = ctk.CTkButton(
+            gemini_frame,
+            text="API-Key testen",
+            command=lambda: self.run_provider_api_key_test_async("Google Gemini"),
+            height=34,
+        )
+        self.gemini_api_test_btn.pack(fill="x", padx=0, pady=(0, 10))
+
         azure_frame = ctk.CTkFrame(mdl, fg_color="transparent")
         self.provider_frames["Azure OpenAI"] = azure_frame
         lbl(azure_frame, "Deployment")

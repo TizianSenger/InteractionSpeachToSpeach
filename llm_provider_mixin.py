@@ -11,11 +11,14 @@ import requests
 from constants import (
     ANTHROPIC_DEFAULT_API_VERSION,
     ANTHROPIC_DEFAULT_BASE_URL,
+    GEMINI_DEFAULT_BASE_URL,
+    GEMINI_DEFAULT_MODEL,
     OLLAMA_TOOL_ROUTER_PROMPT,
     OLLAMA_VOICE_SYSTEM_PROMPT,
 )
 from llm_providers.anthropic_provider import AnthropicProvider
 from llm_providers.azure_openai_provider import AzureOpenAIProvider
+from llm_providers.gemini_provider import GeminiProvider
 from llm_providers.openai_provider import OpenAICompatibleProvider
 from llm_providers.ollama_provider import OllamaProvider
 
@@ -29,12 +32,16 @@ class LlmProviderMixin:
         "azure openai": "Azure OpenAI",
         "anthropic": "Anthropic",
         "groq": "Groq",
+        "google gemini": "Google Gemini",
     }
 
     _PROVIDER_ALIASES: dict[str, str] = {
         "azure": "azure openai",
         "azureopenai": "azure openai",
         "azure_openai": "azure openai",
+        "gemini": "google gemini",
+        "google": "google gemini",
+        "google_gemini": "google gemini",
     }
 
     def _normalize_provider_key(self, raw_value: str) -> str:
@@ -89,6 +96,15 @@ class LlmProviderMixin:
                 raise RuntimeError("Groq Modell fehlt")
             return
 
+        if provider_key == "google gemini":
+            if not self.gemini_base_url_var.get().strip():
+                raise RuntimeError("Gemini Base URL fehlt")
+            if not self.gemini_api_key_var.get().strip():
+                raise RuntimeError("Gemini API-Key fehlt")
+            if not self.gemini_model_var.get().strip():
+                raise RuntimeError("Gemini Modell fehlt")
+            return
+
     def _format_provider_exception(self, provider_key: str, exc: Exception) -> RuntimeError:
         provider_name = self._provider_display_name(provider_key)
         msg = str(exc).strip() or exc.__class__.__name__
@@ -105,6 +121,11 @@ class LlmProviderMixin:
                 if status == 403:
                     return RuntimeError(f"{provider_name}: Zugriff verweigert (403)")
                 if status == 404:
+                    if provider_key == "google gemini":
+                        return RuntimeError(
+                            "Google Gemini: Endpoint oder Modell nicht gefunden (404). "
+                            "Pruefe Base URL (…/v1beta/openai) und Modellname (z.B. gemini-2.0-flash)."
+                        )
                     return RuntimeError(f"{provider_name}: Endpoint oder Modell nicht gefunden (404)")
                 if status == 429:
                     detail = ""
@@ -161,6 +182,18 @@ class LlmProviderMixin:
         return OpenAICompatibleProvider(
             session=self.http_session,
             base_url=base_url,
+            api_key=api_key,
+        )
+
+    def _get_gemini_provider(self) -> GeminiProvider:
+        base_url = self.gemini_base_url_var.get().strip() or GEMINI_DEFAULT_BASE_URL
+        api_key = self.gemini_api_key_var.get().strip()
+        normalized = GeminiProvider.normalize_base_url(base_url)
+        if normalized != base_url:
+            self.gemini_base_url_var.set(normalized)
+        return GeminiProvider(
+            session=self.http_session,
+            base_url=normalized,
             api_key=api_key,
         )
 
@@ -229,6 +262,11 @@ class LlmProviderMixin:
             endpoint = self.groq_base_url_var.get().strip() or "https://api.groq.com/openai/v1"
             return provider_key, model_name, endpoint, self._get_groq_provider()
 
+        if provider_key == "google gemini":
+            model_name = self.gemini_model_var.get().strip() or GEMINI_DEFAULT_MODEL
+            endpoint = self.gemini_base_url_var.get().strip() or GEMINI_DEFAULT_BASE_URL
+            return provider_key, model_name, endpoint, self._get_gemini_provider()
+
         raise RuntimeError(
             "Provider aktuell noch nicht verdrahtet. Bitte nutze einen verfuegbaren Provider."
         )
@@ -258,6 +296,15 @@ class LlmProviderMixin:
         if provider_key == "anthropic":
             return {
                 "max_tokens": self._get_reply_max_tokens(),
+                "temperature": self._get_reply_temperature(),
+                "top_p": 0.9,
+            }
+
+        if provider_key == "google gemini":
+            budget = max(512, self._get_reply_max_tokens())
+            return {
+                # Keep payload conservative for Gemini OpenAI-compat endpoints.
+                "max_tokens": budget,
                 "temperature": self._get_reply_temperature(),
                 "top_p": 0.9,
             }
@@ -374,7 +421,7 @@ class LlmProviderMixin:
                 self.active_ollama_response = response
 
         try:
-            return self._call_with_retry(
+            answer = self._call_with_retry(
                 lambda: provider.stream_chat(
                     model_name=model_name,
                     messages=self._build_chat_messages(user_text),
@@ -387,6 +434,37 @@ class LlmProviderMixin:
                 ),
                 retries=1,
             )
+
+            # Gemini can occasionally end mid-sentence despite generous token budgets.
+            # If response looks cut off, request one continuation chunk once.
+            if provider_key == "google gemini" and answer and not (cancel_event and cancel_event.is_set()):
+                tail = answer.rstrip()
+                if tail and tail[-1] not in ".!?\n\"'":
+                    continuation_messages = self._build_chat_messages(user_text)
+                    continuation_messages.append({"role": "assistant", "content": answer})
+                    continuation_messages.append(
+                        {
+                            "role": "user",
+                            "content": "Bitte fuehre die letzte Antwort exakt ab der letzten Stelle ohne Wiederholung fort.",
+                        }
+                    )
+                    try:
+                        cont = self._call_with_retry(
+                            lambda: provider.send_chat(
+                                model_name=model_name,
+                                messages=continuation_messages,
+                                options=options,
+                                timeout=(10, 120),
+                                keep_alive=keep_alive,
+                            ),
+                            retries=0,
+                        )
+                    except Exception:
+                        cont = ""
+                    if cont:
+                        answer = f"{answer.rstrip()} {cont.lstrip()}"
+
+            return answer
         except Exception as exc:
             raise self._format_provider_exception(provider_key, exc) from exc
 

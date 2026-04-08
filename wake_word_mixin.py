@@ -132,7 +132,8 @@ class WakeWordMixin:
             self.after(0, lambda: self.wake_word_status_var.set("Hoere zu ..."))
         except Exception as exc:
             self.logger.error("Wake-word: Ladefehler: %s", exc)
-            self.after(0, lambda: self.wake_word_status_var.set(f"Fehler: {exc}"))
+            err_text = str(exc)
+            self.after(0, lambda msg=err_text: self.wake_word_status_var.set(f"Fehler: {msg}"))
 
     def _ww_trigger(self) -> None:
         """Fired on the UI thread when wake word detected."""

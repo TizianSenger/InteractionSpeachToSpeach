@@ -17,6 +17,9 @@ class ProviderUiMixin:
             "azure": "Azure OpenAI",
             "azureopenai": "Azure OpenAI",
             "azure_openai": "Azure OpenAI",
+            "gemini": "Google Gemini",
+            "google": "Google Gemini",
+            "google_gemini": "Google Gemini",
         }
         if normalized in aliases:
             return aliases[normalized]
@@ -48,6 +51,8 @@ class ProviderUiMixin:
             self.ollama_model_var.set(self.anthropic_model_var.get().strip())
         elif normalized == "Groq":
             self.ollama_model_var.set(self.groq_model_var.get().strip())
+        elif normalized == "Google Gemini":
+            self.ollama_model_var.set(self.gemini_model_var.get().strip())
         else:
             self.ollama_model_var.set(self.ollama_model_var.get().strip() or "phi4-mini")
 
@@ -68,6 +73,8 @@ class ProviderUiMixin:
             self.anthropic_model_var.set(model_name)
         elif provider == "Groq":
             self.groq_model_var.set(model_name)
+        elif provider == "Google Gemini":
+            self.gemini_model_var.set(model_name)
         else:
             self.ollama_model_var.set(model_name)
 
@@ -80,6 +87,7 @@ class ProviderUiMixin:
             "Groq": "groq_api_test_btn",
             "Azure OpenAI": "azure_api_test_btn",
             "Anthropic": "anthropic_api_test_btn",
+            "Google Gemini": "gemini_api_test_btn",
         }
         btn = getattr(self, button_attr_map.get(normalized_label, ""), None)
         if btn is not None:
@@ -95,8 +103,9 @@ class ProviderUiMixin:
                 self.after(0, lambda: self.provider_diagnostics_var.set(msg))
                 self.after(0, lambda: self.set_status(f"API-Key OK ({provider_name})"))
             except Exception as exc:
-                self.after(0, lambda: self.provider_diagnostics_var.set(f"API-Key Test: Fehler - {exc}"))
-                self.after(0, lambda: self.set_status(f"API-Key Test fehlgeschlagen: {exc}"))
+                err_text = str(exc)
+                self.after(0, lambda msg=err_text: self.provider_diagnostics_var.set(f"API-Key Test: Fehler - {msg}"))
+                self.after(0, lambda msg=err_text: self.set_status(f"API-Key Test fehlgeschlagen: {msg}"))
             finally:
                 if btn is not None:
                     self.after(0, lambda: btn.configure(state="normal", text="API-Key testen"))
@@ -127,8 +136,9 @@ class ProviderUiMixin:
                 self.after(0, lambda: self.provider_diagnostics_var.set(text))
                 self.after(0, lambda: self.set_status(f"Provider-Diagnostik OK ({provider_name})"))
             except Exception as exc:
-                self.after(0, lambda: self.provider_diagnostics_var.set(f"Provider-Diagnostik: Fehler - {exc}"))
-                self.after(0, lambda: self.set_status(f"Provider-Diagnostik fehlgeschlagen: {exc}"))
+                err_text = str(exc)
+                self.after(0, lambda msg=err_text: self.provider_diagnostics_var.set(f"Provider-Diagnostik: Fehler - {msg}"))
+                self.after(0, lambda msg=err_text: self.set_status(f"Provider-Diagnostik fehlgeschlagen: {msg}"))
             finally:
                 if btn is not None:
                     self.after(0, lambda: btn.configure(state="normal", text="Provider-Diagnostik"))
@@ -151,6 +161,8 @@ class ProviderUiMixin:
                 "anthropic_api_version": self.anthropic_api_version_var.get().strip(),
                 "groq_model": self.groq_model_var.get().strip(),
                 "groq_base_url": self.groq_base_url_var.get().strip(),
+                "gemini_model": self.gemini_model_var.get().strip(),
+                "gemini_base_url": self.gemini_base_url_var.get().strip(),
                 "reply_max_tokens": self.reply_max_tokens_var.get().strip(),
                 "reply_temperature": self.reply_temperature_var.get().strip(),
                 "concise_reply": bool(self.concise_reply_var.get()),
@@ -217,6 +229,8 @@ class ProviderUiMixin:
             self.anthropic_api_version_var.set(_str(model, "anthropic_api_version", self.anthropic_api_version_var.get()))
             self.groq_model_var.set(_str(model, "groq_model", self.groq_model_var.get()))
             self.groq_base_url_var.set(_str(model, "groq_base_url", self.groq_base_url_var.get()))
+            self.gemini_model_var.set(_str(model, "gemini_model", self.gemini_model_var.get()))
+            self.gemini_base_url_var.set(_str(model, "gemini_base_url", self.gemini_base_url_var.get()))
             self.reply_max_tokens_var.set(_str(model, "reply_max_tokens", self.reply_max_tokens_var.get()))
             self.reply_temperature_var.set(_str(model, "reply_temperature", self.reply_temperature_var.get()))
             if "concise_reply" in model:

@@ -2788,3 +2788,365 @@ RuntimeError: OpenAI: Rate-Limit/Quota (429). API-Limits/Billing/Quota im Provid
 2026-04-08 10:39:31,485 | INFO | Thread-6 (_run_transcription) | Ollama Antwort fertig (165 Zeichen, 7.29s)
 2026-04-08 10:39:31,486 | DEBUG | Thread-6 (_run_transcription) | History Assistent: Heute bin ich hier für dich, bereit zu helfen! Ich habe mir schon gedacht, dass du einen tollen Tag hast – lass uns anfangen, wie kann ich d
 2026-04-08 10:39:31,500 | INFO | Thread-6 (_run_transcription) | Status: Antwort fertig. Audio streamt...
+2026-04-08 11:06:58,554 | INFO | MainThread | Voice Studio gestartet
+2026-04-08 11:06:59,004 | INFO | MainThread | Status: Provider aktiv: Ollama
+2026-04-08 11:06:59,381 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-08 11:06:59,381 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-08 11:06:59,509 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-08 11:07:10,384 | INFO | OWW-Loader | Wake-word: >>hey_jarvis<< bereit
+2026-04-08 11:07:11,540 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-08 11:07:11,542 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-08 11:07:26,752 | INFO | MainThread | Status: Provider aktiv: Google Gemini
+2026-04-08 11:07:28,546 | INFO | MainThread | Status: Provider-Diagnostik fehlgeschlagen: Gemini API-Key fehlt
+2026-04-08 11:07:37,770 | INFO | MainThread | Status: API-Key Test fehlgeschlagen: Google Gemini: Modell 'gemini-2.0-flash' nicht verfuegbar. Verfuegbar: models/aqa, models/deep-research-pro-preview-12-2025, models/gemini-2.0-flash, models/gemini-2.0-flash-001, models/gemini-2.0-flash-lite, models/gemini-2.0-flash-lite-001, models/gemini-2.5-computer-use-preview-10-2025, models/gemini-2.5-flash
+2026-04-08 11:07:40,740 | INFO | MainThread | Status: Google Gemini: 51 Modell(e) geladen: models/aqa, models/deep-research-pro-preview-12-2025, models/gemini-2.0-flash, models/gemini-2.0-flash-001 …
+2026-04-08 11:07:42,851 | INFO | MainThread | Status: API-Key OK (Google Gemini)
+2026-04-08 11:08:11,690 | INFO | MainThread | Status: API-Key OK (Google Gemini)
+2026-04-08 11:08:21,690 | INFO | Thread-9 (_run_ollama_only) | Ollama Anfrage gestartet (4 Zeichen Input)
+2026-04-08 11:08:21,690 | INFO | Thread-9 (_run_ollama_only) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-08 11:08:21,738 | DEBUG | Thread-9 (_run_ollama_only) | History Du: test
+2026-04-08 11:08:27,721 | INFO | Thread-9 (_run_ollama_only) | Ollama Antwort fertig (0 Zeichen, 6.04s)
+2026-04-08 11:08:27,721 | DEBUG | Thread-9 (_run_ollama_only) | History Assistent: 
+2026-04-08 11:08:27,721 | INFO | Thread-9 (_run_ollama_only) | Status: Antwort fertig. Audio streamt...
+2026-04-08 11:08:44,759 | INFO | MainThread | Status: API-Key OK (Google Gemini)
+2026-04-08 11:08:50,940 | INFO | MainThread | Status: Provider-Diagnostik OK (Google Gemini)
+2026-04-08 11:09:12,760 | INFO | Thread-16 (_run_ollama_only) | Ollama Anfrage gestartet (21 Zeichen Input)
+2026-04-08 11:09:12,760 | INFO | Thread-16 (_run_ollama_only) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-08 11:09:12,822 | DEBUG | Thread-16 (_run_ollama_only) | History Du: wie geht es dir heute
+2026-04-08 11:09:13,214 | ERROR | Thread-16 (_run_ollama_only) | Ollama: Google Gemini: Endpoint oder Modell nicht gefunden (404)
+Traceback (most recent call last):
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 406, in ask_llm
+    return self._call_with_retry(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 321, in _call_with_retry
+    raise last_exc
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 306, in _call_with_retry
+    return fn()
+           ^^^^
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 407, in <lambda>
+    lambda: provider.stream_chat(
+            ^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_providers\openai_provider.py", line 151, in stream_chat
+    raise exc
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_providers\openai_provider.py", line 120, in stream_chat
+    response.raise_for_status()
+  File "C:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\.venv\Lib\site-packages\requests\models.py", line 1028, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 404 Client Error: Not Found for url: https://generativelanguage.googleapis.com/v1beta/openai/chat/completions
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\voice_ui.py", line 2474, in _run_ollama_only
+    answer = self.ask_ollama(
+             ^^^^^^^^^^^^^^^^
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 433, in ask_ollama
+    return self.ask_llm(user_text=user_text, on_chunk=on_chunk, cancel_event=cancel_event)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 420, in ask_llm
+    raise self._format_provider_exception(provider_key, exc) from exc
+RuntimeError: Google Gemini: Endpoint oder Modell nicht gefunden (404)
+2026-04-08 11:09:13,230 | INFO | Thread-16 (_run_ollama_only) | Status: Fehler: Google Gemini: Endpoint oder Modell nicht gefunden (404)
+2026-04-08 11:09:32,694 | INFO | MainThread | Status: Google Gemini: 51 Modell(e) geladen: models/aqa, models/deep-research-pro-preview-12-2025, models/gemini-2.0-flash, models/gemini-2.0-flash-001 …
+2026-04-08 11:09:39,141 | INFO | MainThread | Status: API-Key OK (Google Gemini)
+2026-04-08 11:09:45,875 | INFO | Thread-22 (_run_ollama_only) | Ollama Anfrage gestartet (21 Zeichen Input)
+2026-04-08 11:09:45,875 | INFO | Thread-22 (_run_ollama_only) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-08 11:09:45,911 | DEBUG | Thread-22 (_run_ollama_only) | History Du: wie geht es dir heute
+2026-04-08 11:09:46,305 | ERROR | Thread-22 (_run_ollama_only) | Ollama: Google Gemini: Endpoint oder Modell nicht gefunden (404)
+Traceback (most recent call last):
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 406, in ask_llm
+    return self._call_with_retry(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 321, in _call_with_retry
+    raise last_exc
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 306, in _call_with_retry
+    return fn()
+           ^^^^
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 407, in <lambda>
+    lambda: provider.stream_chat(
+            ^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_providers\openai_provider.py", line 151, in stream_chat
+    raise exc
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_providers\openai_provider.py", line 120, in stream_chat
+    response.raise_for_status()
+  File "C:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\.venv\Lib\site-packages\requests\models.py", line 1028, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 404 Client Error: Not Found for url: https://generativelanguage.googleapis.com/v1beta/openai/chat/completions
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\voice_ui.py", line 2474, in _run_ollama_only
+    answer = self.ask_ollama(
+             ^^^^^^^^^^^^^^^^
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 433, in ask_ollama
+    return self.ask_llm(user_text=user_text, on_chunk=on_chunk, cancel_event=cancel_event)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 420, in ask_llm
+    raise self._format_provider_exception(provider_key, exc) from exc
+RuntimeError: Google Gemini: Endpoint oder Modell nicht gefunden (404)
+2026-04-08 11:09:46,305 | INFO | Thread-22 (_run_ollama_only) | Status: Fehler: Google Gemini: Endpoint oder Modell nicht gefunden (404)
+2026-04-08 11:14:41,173 | INFO | MainThread | Voice Studio gestartet
+2026-04-08 11:14:41,637 | INFO | MainThread | Status: Provider aktiv: Ollama
+2026-04-08 11:14:42,025 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-08 11:14:42,025 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-08 11:14:42,146 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-08 11:14:44,019 | INFO | OWW-Loader | Wake-word: >>hey_jarvis<< bereit
+2026-04-08 11:14:47,334 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-08 11:14:47,338 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-08 11:14:55,479 | INFO | MainThread | Status: Provider aktiv: Google Gemini
+2026-04-08 11:15:07,089 | INFO | MainThread | Status: API-Key Test fehlgeschlagen: Google Gemini: Rate-Limit/Quota (429). API-Limits/Billing/Quota im Provider pruefen
+2026-04-08 11:15:15,520 | INFO | MainThread | Status: Google Gemini: 51 Modell(e) geladen: models/aqa, models/deep-research-pro-preview-12-2025, models/gemini-2.0-flash, models/gemini-2.0-flash-001 …
+2026-04-08 11:15:18,941 | INFO | MainThread | Status: API-Key OK (Google Gemini)
+2026-04-08 11:15:33,735 | INFO | Thread-8 (_run_ollama_only) | Ollama Anfrage gestartet (20 Zeichen Input)
+2026-04-08 11:15:33,735 | INFO | Thread-8 (_run_ollama_only) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-08 11:15:33,813 | DEBUG | Thread-8 (_run_ollama_only) | History Du: test wie geht es dir
+2026-04-08 11:15:34,148 | ERROR | Thread-8 (_run_ollama_only) | Ollama: Google Gemini: Endpoint oder Modell nicht gefunden (404). Pruefe Base URL (…/v1beta/openai) und Modellname (z.B. gemini-2.0-flash).
+Traceback (most recent call last):
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 415, in ask_llm
+    return self._call_with_retry(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 330, in _call_with_retry
+    raise last_exc
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 315, in _call_with_retry
+    return fn()
+           ^^^^
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 416, in <lambda>
+    lambda: provider.stream_chat(
+            ^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_providers\openai_provider.py", line 151, in stream_chat
+    raise exc
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_providers\openai_provider.py", line 120, in stream_chat
+    response.raise_for_status()
+  File "C:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\.venv\Lib\site-packages\requests\models.py", line 1028, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 404 Client Error: Not Found for url: https://generativelanguage.googleapis.com/v1beta/openai/chat/completions
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\voice_ui.py", line 2474, in _run_ollama_only
+    answer = self.ask_ollama(
+             ^^^^^^^^^^^^^^^^
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 442, in ask_ollama
+    return self.ask_llm(user_text=user_text, on_chunk=on_chunk, cancel_event=cancel_event)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 429, in ask_llm
+    raise self._format_provider_exception(provider_key, exc) from exc
+RuntimeError: Google Gemini: Endpoint oder Modell nicht gefunden (404). Pruefe Base URL (…/v1beta/openai) und Modellname (z.B. gemini-2.0-flash).
+2026-04-08 11:15:34,148 | INFO | Thread-8 (_run_ollama_only) | Status: Fehler: Google Gemini: Endpoint oder Modell nicht gefunden (404). Pruefe Base URL (…/v1beta/openai) und Modellname (z.B. gemini-2.0-flash).
+2026-04-08 11:16:45,254 | INFO | MainThread | Status: API-Key OK (Google Gemini)
+2026-04-08 11:16:48,782 | INFO | Thread-13 (_run_ollama_only) | Ollama Anfrage gestartet (20 Zeichen Input)
+2026-04-08 11:16:48,784 | INFO | Thread-13 (_run_ollama_only) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-08 11:16:48,844 | DEBUG | Thread-13 (_run_ollama_only) | History Du: test wie geht es dir
+2026-04-08 11:16:49,257 | ERROR | Thread-13 (_run_ollama_only) | Ollama: Google Gemini: Endpoint oder Modell nicht gefunden (404). Pruefe Base URL (…/v1beta/openai) und Modellname (z.B. gemini-2.0-flash).
+Traceback (most recent call last):
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 415, in ask_llm
+    return self._call_with_retry(
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 330, in _call_with_retry
+    raise last_exc
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 315, in _call_with_retry
+    return fn()
+           ^^^^
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 416, in <lambda>
+    lambda: provider.stream_chat(
+            ^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_providers\openai_provider.py", line 151, in stream_chat
+    raise exc
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_providers\openai_provider.py", line 120, in stream_chat
+    response.raise_for_status()
+  File "C:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\.venv\Lib\site-packages\requests\models.py", line 1028, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 404 Client Error: Not Found for url: https://generativelanguage.googleapis.com/v1beta/openai/chat/completions
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\voice_ui.py", line 2474, in _run_ollama_only
+    answer = self.ask_ollama(
+             ^^^^^^^^^^^^^^^^
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 442, in ask_ollama
+    return self.ask_llm(user_text=user_text, on_chunk=on_chunk, cancel_event=cancel_event)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 429, in ask_llm
+    raise self._format_provider_exception(provider_key, exc) from exc
+RuntimeError: Google Gemini: Endpoint oder Modell nicht gefunden (404). Pruefe Base URL (…/v1beta/openai) und Modellname (z.B. gemini-2.0-flash).
+2026-04-08 11:16:49,257 | INFO | Thread-13 (_run_ollama_only) | Status: Fehler: Google Gemini: Endpoint oder Modell nicht gefunden (404). Pruefe Base URL (…/v1beta/openai) und Modellname (z.B. gemini-2.0-flash).
+2026-04-08 11:16:55,414 | INFO | MainThread | Status: Google Gemini: 51 Modell(e) geladen: models/aqa, models/deep-research-pro-preview-12-2025, models/gemini-2.0-flash, models/gemini-2.0-flash-001 …
+2026-04-08 11:17:08,200 | INFO | MainThread | Status: API-Key OK (Google Gemini)
+2026-04-08 11:17:12,539 | INFO | Thread-19 (_run_ollama_only) | Ollama Anfrage gestartet (20 Zeichen Input)
+2026-04-08 11:17:12,539 | INFO | Thread-19 (_run_ollama_only) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-08 11:17:12,603 | DEBUG | Thread-19 (_run_ollama_only) | History Du: test wie geht es dir
+2026-04-08 11:17:16,511 | INFO | Thread-19 (_run_ollama_only) | Status: Ollama antwortet...
+2026-04-08 11:17:16,571 | INFO | Thread-19 (_run_ollama_only) | Ollama Antwort fertig (11 Zeichen, 4.05s)
+2026-04-08 11:17:16,571 | DEBUG | Thread-19 (_run_ollama_only) | History Assistent: Mir geht es
+2026-04-08 11:17:16,573 | INFO | Thread-19 (_run_ollama_only) | Status: Antwort fertig. Audio streamt...
+2026-04-08 11:18:18,064 | INFO | MainThread | Voice Studio wird beendet
+2026-04-08 11:18:18,065 | INFO | MainThread | Profil gespeichert: C:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\assistant_profile.json
+2026-04-08 11:18:18,065 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-08 11:18:18,084 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-08 11:18:18,131 | INFO | MainThread | Status: Avatar-Viewer gestoppt
+2026-04-08 11:20:59,181 | INFO | MainThread | Voice Studio gestartet
+2026-04-08 11:20:59,624 | INFO | MainThread | Status: Provider aktiv: Google Gemini
+2026-04-08 11:21:00,029 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-08 11:21:00,029 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-08 11:21:00,153 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-08 11:21:01,801 | INFO | OWW-Loader | Wake-word: >>hey_jarvis<< bereit
+2026-04-08 11:21:05,358 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-08 11:21:05,363 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-08 11:21:20,801 | INFO | MainThread | Status: Provider-Diagnostik OK (Google Gemini)
+2026-04-08 11:21:44,648 | INFO | Thread-5 (_run_ollama_only) | Ollama Anfrage gestartet (43 Zeichen Input)
+2026-04-08 11:21:44,648 | INFO | Thread-5 (_run_ollama_only) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-08 11:21:44,711 | DEBUG | Thread-5 (_run_ollama_only) | History Du: das hier ist ein Test wie geht es dir heute
+2026-04-08 11:21:46,843 | INFO | Thread-5 (_run_ollama_only) | Status: Ollama antwortet...
+2026-04-08 11:21:46,915 | INFO | Thread-5 (_run_ollama_only) | Ollama Antwort fertig (35 Zeichen, 2.27s)
+2026-04-08 11:21:46,916 | DEBUG | Thread-5 (_run_ollama_only) | History Assistent: Ein Test, wie charmant! Mir geht es
+2026-04-08 11:21:46,916 | INFO | Thread-5 (_run_ollama_only) | Status: Antwort fertig. Audio streamt...
+2026-04-08 11:24:43,425 | INFO | MainThread | Voice Studio gestartet
+2026-04-08 11:24:43,869 | INFO | MainThread | Status: Provider aktiv: Google Gemini
+2026-04-08 11:24:44,312 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-08 11:24:44,312 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-08 11:24:44,445 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-08 11:24:46,102 | INFO | OWW-Loader | Wake-word: >>hey_jarvis<< bereit
+2026-04-08 11:24:49,978 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-08 11:24:49,982 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-08 11:25:08,240 | INFO | Thread-4 (_run_ollama_only) | Ollama Anfrage gestartet (27 Zeichen Input)
+2026-04-08 11:25:08,240 | INFO | Thread-4 (_run_ollama_only) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-08 11:25:08,282 | DEBUG | Thread-4 (_run_ollama_only) | History Du: Hallo das hier ist ein Test
+2026-04-08 11:25:08,844 | ERROR | Thread-4 (_run_ollama_only) | Ollama: Google Gemini: HTTP-Fehler (400)
+Traceback (most recent call last):
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 425, in ask_llm
+    answer = self._call_with_retry(
+             ^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 340, in _call_with_retry
+    raise last_exc
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 325, in _call_with_retry
+    return fn()
+           ^^^^
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 426, in <lambda>
+    lambda: provider.stream_chat(
+            ^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_providers\openai_provider.py", line 151, in stream_chat
+    raise exc
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_providers\openai_provider.py", line 120, in stream_chat
+    response.raise_for_status()
+  File "C:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\.venv\Lib\site-packages\requests\models.py", line 1028, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 400 Client Error: Bad Request for url: https://generativelanguage.googleapis.com/v1beta/openai/chat/completions
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\voice_ui.py", line 2475, in _run_ollama_only
+    answer = self.ask_ollama(
+             ^^^^^^^^^^^^^^^^
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 483, in ask_ollama
+    return self.ask_llm(user_text=user_text, on_chunk=on_chunk, cancel_event=cancel_event)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 470, in ask_llm
+    raise self._format_provider_exception(provider_key, exc) from exc
+RuntimeError: Google Gemini: HTTP-Fehler (400)
+2026-04-08 11:25:08,844 | INFO | Thread-4 (_run_ollama_only) | Status: Fehler: Google Gemini: HTTP-Fehler (400)
+2026-04-08 11:25:18,553 | INFO | MainThread | Status: Provider-Diagnostik OK (Google Gemini)
+2026-04-08 11:25:25,283 | INFO | MainThread | Status: API-Key OK (Google Gemini)
+2026-04-08 11:25:28,765 | INFO | Thread-10 (_run_ollama_only) | Ollama Anfrage gestartet (27 Zeichen Input)
+2026-04-08 11:25:28,765 | INFO | Thread-10 (_run_ollama_only) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-08 11:25:28,833 | DEBUG | Thread-10 (_run_ollama_only) | History Du: Hallo das hier ist ein Test
+2026-04-08 11:25:29,126 | ERROR | Thread-10 (_run_ollama_only) | Ollama: Google Gemini: HTTP-Fehler (400)
+Traceback (most recent call last):
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 425, in ask_llm
+    answer = self._call_with_retry(
+             ^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 340, in _call_with_retry
+    raise last_exc
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 325, in _call_with_retry
+    return fn()
+           ^^^^
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 426, in <lambda>
+    lambda: provider.stream_chat(
+            ^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_providers\openai_provider.py", line 151, in stream_chat
+    raise exc
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_providers\openai_provider.py", line 120, in stream_chat
+    response.raise_for_status()
+  File "C:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\.venv\Lib\site-packages\requests\models.py", line 1028, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 400 Client Error: Bad Request for url: https://generativelanguage.googleapis.com/v1beta/openai/chat/completions
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\voice_ui.py", line 2475, in _run_ollama_only
+    answer = self.ask_ollama(
+             ^^^^^^^^^^^^^^^^
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 483, in ask_ollama
+    return self.ask_llm(user_text=user_text, on_chunk=on_chunk, cancel_event=cancel_event)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 470, in ask_llm
+    raise self._format_provider_exception(provider_key, exc) from exc
+RuntimeError: Google Gemini: HTTP-Fehler (400)
+2026-04-08 11:25:29,126 | INFO | Thread-10 (_run_ollama_only) | Status: Fehler: Google Gemini: HTTP-Fehler (400)
+2026-04-08 11:26:17,287 | INFO | Thread-14 (_run_ollama_only) | Ollama Anfrage gestartet (21 Zeichen Input)
+2026-04-08 11:26:17,287 | INFO | Thread-14 (_run_ollama_only) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-08 11:26:17,306 | DEBUG | Thread-14 (_run_ollama_only) | History Du: hallo wie geht es dir
+2026-04-08 11:26:18,007 | ERROR | Thread-14 (_run_ollama_only) | Ollama: Google Gemini: HTTP-Fehler (400)
+Traceback (most recent call last):
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 425, in ask_llm
+    answer = self._call_with_retry(
+             ^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 340, in _call_with_retry
+    raise last_exc
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 325, in _call_with_retry
+    return fn()
+           ^^^^
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 426, in <lambda>
+    lambda: provider.stream_chat(
+            ^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_providers\openai_provider.py", line 151, in stream_chat
+    raise exc
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_providers\openai_provider.py", line 120, in stream_chat
+    response.raise_for_status()
+  File "C:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\.venv\Lib\site-packages\requests\models.py", line 1028, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 400 Client Error: Bad Request for url: https://generativelanguage.googleapis.com/v1beta/openai/chat/completions
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\voice_ui.py", line 2475, in _run_ollama_only
+    answer = self.ask_ollama(
+             ^^^^^^^^^^^^^^^^
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 483, in ask_ollama
+    return self.ask_llm(user_text=user_text, on_chunk=on_chunk, cancel_event=cancel_event)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "c:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\llm_provider_mixin.py", line 470, in ask_llm
+    raise self._format_provider_exception(provider_key, exc) from exc
+RuntimeError: Google Gemini: HTTP-Fehler (400)
+2026-04-08 11:26:18,009 | INFO | Thread-14 (_run_ollama_only) | Status: Fehler: Google Gemini: HTTP-Fehler (400)
+2026-04-08 11:30:52,378 | INFO | MainThread | Voice Studio wird beendet
+2026-04-08 11:30:52,380 | INFO | MainThread | Profil gespeichert: C:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\assistant_profile.json
+2026-04-08 11:30:52,381 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-08 11:30:52,709 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-08 11:30:52,770 | INFO | MainThread | Status: Avatar-Viewer gestoppt
+2026-04-08 11:31:02,473 | INFO | MainThread | Voice Studio gestartet
+2026-04-08 11:31:02,895 | INFO | MainThread | Status: Provider aktiv: Google Gemini
+2026-04-08 11:31:03,339 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-08 11:31:03,339 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-08 11:31:03,485 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-08 11:31:05,160 | INFO | OWW-Loader | Wake-word: >>hey_jarvis<< bereit
+2026-04-08 11:31:08,852 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-08 11:31:08,856 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-08 11:31:26,108 | INFO | MainThread | Status: Provider-Diagnostik OK (Google Gemini)
+2026-04-08 11:31:42,970 | INFO | Thread-5 (_run_ollama_only) | Ollama Anfrage gestartet (22 Zeichen Input)
+2026-04-08 11:31:42,970 | INFO | Thread-5 (_run_ollama_only) | Status: Frage Ollama... (erster Lauf kann etwas dauern)
+2026-04-08 11:31:43,036 | DEBUG | Thread-5 (_run_ollama_only) | History Du: hallo da sist ein Test
+2026-04-08 11:31:45,139 | INFO | Thread-5 (_run_ollama_only) | Status: Ollama antwortet...
+2026-04-08 11:31:45,258 | INFO | Thread-5 (_run_ollama_only) | Ollama Antwort fertig (82 Zeichen, 2.31s)
+2026-04-08 11:31:45,258 | DEBUG | Thread-5 (_run_ollama_only) | History Assistent: Hallo! Ein Test, sagst du? Na, da bin ich ja gespannt, was ich fÃ¼r dich tun darf.
+2026-04-08 11:31:45,395 | INFO | Thread-5 (_run_ollama_only) | Status: Antwort fertig. Audio streamt...
+2026-04-08 11:34:09,026 | INFO | MainThread | Voice Studio wird beendet
+2026-04-08 11:34:09,030 | INFO | MainThread | Profil gespeichert: C:\Users\tizia\Documents\GitHub\InteractionSpeachToSpeach\assistant_profile.json
+2026-04-08 11:34:09,030 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
+2026-04-08 11:34:09,037 | INFO | MainThread | Status: Antwort abgebrochen
+2026-04-08 11:34:09,113 | INFO | MainThread | Status: Avatar-Viewer gestoppt

@@ -6,10 +6,17 @@ NO_MIC_DEVICES_LABEL = "Keine Geräte gefunden"
 WINDOWS_DEFAULT_MIC_LABEL = "Standard (Windows)"
 NO_PIPER_MODELS_LABEL = "Keine Piper-Stimmen gefunden"
 OLLAMA_MODEL_OPTIONS = ["phi4-mini", "dolphin-mistral"]
-LLM_PROVIDER_OPTIONS = ["Ollama", "OpenAI", "Azure OpenAI", "Anthropic", "Groq"]
+LLM_PROVIDER_OPTIONS = ["Ollama", "OpenAI", "Azure OpenAI", "Anthropic", "Groq", "Google Gemini"]
 OPENAI_DEFAULT_BASE_URL = "https://api.openai.com/v1"
 AZURE_OPENAI_DEFAULT_API_VERSION = "2024-10-21"
 GROQ_DEFAULT_BASE_URL = "https://api.groq.com/openai/v1"
+GEMINI_DEFAULT_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai"
+GEMINI_DEFAULT_MODEL = "gemini-2.0-flash"
+GEMINI_MODEL_OPTIONS = [
+    "gemini-2.0-flash",
+    "gemini-2.0-flash-lite",
+    "gemini-1.5-pro",
+]
 ANTHROPIC_DEFAULT_BASE_URL = "https://api.anthropic.com"
 ANTHROPIC_DEFAULT_API_VERSION = "2023-06-01"
 PYTTSX3_VOICE_OPTIONS = ["Deutsch (weiblich) - Lokal", "Deutsch (männlich) - Lokal"]

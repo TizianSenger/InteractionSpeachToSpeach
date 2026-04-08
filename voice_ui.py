@@ -121,6 +121,9 @@ class VoiceAssistantUI(
         self.groq_model_var = ctk.StringVar(value="llama-3.3-70b-versatile")
         self.groq_base_url_var = ctk.StringVar(value=GROQ_DEFAULT_BASE_URL)
         self.groq_api_key_var = ctk.StringVar(value="")
+        self.gemini_model_var = ctk.StringVar(value=GEMINI_DEFAULT_MODEL)
+        self.gemini_base_url_var = ctk.StringVar(value=GEMINI_DEFAULT_BASE_URL)
+        self.gemini_api_key_var = ctk.StringVar(value="")
         self.whisper_language_var = ctk.StringVar(value="Deutsch")
         self.whisper_speed_var = ctk.StringVar(value="Genau")
         self.mic_device_var = ctk.StringVar(value="")
@@ -348,16 +351,19 @@ class VoiceAssistantUI(
             self._tts_stream_min_chars = 28
             self._tts_stream_max_buffer_chars = 70
             self._tts_stream_max_wait_seconds = 0.22
+            self._tts_stream_batch_chars = 170
         elif normalized == "Stabil":
             self._tts_stream_first_chars = 32
             self._tts_stream_min_chars = 55
             self._tts_stream_max_buffer_chars = 120
             self._tts_stream_max_wait_seconds = 0.50
+            self._tts_stream_batch_chars = 340
         else:
             self._tts_stream_first_chars = TTS_STREAM_FIRST_CHARS
             self._tts_stream_min_chars = TTS_STREAM_MIN_CHARS
             self._tts_stream_max_buffer_chars = TTS_STREAM_MAX_BUFFER_CHARS
             self._tts_stream_max_wait_seconds = TTS_STREAM_MAX_WAIT_SECONDS
+            self._tts_stream_batch_chars = 260
 
         self.realtime_mode_var.set(normalized)
         if announce:
@@ -703,11 +709,44 @@ class VoiceAssistantUI(
         self.current_tts_queue = tts_queue
 
         def worker() -> None:
+            max_batch_chars = int(getattr(self, "_tts_stream_batch_chars", 260))
             while True:
                 item = tts_queue.get()
                 if item is None:
                     tts_queue.task_done()
                     break
+
+                consumed_count = 1
+                stop_requested = False
+                batch_parts: list[str] = []
+                if item.strip():
+                    batch_parts.append(item.strip())
+
+                # Merge already queued phrases to reduce per-chunk TTS startup gaps.
+                while sum(len(part) for part in batch_parts) < max_batch_chars:
+                    try:
+                        queued = tts_queue.get_nowait()
+                    except queue.Empty:
+                        break
+
+                    if queued is None:
+                        tts_queue.task_done()
+                        stop_requested = True
+                        break
+
+                    consumed_count += 1
+                    normalized = queued.strip()
+                    if normalized:
+                        batch_parts.append(normalized)
+
+                if not batch_parts:
+                    for _ in range(consumed_count):
+                        tts_queue.task_done()
+                    if stop_requested:
+                        break
+                    continue
+
+                speak_item = " ".join(batch_parts)
                 try:
                     if self.cancel_tts_event.is_set():
                         continue
@@ -719,7 +758,7 @@ class VoiceAssistantUI(
                             max(0.0, time.perf_counter() - self._active_response_started_at),
                         )
                     started = time.perf_counter()
-                    self.speak_text(item)
+                    self.speak_text(speak_item)
                     elapsed = time.perf_counter() - started
                     self._increment_counter("tts_chunks")
                     self._add_metric_sample("tts_chunk_seconds", elapsed)
@@ -729,7 +768,11 @@ class VoiceAssistantUI(
                     self._increment_counter("errors")
                 finally:
                     self.set_output_speaking(False)
-                    tts_queue.task_done()
+                    for _ in range(consumed_count):
+                        tts_queue.task_done()
+
+                if stop_requested:
+                    break
 
             if self.current_tts_queue is tts_queue:
                 self.current_tts_queue = None
@@ -1829,6 +1872,7 @@ class VoiceAssistantUI(
             "Azure OpenAI": "refresh_azure_btn",
             "Anthropic": "refresh_anthropic_btn",
             "Groq": "refresh_groq_btn",
+            "Google Gemini": "refresh_gemini_btn",
         }.get(provider_name, "refresh_ollama_btn")
         btn = getattr(self, button_name, None)
         if btn is not None:
@@ -1851,6 +1895,8 @@ class VoiceAssistantUI(
                     current = self.anthropic_model_var.get().strip()
                 elif provider_key == "groq":
                     current = self.groq_model_var.get().strip()
+                elif provider_key == "google gemini":
+                    current = self.gemini_model_var.get().strip()
                 else:
                     current = self.ollama_model_var.get().strip()
 
@@ -1864,6 +1910,8 @@ class VoiceAssistantUI(
                         self.anthropic_model_menu.configure(values=names)
                     if hasattr(self, "groq_model_menu"):
                         self.groq_model_menu.configure(values=names)
+                    if hasattr(self, "gemini_model_menu"):
+                        self.gemini_model_menu.configure(values=names)
                     if current not in names:
                         selected = names[0]
                     else:
@@ -1877,6 +1925,8 @@ class VoiceAssistantUI(
                         self.anthropic_model_var.set(selected)
                     elif provider_key == "groq":
                         self.groq_model_var.set(selected)
+                    elif provider_key == "google gemini":
+                        self.gemini_model_var.set(selected)
                     else:
                         self.ollama_model_var.set(selected)
 
@@ -1889,9 +1939,10 @@ class VoiceAssistantUI(
 
                 self.after(0, _apply)
             except Exception as exc:
+                err_text = str(exc)
                 self.after(
                     0,
-                    lambda: self.set_status(f"Provider-Refresh fehlgeschlagen: {exc}"),
+                    lambda msg=err_text: self.set_status(f"Provider-Refresh fehlgeschlagen: {msg}"),
                 )
             finally:
                 def _reset_btn() -> None:

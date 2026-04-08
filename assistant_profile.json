@@ -23,8 +23,8 @@
     "whisper_speed": "Genau"
   },
   "model": {
-    "provider": "Ollama",
-    "ollama_model": "phi4-mini",
+    "provider": "Google Gemini",
+    "ollama_model": "models/gemini-2.5-flash",
     "ollama_url": "http://localhost:11434",
     "openai_model": "gpt-4o-mini",
     "openai_base_url": "https://api.openai.com/v1",
@@ -40,6 +40,9 @@
     "groq_model": "llama-3.3-70b-versatile",
     "groq_base_url": "https://api.groq.com/openai/v1",
     "groq_api_key": "",
+    "gemini_model": "models/gemini-2.5-flash",
+    "gemini_base_url": "https://generativelanguage.googleapis.com/v1beta/openai",
+    "gemini_api_key": "AIzaSyAgnGaHj1YUixx9YnyeUHufGbKWhJe8azE",
     "store_api_keys": true,
     "concise_reply": true,
     "reply_max_tokens": "120",

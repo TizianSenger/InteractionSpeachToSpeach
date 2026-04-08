@@ -7,6 +7,25 @@ from typing import Any, Callable
 import requests
 
 
+def _normalize_text_encoding(text: str) -> str:
+    """Repair common mojibake like 'fÃ¼r' -> 'für' when upstream decoding is wrong."""
+    if not text:
+        return text
+
+    suspicious_markers = ("Ã", "Â", "â€", "â€“", "â€œ", "â€")
+    if not any(marker in text for marker in suspicious_markers):
+        return text
+
+    try:
+        repaired = text.encode("latin-1", errors="strict").decode("utf-8", errors="strict")
+    except (UnicodeEncodeError, UnicodeDecodeError):
+        return text
+
+    if repaired.count("�") > text.count("�"):
+        return text
+    return repaired
+
+
 class OpenAICompatibleProvider:
     """Adapter for OpenAI-compatible chat APIs (OpenAI, Groq, many gateways)."""
 
@@ -82,7 +101,8 @@ class OpenAICompatibleProvider:
         if not choices:
             return ""
         message = choices[0].get("message", {}) if isinstance(choices[0], dict) else {}
-        return str(message.get("content", "")).strip()
+        content = str(message.get("content", "")).strip()
+        return _normalize_text_encoding(content)
 
     def stream_chat(
         self,
@@ -140,7 +160,7 @@ class OpenAICompatibleProvider:
                 if not choices or not isinstance(choices[0], dict):
                     continue
                 delta = choices[0].get("delta", {})
-                chunk = str(delta.get("content", ""))
+                chunk = _normalize_text_encoding(str(delta.get("content", "")))
                 if chunk:
                     answer_parts.append(chunk)
                     if on_chunk is not None:
@@ -155,4 +175,4 @@ class OpenAICompatibleProvider:
             if response is not None:
                 response.close()
 
-        return "".join(answer_parts).strip()
+        return _normalize_text_encoding("".join(answer_parts).strip())
