@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import asyncio
+import audioop
 import importlib
 import os
 import re
@@ -11,6 +12,7 @@ import sys
 import tempfile
 import threading
 import time
+import wave
 from pathlib import Path
 from typing import Any
 
@@ -55,6 +57,177 @@ def safe_remove_file(path: str, retries: int = 6, delay_seconds: float = 0.15) -
 class TtsMixin:
     """Provides all TTS synthesis backends (edge-tts, piper, pyttsx3)."""
 
+    _WAVE_CHUNK_MS = 40
+
+    def _build_wav_rms_envelope(self, wav_path: str, chunk_ms: int = _WAVE_CHUNK_MS) -> list[float]:
+        """Extract coarse RMS levels from a WAV file for output waveform/lipsync sync."""
+        envelope: list[float] = []
+        try:
+            with wave.open(wav_path, "rb") as wf:
+                channels = wf.getnchannels()
+                sample_width = wf.getsampwidth()
+                sample_rate = wf.getframerate()
+                frames_per_chunk = max(1, int(sample_rate * (chunk_ms / 1000.0)))
+                max_amplitude = float(1 << (8 * sample_width - 1))
+
+                while True:
+                    raw = wf.readframes(frames_per_chunk)
+                    if not raw:
+                        break
+
+                    if channels > 1:
+                        raw = audioop.tomono(raw, sample_width, 0.5, 0.5)
+
+                    rms = audioop.rms(raw, sample_width)
+                    level = max(0.0, min(1.0, (float(rms) / max_amplitude) * 2.4))
+                    envelope.append(level)
+        except Exception as exc:
+            self.logger.debug("Konnte WAV-Huellkurve nicht lesen (%s): %s", wav_path, exc)
+
+        return envelope
+
+    def _build_pcm_rms_envelope(
+        self,
+        raw: bytes,
+        sample_rate: int,
+        channels: int,
+        sample_width: int,
+        chunk_ms: int = _WAVE_CHUNK_MS,
+    ) -> list[float]:
+        envelope: list[float] = []
+        if not raw or sample_rate <= 0 or channels <= 0 or sample_width <= 0:
+            return envelope
+
+        frame_bytes = channels * sample_width
+        frames_per_chunk = max(1, int(sample_rate * (chunk_ms / 1000.0)))
+        chunk_bytes = max(frame_bytes, frames_per_chunk * frame_bytes)
+        max_amplitude = float(1 << (8 * sample_width - 1))
+
+        for start in range(0, len(raw), chunk_bytes):
+            part = raw[start:start + chunk_bytes]
+            if not part:
+                continue
+            if channels > 1:
+                try:
+                    part = audioop.tomono(part, sample_width, 0.5, 0.5)
+                except Exception:
+                    pass
+
+            try:
+                rms = audioop.rms(part, sample_width)
+            except Exception:
+                rms = 0
+            level = max(0.0, min(1.0, (float(rms) / max_amplitude) * 2.4))
+            envelope.append(level)
+
+        return envelope
+
+    def _build_pygame_sound_rms_envelope(
+        self,
+        pygame_module: Any,
+        audio_path: str,
+        chunk_ms: int = _WAVE_CHUNK_MS,
+    ) -> tuple[Any | None, list[float]]:
+        """Decode audio via pygame Sound and derive RMS envelope from decoded PCM."""
+        try:
+            if not pygame_module.mixer.get_init():
+                pygame_module.mixer.init()
+
+            sound = pygame_module.mixer.Sound(audio_path)
+            raw = sound.get_raw()
+            init_data = pygame_module.mixer.get_init()
+            if init_data is None:
+                return sound, []
+
+            sample_rate, sample_format, channels = init_data
+            sample_width = max(1, abs(int(sample_format)) // 8)
+            envelope = self._build_pcm_rms_envelope(
+                raw=raw,
+                sample_rate=int(sample_rate),
+                channels=int(channels),
+                sample_width=sample_width,
+                chunk_ms=chunk_ms,
+            )
+            return sound, envelope
+        except Exception as exc:
+            self.logger.debug("Konnte pygame-Sound-Huellkurve nicht erstellen (%s): %s", audio_path, exc)
+            return None, []
+
+    def _play_pygame_music_with_feedback(
+        self,
+        pygame_module: Any,
+        audio_path: str,
+        text: str,
+        envelope: list[float] | None = None,
+        chunk_ms: int = _WAVE_CHUNK_MS,
+    ) -> None:
+        if not pygame_module.mixer.get_init():
+            pygame_module.mixer.init()
+
+        pygame_module.mixer.music.load(audio_path)
+        pygame_module.mixer.music.play()
+        started_at = time.perf_counter()
+
+        while pygame_module.mixer.music.get_busy():
+            if self.cancel_tts_event.is_set():
+                pygame_module.mixer.music.stop()
+                break
+
+            elapsed = time.perf_counter() - started_at
+            if envelope:
+                idx = min(len(envelope) - 1, max(0, int((elapsed * 1000.0) // chunk_ms)))
+                level = envelope[idx]
+            else:
+                level = self._estimate_lipsync_energy(text, elapsed)
+
+            if hasattr(self, "set_output_audio_level"):
+                self.set_output_audio_level(level)
+            self._post_avatar_lipsync(True, level)
+            time.sleep(0.04)
+
+        pygame_module.mixer.music.stop()
+        try:
+            pygame_module.mixer.music.unload()
+        except Exception:
+            pass
+
+        if hasattr(self, "set_output_audio_level"):
+            self.set_output_audio_level(0.0)
+        self._reset_avatar_lipsync()
+
+    def _play_pygame_sound_with_feedback(
+        self,
+        sound: Any,
+        text: str,
+        envelope: list[float] | None = None,
+        chunk_ms: int = _WAVE_CHUNK_MS,
+    ) -> None:
+        channel = sound.play()
+        if channel is None:
+            raise RuntimeError("pygame Sound konnte nicht abgespielt werden")
+
+        started_at = time.perf_counter()
+        while channel.get_busy():
+            if self.cancel_tts_event.is_set():
+                channel.stop()
+                break
+
+            elapsed = time.perf_counter() - started_at
+            if envelope:
+                idx = min(len(envelope) - 1, max(0, int((elapsed * 1000.0) // chunk_ms)))
+                level = envelope[idx]
+            else:
+                level = self._estimate_lipsync_energy(text, elapsed)
+
+            if hasattr(self, "set_output_audio_level"):
+                self.set_output_audio_level(level)
+            self._post_avatar_lipsync(True, level)
+            time.sleep(0.04)
+
+        if hasattr(self, "set_output_audio_level"):
+            self.set_output_audio_level(0.0)
+        self._reset_avatar_lipsync()
+
     def _get_pyttsx3_engine(self) -> Any:
         with self.pyttsx3_engine_lock:
             if self.pyttsx3_engine is None:
@@ -85,6 +258,8 @@ class TtsMixin:
 
                 self.set_status("Antwort wird vorgelesen...")
                 self.logger.info("TTS gestartet (%d Zeichen)", len(text))
+                if hasattr(self, "set_output_speaking"):
+                    self.set_output_speaking(True)
 
                 try:
                     self.speak_text(text)
@@ -97,6 +272,8 @@ class TtsMixin:
             except Exception as exc:
                 self._log_exception("TTS Hintergrund", exc)
             finally:
+                if hasattr(self, "set_output_speaking"):
+                    self.set_output_speaking(False)
                 if not self.cancel_tts_event.is_set():
                     self.set_status(done_status)
 
@@ -223,24 +400,13 @@ class TtsMixin:
                     f"Piper fehlgeschlagen: {error_output or 'Unbekannter Fehler'} | Modell: {model_path} | Config: {config_path}"
                 )
 
-            if not pygame_module.mixer.get_init():
-                pygame_module.mixer.init()
-            pygame_module.mixer.music.load(temp_path)
-            pygame_module.mixer.music.play()
-            started_at = time.perf_counter()
-            while pygame_module.mixer.music.get_busy():
-                if self.cancel_tts_event.is_set():
-                    pygame_module.mixer.music.stop()
-                    break
-                elapsed = time.perf_counter() - started_at
-                self._post_avatar_lipsync(True, self._estimate_lipsync_energy(text, elapsed))
-                time.sleep(0.05)
-            pygame_module.mixer.music.stop()
-            try:
-                pygame_module.mixer.music.unload()
-            except Exception:
-                pass
-            self._reset_avatar_lipsync()
+            envelope = self._build_wav_rms_envelope(temp_path)
+            self._play_pygame_music_with_feedback(
+                pygame_module=pygame_module,
+                audio_path=temp_path,
+                text=text,
+                envelope=envelope,
+            )
         finally:
             safe_remove_file(temp_path)
 
@@ -274,6 +440,31 @@ class TtsMixin:
         if chosen_voice_id:
             engine.setProperty("voice", chosen_voice_id)
 
+        temp_path = ""
+        try:
+            pygame_module = importlib.import_module("pygame")
+            fd, temp_path = tempfile.mkstemp(suffix=".wav")
+            os.close(fd)
+
+            engine.stop()
+            engine.save_to_file(text, temp_path)
+            engine.runAndWait()
+
+            if os.path.exists(temp_path) and os.path.getsize(temp_path) > 44:
+                envelope = self._build_wav_rms_envelope(temp_path)
+                self._play_pygame_music_with_feedback(
+                    pygame_module=pygame_module,
+                    audio_path=temp_path,
+                    text=text,
+                    envelope=envelope,
+                )
+                return
+        except Exception as exc:
+            self.logger.debug("pyttsx3 WAV-Playback-Pfad nicht verfuegbar, fallback auf runAndWait: %s", exc)
+        finally:
+            if temp_path:
+                safe_remove_file(temp_path)
+
         stop_lipsync_event, lipsync_thread = self._start_avatar_lipsync_background(text)
         engine.stop()
         try:
@@ -283,6 +474,8 @@ class TtsMixin:
             stop_lipsync_event.set()
             if lipsync_thread is not None:
                 lipsync_thread.join(timeout=0.3)
+            if hasattr(self, "set_output_audio_level"):
+                self.set_output_audio_level(0.0)
             self._reset_avatar_lipsync()
 
     def speak_text_edge_tts(self, text: str) -> None:
@@ -308,23 +501,22 @@ class TtsMixin:
 
         try:
             asyncio.run(synthesize(temp_path))
-            if not pygame_module.mixer.get_init():
-                pygame_module.mixer.init()
-            pygame_module.mixer.music.load(temp_path)
-            pygame_module.mixer.music.play()
-            started_at = time.perf_counter()
-            while pygame_module.mixer.music.get_busy():
-                if self.cancel_tts_event.is_set():
-                    pygame_module.mixer.music.stop()
-                    break
-                elapsed = time.perf_counter() - started_at
-                self._post_avatar_lipsync(True, self._estimate_lipsync_energy(text, elapsed))
-                time.sleep(0.05)
-            pygame_module.mixer.music.stop()
-            try:
-                pygame_module.mixer.music.unload()
-            except Exception:
-                pass
-            self._reset_avatar_lipsync()
+            sound, envelope = self._build_pygame_sound_rms_envelope(
+                pygame_module=pygame_module,
+                audio_path=temp_path,
+            )
+            if sound is not None:
+                self._play_pygame_sound_with_feedback(
+                    sound=sound,
+                    text=text,
+                    envelope=envelope,
+                )
+            else:
+                self._play_pygame_music_with_feedback(
+                    pygame_module=pygame_module,
+                    audio_path=temp_path,
+                    text=text,
+                    envelope=None,
+                )
         finally:
             safe_remove_file(temp_path)

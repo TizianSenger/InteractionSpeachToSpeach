@@ -240,9 +240,20 @@ class VoiceAssistantUI(
         self.settings_popup = None
         self.body_frame = None
         self.viewer_host_frame = None
+        self.output_waveform_canvas = None
         self.column_frames: dict[str, Any] = {}
-        self.column_visible: dict[str, bool] = {"left": True, "middle": True, "right": True}
-        self.column_weights: dict[str, int] = {"left": 5, "middle": 2, "right": 5}
+        self.column_visible: dict[str, bool] = {
+            "left": True,
+            "middle_left": True,
+            "middle_right": True,
+            "right": True,
+        }
+        self.column_weights: dict[str, int] = {
+            "left": 5,
+            "middle_left": 2,
+            "middle_right": 2,
+            "right": 5,
+        }
 
         self.viewer_process = None
         self.viewer_process_lock = threading.Lock()
@@ -262,9 +273,13 @@ class VoiceAssistantUI(
         self._first_audio_chunk_recorded = False
         self._active_response_started_at: float | None = None
         self.waveform_samples: deque[float] = deque(maxlen=240)
+        self.output_waveform_samples: deque[float] = deque(maxlen=240)
         self.waveform_animate_job = None
         self._ww_pulse_tick = 0
         self._ww_flash_frames = 0
+        self._tts_wave_tick = 0
+        self._tts_is_speaking = False
+        self._tts_output_level = 0.0
         self.stt_loading_job_id = None
         self.whisper_model_cache: dict[str, Any] = {}
         self.whisper_module: Any | None = None
@@ -696,6 +711,7 @@ class VoiceAssistantUI(
                 try:
                     if self.cancel_tts_event.is_set():
                         continue
+                    self.set_output_speaking(True)
                     if not self._first_audio_chunk_recorded and self._active_response_started_at is not None:
                         self._first_audio_chunk_recorded = True
                         self._add_metric_sample(
@@ -712,6 +728,7 @@ class VoiceAssistantUI(
                     self.logger.warning("TTS-Chunk fehlgeschlagen: %s", exc)
                     self._increment_counter("errors")
                 finally:
+                    self.set_output_speaking(False)
                     tts_queue.task_done()
 
             if self.current_tts_queue is tts_queue:
@@ -725,6 +742,7 @@ class VoiceAssistantUI(
     def cancel_current_response(self) -> None:
         self.cancel_ollama_event.set()
         self.cancel_tts_event.set()
+        self.set_output_speaking(False)
         self._increment_counter("ollama_cancels")
         self.logger.warning("Aktive Antwort wurde abgebrochen")
         self._track_event("Antwortabbruch angefordert")
@@ -752,6 +770,7 @@ class VoiceAssistantUI(
         self.after(0, lambda: self.text_send_btn.configure(state="normal"))
 
     def _stop_active_audio_playback(self) -> None:
+        self.set_output_speaking(False)
         self._reset_avatar_lipsync()
         try:
             pygame_module = importlib.import_module("pygame")
@@ -981,6 +1000,7 @@ class VoiceAssistantUI(
 
     def _schedule_waveform_draw(self) -> None:
         self._draw_waveform()
+        self._draw_output_waveform()
         self.waveform_animate_job = self.after(20, self._schedule_waveform_draw)  # 20 fps
 
     def trigger_waveform_flash(self) -> None:
@@ -991,8 +1011,8 @@ class VoiceAssistantUI(
         canvas = self.waveform_canvas
         if canvas is None:
             return
-        # Kein Zeichnen wenn die mittlere Spalte ausgeblendet ist
-        if not self.column_visible.get("middle", True):
+        # Kein Zeichnen wenn die Input-Wave-Spalte ausgeblendet ist
+        if not self.column_visible.get("middle_left", True):
             return
         try:
             canvas.update_idletasks()
@@ -1125,6 +1145,141 @@ class VoiceAssistantUI(
             # Main bar
             canvas.create_line(x, mid_y - bar_h, x, mid_y + bar_h,
                                fill=bar_color, width=1)
+
+    def set_output_speaking(self, is_active: bool) -> None:
+        def updater() -> None:
+            self._tts_is_speaking = bool(is_active)
+            if not self._tts_is_speaking:
+                self._tts_output_level = 0.0
+
+        self.after(0, updater)
+
+    def set_output_audio_level(self, level: float) -> None:
+        clamped = max(0.0, min(1.0, float(level)))
+
+        def updater() -> None:
+            # Smooth rises, but decay faster so pauses drop closer to real silence.
+            if clamped < self._tts_output_level:
+                self._tts_output_level = (self._tts_output_level * 0.3) + (clamped * 0.7)
+            else:
+                self._tts_output_level = (self._tts_output_level * 0.55) + (clamped * 0.45)
+
+        self.after(0, updater)
+
+    def _draw_output_waveform(self) -> None:
+        canvas = self.output_waveform_canvas
+        if canvas is None:
+            return
+        if not self.column_visible.get("middle_right", True):
+            return
+
+        try:
+            canvas.update_idletasks()
+            w = canvas.winfo_width()
+            h = canvas.winfo_height()
+        except Exception:
+            return
+        if w < 4 or h < 4:
+            return
+
+        self._tts_wave_tick += 1
+
+        # Theme-aware palette (same styling as input wave, but red for output activity)
+        is_light = ctk.get_appearance_mode().lower() == "light"
+        if is_light:
+            canvas_bg = "#f0f4f8"
+            grid_mid = "#c5cdd9"
+            grid_dash = "#dce3ec"
+            idle_bar = "#991b1b"
+            idle_glow = "#7f1d1d"
+            rec_bar = "#dc2626"
+            rec_glow = "#fca5a5"
+        else:
+            canvas_bg = "#0d1117"
+            grid_mid = "#1e2a3a"
+            grid_dash = "#151f2b"
+            idle_bar = "#7f1d1d"
+            idle_glow = "#450a0a"
+            rec_bar = "#ef4444"
+            rec_glow = "#7f1d1d"
+
+        try:
+            canvas.configure(bg=canvas_bg)
+        except Exception:
+            pass
+
+        import math
+
+        if self._tts_is_speaking:
+            measured = max(0.0, min(1.0, self._tts_output_level))
+            level = max(0.0, min(1.0, measured * 1.25))
+            self.output_waveform_samples.append(level)
+            bar_color = rec_bar
+            glow_color = rec_glow
+            height_boost = 1.0
+        else:
+            # Faster decay to true idle so output rests at the same baseline as input.
+            if self.output_waveform_samples:
+                damped = [sample * 0.72 for sample in self.output_waveform_samples]
+                self.output_waveform_samples = deque(damped, maxlen=240)
+            self.output_waveform_samples.append(0.0)
+            bar_color = idle_bar
+            glow_color = idle_glow
+            height_boost = 1.0
+
+        samples = list(self.output_waveform_samples)
+        canvas.delete("all")
+
+        mid_y = h // 2
+        canvas.create_line(0, mid_y, w, mid_y, fill=grid_mid, width=1)
+        for frac in (0.25, 0.75):
+            y = int(h * frac)
+            canvas.create_line(0, y, w, y, fill=grid_dash, width=1, dash=(4, 6))
+
+        if not samples:
+            return
+
+        n = len(samples)
+        step = w / max(n, 1)
+        for i, amp in enumerate(samples):
+            x = int(i * step)
+            bar_h = max(2, int(amp * (h * 0.85) / 2 * height_boost))
+            # Glow (wider, dimmer)
+            canvas.create_line(x, mid_y - bar_h - 2, x, mid_y + bar_h + 2,
+                               fill=glow_color, width=3)
+            # Main bar
+            canvas.create_line(x, mid_y - bar_h, x, mid_y + bar_h,
+                               fill=bar_color, width=1)
+
+        # Draw the ring on top so it is always visible.
+        cx, cy = w // 2, mid_y
+        ring_r = max(10, min(cx, mid_y) - 4)
+        if self._tts_is_speaking:
+            alpha_pulse = 0.45 + 0.35 * math.sin(self._tts_wave_tick * 0.08)
+            if is_light:
+                rr = int(0xdc + (0xfc - 0xdc) * (1.0 - alpha_pulse))
+                gg = int(0x26 + (0xa5 - 0x26) * (1.0 - alpha_pulse))
+                bb = int(0x26 + (0xa5 - 0x26) * (1.0 - alpha_pulse))
+            else:
+                rr = int(0xef * alpha_pulse)
+                gg = int(0x44 * alpha_pulse)
+                bb = int(0x44 * alpha_pulse)
+            ring_width = 2
+        else:
+            alpha_pulse = 0.35 + 0.15 * math.sin(self._tts_wave_tick * 0.06)
+            if is_light:
+                rr, gg, bb = (0x99, 0x1b, 0x1b)
+            else:
+                rr = int(0xb9 * alpha_pulse)
+                gg = int(0x1c * alpha_pulse)
+                bb = int(0x1c * alpha_pulse)
+            ring_width = 1
+
+        ring_col = f"#{rr:02x}{gg:02x}{bb:02x}"
+        canvas.create_oval(
+            cx - ring_r, cy - ring_r, cx + ring_r, cy + ring_r,
+            outline=ring_col, width=ring_width,
+        )
 
     def _monitor_callback(self, indata: Any, frames: int, callback_time: Any, status: Any) -> None:
         # Legacy: not used when unified stream is active

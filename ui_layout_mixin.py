@@ -15,7 +15,7 @@ class UiLayoutMixin:
 
         topbar = ctk.CTkFrame(self)
         topbar.grid(row=0, column=0, padx=12, pady=(10, 6), sticky="ew")
-        topbar.grid_columnconfigure(5, weight=1)
+        topbar.grid_columnconfigure(6, weight=1)
 
         ctk.CTkLabel(topbar, text="Voice Studio", font=(FONT_FAMILY, 20, "bold")).grid(
             row=0, column=0, padx=(10, 12), pady=8, sticky="w"
@@ -23,14 +23,17 @@ class UiLayoutMixin:
         ctk.CTkButton(topbar, text="Links", width=72, command=lambda: self._toggle_column("left")).grid(
             row=0, column=1, padx=4, pady=8
         )
-        ctk.CTkButton(topbar, text="Mitte", width=72, command=lambda: self._toggle_column("middle")).grid(
+        ctk.CTkButton(topbar, text="Input Wave", width=92, command=lambda: self._toggle_column("middle_left")).grid(
             row=0, column=2, padx=4, pady=8
         )
-        ctk.CTkButton(topbar, text="Rechts", width=72, command=lambda: self._toggle_column("right")).grid(
+        ctk.CTkButton(topbar, text="Output Wave", width=98, command=lambda: self._toggle_column("middle_right")).grid(
             row=0, column=3, padx=4, pady=8
         )
-        ctk.CTkButton(topbar, text="Einstellungen", width=120, command=self.open_settings_popup).grid(
+        ctk.CTkButton(topbar, text="Rechts", width=72, command=lambda: self._toggle_column("right")).grid(
             row=0, column=4, padx=8, pady=8
+        )
+        ctk.CTkButton(topbar, text="Einstellungen", width=120, command=self.open_settings_popup).grid(
+            row=0, column=5, padx=8, pady=8
         )
 
         # ── Status-Anzeige (streckt sich, Echtzeit-Feedback) ───────────
@@ -38,14 +41,14 @@ class UiLayoutMixin:
             topbar, textvariable=self.status_var,
             font=(FONT_FAMILY, 13), text_color="#94a3b8", anchor="w",
         )
-        self.status_label.grid(row=0, column=5, padx=(16, 8), pady=8, sticky="ew")
+        self.status_label.grid(row=0, column=6, padx=(16, 8), pady=8, sticky="ew")
 
         # ── Pipeline-Indikator (rechts) ──────────────────────────────────
         import tkinter as tk
         self.pipeline_canvas = tk.Canvas(
             topbar, bg="#1a2236", highlightthickness=0, height=36, width=340
         )
-        self.pipeline_canvas.grid(row=0, column=6, padx=(0, 8), pady=6, sticky="e")
+        self.pipeline_canvas.grid(row=0, column=7, padx=(0, 8), pady=6, sticky="e")
 
         body = ctk.CTkFrame(self)
         body.grid(row=1, column=0, padx=12, pady=(0, 12), sticky="nsew")
@@ -53,24 +56,25 @@ class UiLayoutMixin:
         body.grid_rowconfigure(0, weight=1)
         body.grid_columnconfigure(0, weight=5)
         body.grid_columnconfigure(1, weight=2)
-        body.grid_columnconfigure(2, weight=5)
+        body.grid_columnconfigure(2, weight=2)
+        body.grid_columnconfigure(3, weight=5)
 
         left_col = ctk.CTkFrame(body)
         left_col.grid(row=0, column=0, padx=(0, 6), pady=0, sticky="nsew")
         left_col.grid_rowconfigure(1, weight=1)
         left_col.grid_columnconfigure(0, weight=1)
 
-        middle_col = ctk.CTkFrame(body)
-        middle_col.grid(row=0, column=1, padx=6, pady=0, sticky="nsew")
-        middle_col.grid_rowconfigure(1, weight=1)
-        middle_col.grid_columnconfigure(0, weight=1)
+        middle_left_col = ctk.CTkFrame(body)
+        middle_left_col.grid(row=0, column=1, padx=6, pady=0, sticky="nsew")
+        middle_left_col.grid_rowconfigure(1, weight=1)
+        middle_left_col.grid_columnconfigure(0, weight=1)
         ctk.CTkLabel(
-            middle_col,
-            text="Waveform",
+            middle_left_col,
+            text="User Input Wave",
             font=(FONT_FAMILY, 14, "bold"),
         ).grid(row=0, column=0, padx=12, pady=(10, 4), sticky="w")
 
-        waveform_host = ctk.CTkFrame(middle_col, fg_color="#0d1117")
+        waveform_host = ctk.CTkFrame(middle_left_col, fg_color="#0d1117")
         waveform_host.grid(row=1, column=0, padx=8, pady=(0, 8), sticky="nsew")
         waveform_host.grid_columnconfigure(0, weight=1)
         waveform_host.grid_rowconfigure(0, weight=1)
@@ -82,8 +86,29 @@ class UiLayoutMixin:
         self.waveform_canvas.grid(row=0, column=0, sticky="nsew")
         self._schedule_waveform_draw()
 
+        middle_right_col = ctk.CTkFrame(body)
+        middle_right_col.grid(row=0, column=2, padx=6, pady=0, sticky="nsew")
+        middle_right_col.grid_rowconfigure(1, weight=1)
+        middle_right_col.grid_columnconfigure(0, weight=1)
+        ctk.CTkLabel(
+            middle_right_col,
+            text="Model Output Wave",
+            font=(FONT_FAMILY, 14, "bold"),
+        ).grid(row=0, column=0, padx=12, pady=(10, 4), sticky="w")
+
+        output_waveform_host = ctk.CTkFrame(middle_right_col, fg_color="#0d1117")
+        output_waveform_host.grid(row=1, column=0, padx=8, pady=(0, 8), sticky="nsew")
+        output_waveform_host.grid_columnconfigure(0, weight=1)
+        output_waveform_host.grid_rowconfigure(0, weight=1)
+        self.output_waveform_canvas = tk.Canvas(
+            output_waveform_host,
+            bg="#0d1117",
+            highlightthickness=0,
+        )
+        self.output_waveform_canvas.grid(row=0, column=0, sticky="nsew")
+
         right_col = ctk.CTkFrame(body)
-        right_col.grid(row=0, column=2, padx=(6, 0), pady=0, sticky="nsew")
+        right_col.grid(row=0, column=3, padx=(6, 0), pady=0, sticky="nsew")
         right_col.grid_rowconfigure(1, weight=1)
         right_col.grid_columnconfigure(0, weight=1)
         ctk.CTkLabel(right_col, text="Model Viewer", font=(FONT_FAMILY, 16, "bold")).grid(
@@ -99,7 +124,12 @@ class UiLayoutMixin:
         ).place(relx=0.5, rely=0.5, anchor="center")
         self.viewer_host_frame.bind("<Configure>", lambda _evt: self._resize_docked_viewer())
 
-        self.column_frames = {"left": left_col, "middle": middle_col, "right": right_col}
+        self.column_frames = {
+            "left": left_col,
+            "middle_left": middle_left_col,
+            "middle_right": middle_right_col,
+            "right": right_col,
+        }
         self._refresh_column_layout()
 
         workflow = ctk.CTkFrame(left_col)
@@ -876,6 +906,12 @@ class UiLayoutMixin:
         self.settings_popup.focus()
 
     def _toggle_column(self, column_name: str) -> None:
+        aliases = {
+            "middle": "middle_left",
+            "input": "middle_left",
+            "output": "middle_right",
+        }
+        column_name = aliases.get(column_name, column_name)
         frame = self.column_frames.get(column_name)
         if frame is None:
             return
@@ -890,13 +926,19 @@ class UiLayoutMixin:
         if body is None:
             return
 
-        order = ["left", "middle", "right"]
+        # Compatibility defaults after layout refactor (3-col -> 4-col).
+        if "middle_left" not in self.column_visible:
+            self.column_visible["middle_left"] = True
+        if "middle_right" not in self.column_visible:
+            self.column_visible["middle_right"] = True
+
+        order = ["left", "middle_left", "middle_right", "right"]
         visible_columns = [name for name in order if self.column_visible.get(name, True)]
         if not visible_columns:
             self.column_visible["left"] = True
             visible_columns = ["left"]
 
-        for slot in range(3):
+        for slot in range(4):
             body.grid_columnconfigure(slot, weight=0)
 
         for name, frame in self.column_frames.items():
