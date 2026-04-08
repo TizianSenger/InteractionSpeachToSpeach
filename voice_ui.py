@@ -160,6 +160,20 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
         self._thinking_active: bool = False
         self._thinking_job: str | None = None
         self._thinking_tick: int = 0
+        self._barge_in_pending: bool = False
+        self._barge_in_speech_frames: int = 0
+        self._barge_in_cooldown_until: float = 0.0
+        self._barge_in_trigger_started_at: float | None = None
+        self._active_response_started_at: float | None = None
+        self._first_audio_chunk_recorded: bool = False
+        self.realtime_mode_var = ctk.StringVar(value="Balanced")
+        self._barge_in_energy_threshold = BARGE_IN_ENERGY_THRESHOLD
+        self._barge_in_min_frames = BARGE_IN_MIN_FRAMES
+        self._barge_in_cooldown_seconds = BARGE_IN_COOLDOWN_SECONDS
+        self._tts_stream_first_chars = TTS_STREAM_FIRST_CHARS
+        self._tts_stream_min_chars = TTS_STREAM_MIN_CHARS
+        self._tts_stream_max_buffer_chars = TTS_STREAM_MAX_BUFFER_CHARS
+        self._tts_stream_max_wait_seconds = TTS_STREAM_MAX_WAIT_SECONDS
         self.thinking_canvas: Any | None = None
         self.log_queue: queue.Queue[str] = queue.Queue()
         self.log_pump_job_id: str | None = None
@@ -182,6 +196,8 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
             "ollama_first_token_seconds": [],
             "ollama_total_seconds": [],
             "tts_chunk_seconds": [],
+            "first_audio_seconds": [],
+            "barge_in_reaction_seconds": [],
         }
         self.counters: dict[str, int] = {
             "recordings_started": 0,
@@ -252,6 +268,7 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
         self._ww_whisper_model: Any | None = None
 
         self._load_profile()
+        self.apply_realtime_preset(self.realtime_mode_var.get(), announce=False)
         # Remember the theme that was active at startup for restart-guard
         self._active_appearance_mode = self.appearance_mode_var.get().strip().capitalize() or "Dark"
         self.on_appearance_mode_changed(self.appearance_mode_var.get())
@@ -420,10 +437,49 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
         latency_text = (
             f"Transkription: {self._format_metric('transcription_seconds')} | "
             f"First token: {self._format_metric('ollama_first_token_seconds')} | "
+            f"First audio: {self._format_metric('first_audio_seconds')} | "
+            f"Barge-in: {self._format_metric('barge_in_reaction_seconds')} | "
             f"Ollama gesamt: {self._format_metric('ollama_total_seconds')} | "
             f"TTS Chunk: {self._format_metric('tts_chunk_seconds')}"
         )
         self.stats_latency_var.set(latency_text)
+
+    def apply_realtime_preset(self, mode: str, announce: bool = True) -> None:
+        normalized = (mode or "Balanced").strip().capitalize()
+        if normalized not in set(REALTIME_MODE_OPTIONS):
+            normalized = "Balanced"
+
+        if normalized == "Aggressiv":
+            self._barge_in_energy_threshold = 0.014
+            self._barge_in_min_frames = 2
+            self._barge_in_cooldown_seconds = 0.9
+            self._tts_stream_first_chars = 16
+            self._tts_stream_min_chars = 28
+            self._tts_stream_max_buffer_chars = 70
+            self._tts_stream_max_wait_seconds = 0.22
+        elif normalized == "Stabil":
+            self._barge_in_energy_threshold = 0.024
+            self._barge_in_min_frames = 4
+            self._barge_in_cooldown_seconds = 1.8
+            self._tts_stream_first_chars = 32
+            self._tts_stream_min_chars = 55
+            self._tts_stream_max_buffer_chars = 120
+            self._tts_stream_max_wait_seconds = 0.50
+        else:
+            self._barge_in_energy_threshold = BARGE_IN_ENERGY_THRESHOLD
+            self._barge_in_min_frames = BARGE_IN_MIN_FRAMES
+            self._barge_in_cooldown_seconds = BARGE_IN_COOLDOWN_SECONDS
+            self._tts_stream_first_chars = TTS_STREAM_FIRST_CHARS
+            self._tts_stream_min_chars = TTS_STREAM_MIN_CHARS
+            self._tts_stream_max_buffer_chars = TTS_STREAM_MAX_BUFFER_CHARS
+            self._tts_stream_max_wait_seconds = TTS_STREAM_MAX_WAIT_SECONDS
+
+        self.realtime_mode_var.set(normalized)
+        if announce:
+            self.set_status(f"Realtime-Modus aktiv: {normalized}")
+
+    def on_realtime_mode_changed(self, selected_mode: str) -> None:
+        self.apply_realtime_preset(selected_mode, announce=True)
 
     def clear_debug_logs(self) -> None:
         if hasattr(self, "debug_log_box"):
@@ -504,6 +560,7 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
                 "vad_silence_timeout": self.vad_silence_timeout_var.get().strip(),
                 "wake_word_enabled": bool(self.wake_word_enabled_var.get()),
                 "wake_word_model": self.wake_word_model_var.get().strip(),
+                "realtime_mode": self.realtime_mode_var.get().strip(),
             },
         }
 
@@ -590,6 +647,7 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
             if "wake_word_enabled" in audio:
                 self.wake_word_enabled_var.set(bool(audio["wake_word_enabled"]))
             self.wake_word_model_var.set(_str(audio, "wake_word_model", self.wake_word_model_var.get()))
+            self.realtime_mode_var.set(_str(audio, "realtime_mode", self.realtime_mode_var.get()))
         except Exception as exc:
             self.logger.warning("Profil konnte nicht geladen werden: %s", exc)
 
@@ -1217,6 +1275,22 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
             text_color="#22d3ee", anchor="w",
         ).pack(fill="x", padx=14, pady=(0, 10))
 
+        section(aud, "Realtime")
+        lbl(aud, "Latenz-/Stabilitäts-Profil")
+        self.realtime_mode_menu = ctk.CTkOptionMenu(
+            aud,
+            values=REALTIME_MODE_OPTIONS,
+            variable=self.realtime_mode_var,
+            command=self.on_realtime_mode_changed,
+        )
+        self.realtime_mode_menu.pack(fill="x", padx=14, pady=(0, 6))
+        ctk.CTkLabel(
+            aud,
+            text="Aggressiv = schnellste Reaktion, Stabil = weniger Fehltrigger.",
+            text_color="gray60", wraplength=560, justify="left", anchor="w",
+            font=(FONT_FAMILY, 12),
+        ).pack(fill="x", padx=14, pady=(0, 10))
+
         # ── Tab: TTS ──────────────────────────────────────────────────────
         tts = ctk.CTkScrollableFrame(tabs.tab("TTS"), fg_color="transparent")
         tts.pack(fill="both", expand=True)
@@ -1668,6 +1742,21 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
         remaining = text_buffer[last_split_index:]
         return completed, remaining
 
+    def _extract_complete_phrases(self, text_buffer: str) -> tuple[list[str], str]:
+        completed: list[str] = []
+        last_split_index = 0
+        phrase_end_chars = ",;:\n"
+
+        for index, char in enumerate(text_buffer):
+            if char in phrase_end_chars:
+                phrase = text_buffer[last_split_index : index + 1].strip()
+                if phrase:
+                    completed.append(phrase)
+                last_split_index = index + 1
+
+        remaining = text_buffer[last_split_index:]
+        return completed, remaining
+
     def _start_streaming_tts_worker(self) -> tuple[queue.Queue[str | None], threading.Thread]:
         tts_queue: queue.Queue[str | None] = queue.Queue()
         self.current_tts_queue = tts_queue
@@ -1681,6 +1770,12 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
                 try:
                     if self.cancel_tts_event.is_set():
                         continue
+                    if not self._first_audio_chunk_recorded and self._active_response_started_at is not None:
+                        self._first_audio_chunk_recorded = True
+                        self._add_metric_sample(
+                            "first_audio_seconds",
+                            max(0.0, time.perf_counter() - self._active_response_started_at),
+                        )
                     started = time.perf_counter()
                     self.speak_text(item)
                     elapsed = time.perf_counter() - started
@@ -2144,8 +2239,58 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
             # Energy-based VAD
             self._vad_check_energy(peak)
         else:
+            # Duplex mode: user speech can interrupt assistant speech instantly.
+            self._barge_in_check_energy(peak)
             # Feed openwakeword (only when not already recording)
             self._ww_feed_audio(indata[:, 0])
+
+    def _can_barge_in_now(self) -> bool:
+        if self.is_recording:
+            return False
+        return self.pipeline_phase in {"ollama", "tts"}
+
+    def _barge_in_check_energy(self, peak: float) -> None:
+        if not self._can_barge_in_now():
+            self._barge_in_speech_frames = 0
+            return
+
+        if self._barge_in_pending:
+            return
+
+        now = time.perf_counter()
+        if now < self._barge_in_cooldown_until:
+            return
+
+        if peak >= self._barge_in_energy_threshold:
+            self._barge_in_speech_frames += 1
+        else:
+            self._barge_in_speech_frames = max(0, self._barge_in_speech_frames - 1)
+
+        if self._barge_in_speech_frames < self._barge_in_min_frames:
+            return
+
+        self._barge_in_speech_frames = 0
+        self._barge_in_pending = True
+        self._barge_in_trigger_started_at = now
+        self._barge_in_cooldown_until = now + self._barge_in_cooldown_seconds
+        self.after(0, self._trigger_barge_in)
+
+    def _trigger_barge_in(self) -> None:
+        self._barge_in_pending = False
+        if not self._can_barge_in_now():
+            return
+
+        self.logger.info("Barge-in erkannt: laufende Antwort wird unterbrochen")
+        if self._barge_in_trigger_started_at is not None:
+            self._add_metric_sample(
+                "barge_in_reaction_seconds",
+                max(0.0, time.perf_counter() - self._barge_in_trigger_started_at),
+            )
+            self._barge_in_trigger_started_at = None
+        self._track_event("Barge-in: Antwort unterbrochen")
+        self.set_status("Barge-in erkannt: Ich hoere zu...")
+        self.cancel_current_response()
+        self.after(80, self.start_recording)
 
     def _vad_check_energy(self, peak: float) -> None:
         if not self.vad_enabled_var.get():
@@ -3063,6 +3208,8 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
         try:
             self.cancel_ollama_event.clear()
             self.cancel_tts_event.clear()
+            self._active_response_started_at = request_started
+            self._first_audio_chunk_recorded = False
             self.after(0, lambda: self.cancel_btn.configure(state="normal"))
             self._increment_counter("ollama_requests")
             self.logger.info("Ollama Anfrage gestartet (%d Zeichen Input)", len(transcript))
@@ -3116,6 +3263,7 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
             tts_text_buffer = ""
             tts_phrase_buffer = ""
             tts_phrase_count = 0
+            tts_last_emit_at = request_started
             tts_first_emitted = False  # erste Phrase sofort senden, unabhängig von der Mindestlänge
 
             if self.auto_speak_var.get():
@@ -3134,6 +3282,7 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
                 nonlocal tts_text_buffer
                 nonlocal tts_phrase_buffer
                 nonlocal tts_phrase_count
+                nonlocal tts_last_emit_at
                 nonlocal tts_first_emitted
 
                 if self.cancel_ollama_event.is_set():
@@ -3150,31 +3299,64 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
 
                 if tts_queue is not None:
                     tts_text_buffer += chunk
-                    ready_sentences, tts_text_buffer = self._extract_complete_sentences(tts_text_buffer)
-                    for sentence in ready_sentences:
-                        normalized_sentence = sentence.strip()
-                        if not normalized_sentence:
-                            continue
+
+                    def enqueue_phrase(phrase: str) -> None:
+                        nonlocal tts_phrase_buffer
+                        nonlocal tts_phrase_count
+                        nonlocal tts_last_emit_at
+                        nonlocal tts_first_emitted
+
+                        normalized_phrase = phrase.strip()
+                        if not normalized_phrase:
+                            return
 
                         if tts_phrase_buffer:
-                            tts_phrase_buffer = f"{tts_phrase_buffer} {normalized_sentence}"
+                            tts_phrase_buffer = f"{tts_phrase_buffer} {normalized_phrase}"
                         else:
-                            tts_phrase_buffer = normalized_sentence
+                            tts_phrase_buffer = normalized_phrase
                         tts_phrase_count += 1
 
                         should_emit_phrase = (
-                            not tts_first_emitted  # erste Phrase immer sofort
-                            or len(tts_phrase_buffer) >= TTS_STREAM_MIN_CHARS
+                            (not tts_first_emitted and len(tts_phrase_buffer) >= self._tts_stream_first_chars)
+                            or len(tts_phrase_buffer) >= self._tts_stream_min_chars
                             or tts_phrase_count >= TTS_STREAM_MAX_SENTENCES
-                            or normalized_sentence.endswith("\n")
+                            or normalized_phrase.endswith("\n")
                         )
                         if should_emit_phrase:
                             tts_queue.put(tts_phrase_buffer)
+                            tts_last_emit_at = time.perf_counter()
                             tts_first_emitted = True
                             tts_phrase_buffer = ""
                             tts_phrase_count = 0
 
-                should_flush = len(chunk_buffer) >= 8 or chunk.endswith((".", "!", "?", "\n"))
+                    ready_sentences, tts_text_buffer = self._extract_complete_sentences(tts_text_buffer)
+                    for sentence in ready_sentences:
+                        enqueue_phrase(sentence)
+
+                    ready_phrases, tts_text_buffer = self._extract_complete_phrases(tts_text_buffer)
+                    for phrase in ready_phrases:
+                        enqueue_phrase(phrase)
+
+                    if len(tts_text_buffer) >= self._tts_stream_max_buffer_chars:
+                        split_idx = tts_text_buffer.rfind(" ", 0, self._tts_stream_max_buffer_chars)
+                        if split_idx <= 0:
+                            split_idx = self._tts_stream_max_buffer_chars
+                        chunked_phrase = tts_text_buffer[:split_idx].strip()
+                        tts_text_buffer = tts_text_buffer[split_idx:].lstrip()
+                        enqueue_phrase(chunked_phrase)
+
+                    if (
+                        tts_phrase_buffer
+                        and (time.perf_counter() - tts_last_emit_at) >= self._tts_stream_max_wait_seconds
+                        and len(tts_phrase_buffer) >= self._tts_stream_first_chars
+                    ):
+                        tts_queue.put(tts_phrase_buffer)
+                        tts_last_emit_at = time.perf_counter()
+                        tts_first_emitted = True
+                        tts_phrase_buffer = ""
+                        tts_phrase_count = 0
+
+                should_flush = len(chunk_buffer) >= 3 or chunk.endswith((".", "!", "?", "\n"))
                 if should_flush:
                     flush_chunks()
 
@@ -3225,6 +3407,8 @@ class VoiceAssistantUI(OllamaMixin, TtsMixin, WakeWordMixin, ctk.CTk):
             self._log_exception("Ollama", exc)
             self.set_status(f"Fehler: {exc}")
         finally:
+            self._active_response_started_at = None
+            self._first_audio_chunk_recorded = False
             # Ensure TTS worker is always terminated even on exception.
             if tts_queue is not None and self.current_tts_queue is tts_queue:
                 try:

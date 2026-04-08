@@ -2181,3 +2181,10 @@ UnboundLocalError: cannot access local variable 'tts_queue' where it is not asso
 2026-04-07 15:42:22,323 | WARNING | MainThread | Aktive Antwort wurde abgebrochen
 2026-04-07 15:42:22,348 | INFO | MainThread | Status: Antwort abgebrochen
 2026-04-07 15:42:22,405 | INFO | MainThread | Status: Avatar-Viewer gestoppt
+2026-04-08 08:15:03,004 | INFO | MainThread | Voice Studio gestartet
+2026-04-08 08:15:05,211 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-08 08:15:05,211 | INFO | MainThread | Status: Mikrofone geladen: 2
+2026-04-08 08:15:05,669 | INFO | MainThread | Unified audio stream gestartet (16000 Hz, device=None)
+2026-04-08 08:15:31,583 | INFO | MainThread | Status: Avatar-Viewer gestartet
+2026-04-08 08:15:31,594 | INFO | MainThread | Avatar-Viewer gestartet (Port 18456)
+2026-04-08 08:15:50,879 | INFO | OWW-Loader | Wake-word: >>hey_jarvis<< bereit
